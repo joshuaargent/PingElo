@@ -6,6 +6,25 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized, getAdminSessionOrForbidden } from "@/lib/auth-actions";
 
+// Validation constants
+const MIN_SCORE = 3;
+const MAX_SCORE = 21;
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 1000;
+const MAX_PARTICIPANTS = 64;
+const MIN_PARTICIPANTS = 2;
+
+// Valid tournament formats
+const VALID_FORMATS = ["SINGLE_ELIMINATION", "DOUBLE_ELIMINATION", "ROUND_ROBIN", "SWISS"];
+
+// Sanitize string input to prevent XSS
+function sanitizeString(str: string): string {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/[<>]/g, "") // Remove potential HTML tags
+    .trim();
+}
+
 /**
  * GET /api/tournaments/[id] - Get tournament details
  */
@@ -173,14 +192,81 @@ export async function PATCH(
 
     const updateData: Record<string, unknown> = {};
 
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.maxScore !== undefined) updateData.maxScore = body.maxScore;
-    if (body.format !== undefined) updateData.format = body.format;
-    if (body.maxParticipants !== undefined) updateData.maxParticipants = body.maxParticipants;
-    if (body.startsAt !== undefined) {
-      updateData.startsAt = body.startsAt ? new Date(body.startsAt) : null;
+    // Validate and sanitize name
+    if (body.name !== undefined) {
+      const sanitizedName = sanitizeString(String(body.name));
+      if (sanitizedName.length > MAX_NAME_LENGTH) {
+        return NextResponse.json(
+          { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
+          { status: 400 }
+        );
+      }
+      updateData.name = sanitizedName;
     }
+
+    // Validate and sanitize description
+    if (body.description !== undefined) {
+      const sanitizedDesc = body.description ? sanitizeString(String(body.description)) : null;
+      if (sanitizedDesc && sanitizedDesc.length > MAX_DESCRIPTION_LENGTH) {
+        return NextResponse.json(
+          { error: `Description must be ${MAX_DESCRIPTION_LENGTH} characters or less` },
+          { status: 400 }
+        );
+      }
+      updateData.description = sanitizedDesc;
+    }
+
+    // Validate maxScore
+    if (body.maxScore !== undefined) {
+      const maxScore = Number(body.maxScore);
+      if (isNaN(maxScore) || maxScore < MIN_SCORE || maxScore > MAX_SCORE) {
+        return NextResponse.json(
+          { error: `Max score must be between ${MIN_SCORE} and ${MAX_SCORE}` },
+          { status: 400 }
+        );
+      }
+      updateData.maxScore = maxScore;
+    }
+
+    // Validate format
+    if (body.format !== undefined) {
+      if (!VALID_FORMATS.includes(body.format)) {
+        return NextResponse.json(
+          { error: `Invalid format. Must be one of: ${VALID_FORMATS.join(", ")}` },
+          { status: 400 }
+        );
+      }
+      updateData.format = body.format;
+    }
+
+    // Validate maxParticipants
+    if (body.maxParticipants !== undefined) {
+      const maxParticipants = Number(body.maxParticipants);
+      if (isNaN(maxParticipants) || maxParticipants < MIN_PARTICIPANTS || maxParticipants > MAX_PARTICIPANTS) {
+        return NextResponse.json(
+          { error: `Max participants must be between ${MIN_PARTICIPANTS} and ${MAX_PARTICIPANTS}` },
+          { status: 400 }
+        );
+      }
+      updateData.maxParticipants = maxParticipants;
+    }
+
+    // Validate startsAt
+    if (body.startsAt !== undefined) {
+      if (body.startsAt === null || body.startsAt === "") {
+        updateData.startsAt = null;
+      } else {
+        const parsedDate = new Date(body.startsAt);
+        if (isNaN(parsedDate.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid start date format" },
+            { status: 400 }
+          );
+        }
+        updateData.startsAt = parsedDate;
+      }
+    }
+
     if (body.status !== undefined) {
       const validTransitions: Record<string, string[]> = {
         DRAFT: ["REGISTRATION_OPEN", "CANCELLED"],

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
+import { calculateEntryFee, calculateDoublesEntryFee } from "@/lib/elo";
 
 export async function POST(
   request: NextRequest,
@@ -76,14 +77,20 @@ export async function POST(
       );
     }
 
-    // Calculate refund amount
+    // Calculate refund amount - use LOCKED-IN entry values, NOT current ELO
+    // The entry fee was calculated at entry time based on eloAtEntry
     let entryFee = 0;
     if (participant.teamId && participant.team) {
-      // For doubles: refund the full team entry fee
-      entryFee = participant.eloAtEntry - participant.team.foreverElo;
+      // For doubles: use the locked-in entry ELO values (participant.player1EloAtEntry, player2EloAtEntry)
+      // Each player paid a fee based on their ELO at entry time
+      // We stored this info in the participant record - recalculate the fee
+      const p1EloAtEntry = participant.player1EloAtEntry || participant.team.player1.foreverElo;
+      const p2EloAtEntry = participant.player2EloAtEntry || participant.team.player2?.foreverElo || participant.team.player1.foreverElo;
+      // Recalculate the entry fee based on ELOs at time of entry
+      entryFee = calculateDoublesEntryFee(p1EloAtEntry, p2EloAtEntry) * 2;
     } else if (participant.userId && participant.user) {
-      // For singles: refund based on difference
-      entryFee = participant.eloAtEntry - participant.user.foreverElo;
+      // For singles: use eloAtEntry to calculate what they paid
+      entryFee = calculateEntryFee(participant.eloAtEntry);
     }
 
     // Refund entry fee, create history entries, and deduct from prize pool

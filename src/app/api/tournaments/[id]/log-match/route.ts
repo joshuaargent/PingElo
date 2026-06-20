@@ -353,8 +353,11 @@ export async function POST(
               // 2. Give team the total of both players' rewards
               const firstPlacePrize = Math.floor(prizePool * first);
               const secondPlacePrize = Math.floor(prizePool * second);
-              const firstPerPlayer = Math.floor(firstPlacePrize / 2);
-              const secondPerPlayer = Math.floor(secondPlacePrize / 2);
+              // Use Math.ceil for one player, Math.floor for other to avoid losing ELO from odd division
+              const firstPerPlayer = Math.ceil(firstPlacePrize / 2);
+              const secondPerPlayer = Math.floor(firstPlacePrize / 2);
+              const secondPlaceFirst = Math.ceil(secondPlacePrize / 2);
+              const secondPlaceSecond = Math.floor(secondPlacePrize / 2);
 
               // Get winning team and players
               const firstTeam = await prisma.team.findUnique({
@@ -362,7 +365,7 @@ export async function POST(
                 include: { player1: true, player2: true }
               });
               if (firstTeam) {
-                // Give each player their individual reward
+                // Give each player their individual reward (ceil for one, floor for other)
                 await prisma.user.update({
                   where: { id: firstTeam.player1Id },
                   data: { doublesForeverElo: { increment: firstPerPlayer } },
@@ -370,7 +373,7 @@ export async function POST(
                 if (firstTeam.player2Id) {
                   await prisma.user.update({
                     where: { id: firstTeam.player2Id },
-                    data: { doublesForeverElo: { increment: firstPerPlayer } },
+                    data: { doublesForeverElo: { increment: secondPerPlayer } },
                   });
                 }
                 // Give team the total
@@ -389,12 +392,12 @@ export async function POST(
                 if (secondTeam) {
                   await prisma.user.update({
                     where: { id: secondTeam.player1Id },
-                    data: { doublesForeverElo: { increment: secondPerPlayer } },
+                    data: { doublesForeverElo: { increment: secondPlaceFirst } },
                   });
                   if (secondTeam.player2Id) {
                     await prisma.user.update({
                       where: { id: secondTeam.player2Id },
-                      data: { doublesForeverElo: { increment: secondPerPlayer } },
+                      data: { doublesForeverElo: { increment: secondPlaceSecond } },
                     });
                   }
                   await prisma.team.update({
@@ -425,7 +428,9 @@ export async function POST(
                 } else {
                   // Doubles 3rd place: players + team
                   const thirdPlacePrize = Math.floor(prizePool * third);
-                  const perPlayer = Math.floor(thirdPlacePrize / 2);
+                  // Use ceil for one player, floor for other to avoid losing ELO
+                  const perPlayer1 = Math.ceil(thirdPlacePrize / 2);
+                  const perPlayer2 = Math.floor(thirdPlacePrize / 2);
                   const thirdTeam = await prisma.team.findUnique({
                     where: { id: thirdPlaceId },
                     include: { player1: true, player2: true }
@@ -433,12 +438,12 @@ export async function POST(
                   if (thirdTeam) {
                     await prisma.user.update({
                       where: { id: thirdTeam.player1Id },
-                      data: { doublesForeverElo: { increment: perPlayer } },
+                      data: { doublesForeverElo: { increment: perPlayer1 } },
                     });
                     if (thirdTeam.player2Id) {
                       await prisma.user.update({
                         where: { id: thirdTeam.player2Id },
-                        data: { doublesForeverElo: { increment: perPlayer } },
+                        data: { doublesForeverElo: { increment: perPlayer2 } },
                       });
                     }
                     await prisma.team.update({

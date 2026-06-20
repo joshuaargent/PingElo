@@ -339,6 +339,30 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Check for duplicate/rapid match submissions (race condition prevention) for doubles
+      const recentDoublesMatch = await prisma.match.findFirst({
+        where: {
+          matchType: "DOUBLES",
+          OR: [
+            // Same team1 vs same team2 (order doesn't matter)
+            { team1Id: usedTeam1Id, team2Id: usedTeam2Id },
+            { team1Id: usedTeam2Id, team2Id: usedTeam1Id },
+          ],
+          createdAt: {
+            gte: new Date(Date.now() - MATCH_COOLDOWN_MS),
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      });
+
+      if (recentDoublesMatch) {
+        return NextResponse.json(
+          { error: "Please wait before logging another match between these teams" },
+          { status: 429 }
+        );
+      }
+
       const playerMap = new Map(players.map(p => [p.id, p]));
       const p1 = playerMap.get(t1p1Id)!;
       const p2 = playerMap.get(t1p2Id)!;
