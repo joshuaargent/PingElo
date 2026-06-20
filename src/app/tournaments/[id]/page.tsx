@@ -707,7 +707,7 @@ export default function TournamentDetailPage() {
                 </div>
                 <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">{tournament.participants.length}/{tournament.maxParticipants}</div>
-                  <p className="text-sm text-text-secondary mt-1">Players</p>
+                  <p className="text-sm text-text-secondary mt-1">{tournament.matchType === 'DOUBLES' ? 'Teams' : 'Players'}</p>
                 </div>
                 <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">
@@ -815,8 +815,8 @@ export default function TournamentDetailPage() {
                     <Trophy className="h-5 w-5 text-accent" />
                     Prize Pool
                   </h3>
-                  <p className="text-sm text-text-secondary mt-1">
-                    1st: 60% | 2nd: 25% | 3rd/4th: 7.5% each
+                  <p className="text-xs text-text-muted">
+                    1st: 50% | 2nd: 35% | 3rd: 15%
                   </p>
                 </div>
                 <div className="text-3xl font-bold text-accent">{tournament.prizePool} ELO</div>

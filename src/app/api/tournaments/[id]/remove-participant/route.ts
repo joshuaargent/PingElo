@@ -102,7 +102,7 @@ export async function POST(
 
         // Split refund between team players
         const feePerPlayer = Math.floor(entryFee / 2);
-        for (const player of [participant.team.player1, participant.team.player2]) {
+        for (const player of [participant.team.player1, participant.team.player2].filter(Boolean) as any[]) {
           await prisma.eloHistory.create({
             data: {
               userId: player.id,

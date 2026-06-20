@@ -28,7 +28,7 @@ interface LeaderboardEntry {
 
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
-  type?: 'forever' | 'season';
+  type?: 'forever' | 'season' | 'teams';
   matchType?: 'singles' | 'doubles';
   showSeasonElo?: boolean;
   className?: string;
@@ -114,7 +114,7 @@ Leaderboard.displayName = 'Leaderboard';
 
 interface LeaderboardRowProps {
   entry: LeaderboardEntry;
-  type?: 'forever' | 'season';
+  type?: 'forever' | 'season' | 'teams';
   matchType?: 'singles' | 'doubles';
   showSeasonElo?: boolean;
   onClick?: () => void;
@@ -123,6 +123,9 @@ interface LeaderboardRowProps {
 function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: LeaderboardRowProps) {
   // Get the appropriate ELO based on match type and ELO type
   const getDisplayElo = () => {
+    if (type === 'teams') {
+      return entry.foreverElo;
+    }
     if (matchType === 'doubles') {
       return type === 'forever' ? (entry.doublesForeverElo || 1000) : (entry.doublesSeasonElo || 1000);
     }

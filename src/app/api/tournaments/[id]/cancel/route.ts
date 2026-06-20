@@ -44,10 +44,11 @@ export async function POST(
         if (participant.teamId && participant.team) {
           // Doubles: refund each player based on team average ELO
           const p1Elo = participant.player1EloAtEntry || participant.team.player1.foreverElo;
-          const p2Elo = participant.player2EloAtEntry || participant.team.player2.foreverElo;
+          const p2Elo = participant.player2EloAtEntry || participant.team.player2?.foreverElo || participant.team.player1.foreverElo;
           const feePerPlayer = calculateDoublesEntryFee(p1Elo, p2Elo);
 
           if (feePerPlayer > 0) {
+            // Refund player 1
             await tx.user.update({
               where: { id: participant.team.player1Id },
               data: { foreverElo: participant.team.player1.foreverElo + feePerPlayer },
@@ -63,21 +64,25 @@ export async function POST(
                 metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
               },
             });
-            await tx.user.update({
-              where: { id: participant.team.player2Id },
-              data: { foreverElo: participant.team.player2.foreverElo + feePerPlayer },
-            });
-            await tx.eloHistory.create({
-              data: {
-                userId: participant.team.player2Id,
-                changeType: 'TOURNAMENT_ENTRY',
-                eloBefore: participant.team.player2.foreverElo,
-                eloAfter: participant.team.player2.foreverElo + feePerPlayer,
-                change: feePerPlayer,
-                description: `Tournament cancelled: ${tournament.name}`,
-                metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
-              },
-            });
+            // Refund player 2 if exists
+            if (participant.team.player2Id) {
+              const p2Elo = participant.team.player2?.foreverElo || participant.team.player1.foreverElo;
+              await tx.user.update({
+                where: { id: participant.team.player2Id },
+                data: { foreverElo: p2Elo + feePerPlayer },
+              });
+              await tx.eloHistory.create({
+                data: {
+                  userId: participant.team.player2Id,
+                  changeType: 'TOURNAMENT_ENTRY',
+                  eloBefore: p2Elo,
+                  eloAfter: p2Elo + feePerPlayer,
+                  change: feePerPlayer,
+                  description: `Tournament cancelled: ${tournament.name}`,
+                  metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
+                },
+              });
+            }
           }
         } else if (participant.userId && participant.user) {
           // Singles: refund the player

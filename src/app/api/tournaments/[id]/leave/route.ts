@@ -68,18 +68,21 @@ export async function POST(
           data: { foreverElo: participant.team.foreverElo + entryFee },
         });
         const feePerPlayer = Math.floor(entryFee / 2);
-        for (const player of [participant.team.player1, participant.team.player2]) {
-          await tx.eloHistory.create({
-            data: {
-              userId: player.id,
-              changeType: 'TOURNAMENT_ENTRY',
-              eloBefore: player.foreverElo,
-              eloAfter: player.foreverElo + feePerPlayer,
-              change: feePerPlayer,
-              description: `Refund for leaving tournament: ${tournament.name}`,
-              metadata: { tournamentId, teamId: participant.teamId, isRefund: true },
-            },
-          });
+        const teamMembers = [participant.team.player1, participant.team.player2].filter(Boolean);
+        for (const player of teamMembers) {
+          if (player) {
+            await tx.eloHistory.create({
+              data: {
+                userId: player.id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: player.foreverElo,
+                eloAfter: player.foreverElo + feePerPlayer,
+                change: feePerPlayer,
+                description: `Refund for leaving tournament: ${tournament.name}`,
+                metadata: { tournamentId, teamId: participant.teamId, isRefund: true },
+              },
+            });
+          }
         }
       } else if (participant.userId && participant.user) {
         await tx.user.update({

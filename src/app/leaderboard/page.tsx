@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Leaderboard } from '@/components/elo/Leaderboard';
 import { Card } from '@/components/ui/Card';
-import { User, Users, Trophy, TrendingUp, Crown } from 'lucide-react';
+import { User, Users, Trophy, TrendingUp, Crown, Shield } from 'lucide-react';
 
-type LeaderboardType = 'forever' | 'season';
+type LeaderboardType = 'forever' | 'season' | 'teams';
 type MatchType = 'singles' | 'doubles';
 
 interface Season {
@@ -41,6 +41,7 @@ interface LeaderboardEntry {
 export default function LeaderboardPage() {
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>('forever');
   const [matchType, setMatchType] = useState<MatchType>('singles');
+  const [activeTeamsOnly, setActiveTeamsOnly] = useState(false);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>('all');
@@ -65,6 +66,38 @@ export default function LeaderboardPage() {
     async function fetchLeaderboard() {
       setIsLoading(true);
       try {
+        // If teams mode, fetch teams leaderboard
+        if (leaderboardType === 'teams') {
+          const params = new URLSearchParams({
+            activeOnly: activeTeamsOnly.toString(),
+          });
+          const res = await fetch(`/api/leaderboard/teams?${params.toString()}`);
+          if (res.ok) {
+            const data = await res.json();
+            // Transform teams to match the LeaderboardEntry interface
+            const teamsAsEntries = data.teams.map((team: any) => ({
+              rank: team.rank,
+              userId: team.teamId,
+              name: team.name,
+              image: null,
+              foreverElo: team.elo,
+              seasonElo: team.elo,
+              doublesForeverElo: team.elo,
+              doublesSeasonElo: team.elo,
+              matchesPlayed: team.matchesPlayed,
+              wins: team.wins,
+              losses: team.losses,
+              winRate: team.winRate,
+              lastMatchDate: null,
+              isRusty: false,
+              isActive: team.isActive,
+            }));
+            setEntries(teamsAsEntries);
+          }
+          setIsLoading(false);
+          return;
+        }
+
         // Build the URL with query params
         const params = new URLSearchParams({
           includeStats: 'true',
@@ -114,7 +147,7 @@ export default function LeaderboardPage() {
       }
     }
     fetchLeaderboard();
-  }, [leaderboardType, matchType, selectedSeasonId]);
+  }, [leaderboardType, matchType, selectedSeasonId, activeTeamsOnly]);
 
   return (
     <>
@@ -193,6 +226,17 @@ export default function LeaderboardPage() {
             >
               Season
             </button>
+            <button
+              onClick={() => setLeaderboardType('teams')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                leaderboardType === 'teams'
+                  ? 'bg-bg-primary text-text-primary shadow-sm'
+                  : 'hover:bg-bg-primary/50'
+              }`}
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              Teams
+            </button>
           </div>
 
           {/* Season Filter (only shown when season ELO is selected) */}
@@ -209,6 +253,19 @@ export default function LeaderboardPage() {
                 </option>
               ))}
             </select>
+          )}
+
+          {/* Teams Active Filter (only shown when teams is selected) */}
+          {leaderboardType === 'teams' && (
+            <label className="inline-flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={activeTeamsOnly}
+                onChange={(e) => setActiveTeamsOnly(e.target.checked)}
+                className="w-4 h-4 rounded border-border bg-bg-secondary text-accent focus:ring-accent"
+              />
+              Active teams only
+            </label>
           )}
         </div>
 

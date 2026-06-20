@@ -367,10 +367,12 @@ export async function POST(
                   where: { id: firstTeam.player1Id },
                   data: { doublesForeverElo: { increment: firstPerPlayer } },
                 });
-                await prisma.user.update({
-                  where: { id: firstTeam.player2Id },
-                  data: { doublesForeverElo: { increment: firstPerPlayer } },
-                });
+                if (firstTeam.player2Id) {
+                  await prisma.user.update({
+                    where: { id: firstTeam.player2Id },
+                    data: { doublesForeverElo: { increment: firstPerPlayer } },
+                  });
+                }
                 // Give team the total
                 await prisma.team.update({
                   where: { id: firstPlaceId },
@@ -389,10 +391,12 @@ export async function POST(
                     where: { id: secondTeam.player1Id },
                     data: { doublesForeverElo: { increment: secondPerPlayer } },
                   });
-                  await prisma.user.update({
-                    where: { id: secondTeam.player2Id },
-                    data: { doublesForeverElo: { increment: secondPerPlayer } },
-                  });
+                  if (secondTeam.player2Id) {
+                    await prisma.user.update({
+                      where: { id: secondTeam.player2Id },
+                      data: { doublesForeverElo: { increment: secondPerPlayer } },
+                    });
+                  }
                   await prisma.team.update({
                     where: { id: secondPlaceId },
                     data: { foreverElo: { increment: secondPlacePrize } },
@@ -431,10 +435,12 @@ export async function POST(
                       where: { id: thirdTeam.player1Id },
                       data: { doublesForeverElo: { increment: perPlayer } },
                     });
-                    await prisma.user.update({
-                      where: { id: thirdTeam.player2Id },
-                      data: { doublesForeverElo: { increment: perPlayer } },
-                    });
+                    if (thirdTeam.player2Id) {
+                      await prisma.user.update({
+                        where: { id: thirdTeam.player2Id },
+                        data: { doublesForeverElo: { increment: perPlayer } },
+                      });
+                    }
                     await prisma.team.update({
                       where: { id: thirdPlaceId },
                       data: { foreverElo: { increment: thirdPlacePrize } },

@@ -194,7 +194,7 @@ export async function POST(
       },
     });
     
-    const player2ActiveTeams = await prisma.team.count({
+    const player2ActiveTeams = team.player2Id ? await prisma.team.count({
       where: {
         isActive: true,
         OR: [
@@ -202,7 +202,7 @@ export async function POST(
           { player2Id: team.player2Id },
         ],
       },
-    });
+    }) : 0;
     
     if (player1ActiveTeams >= MAX_TEAMS_PER_PERSON) {
       const player1 = await prisma.user.findUnique({ where: { id: team.player1Id } });
@@ -212,7 +212,7 @@ export async function POST(
     }
     
     if (player2ActiveTeams >= MAX_TEAMS_PER_PERSON) {
-      const player2 = await prisma.user.findUnique({ where: { id: team.player2Id } });
+      const player2 = team.player2Id ? await prisma.user.findUnique({ where: { id: team.player2Id } }) : null;
       return NextResponse.json({ 
         error: `${player2?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams` 
       }, { status: 400 });
@@ -264,7 +264,9 @@ export async function POST(
   }
 }
 
-// DELETE /api/teams/[id] - Deactivate a team (don't delete, just make inactive)
+// DELETE /api/teams/[id] - Delete or deactivate a team
+// If team has never played (no matches), permanently delete it
+// If team has played, just mark as inactive (preserve history)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -272,34 +274,55 @@ export async function DELETE(
   try {
     const { session, response } = await getSessionOrUnauthorized();
     if (response) return response;
-    
+
     const { id } = await params;
     const userId = session!.user.id;
-    
+
     const team = await prisma.team.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: { tournamentParticipants: true }
+        }
+      }
     });
-    
+
     if (!team) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
-    
-    // Only team creator (player1) can deactivate
+
+    // Only team creator (player1) can delete/deactivate
     if (team.player1Id !== userId) {
-      return NextResponse.json({ 
-        error: "Only the team creator can deactivate this team" 
+      return NextResponse.json({
+        error: "Only the team creator can delete this team"
       }, { status: 403 });
     }
-    
-    // Just mark as inactive, don't delete (preserve history)
+
+    // If team has never played any matches and no tournament participation, permanently delete
+    if (team.totalMatchesPlayed === 0 && team._count.tournamentParticipants === 0) {
+      await prisma.team.delete({
+        where: { id },
+      });
+      return NextResponse.json({ 
+        success: true, 
+        message: "Team permanently deleted",
+        permanentlyDeleted: true 
+      });
+    }
+
+    // Team has played or participated - just mark as inactive (preserve history)
     await prisma.team.update({
       where: { id },
       data: { isActive: false },
     });
-    
-    return NextResponse.json({ success: true, message: "Team deactivated" });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Team deactivated (history preserved)",
+      permanentlyDeleted: false 
+    });
   } catch (error) {
-    console.error("Error deactivating team:", error);
-    return NextResponse.json({ error: "Failed to deactivate team" }, { status: 500 });
+    console.error("Error deleting team:", error);
+    return NextResponse.json({ error: "Failed to delete team" }, { status: 500 });
   }
 }

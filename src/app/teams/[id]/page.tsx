@@ -157,6 +157,19 @@ export default function TeamDetailPage() {
     }
   }
 
+  async function leaveTeam() {
+    if (!confirm("Leave this team? Your spot will be given to someone else.")) return;
+    const res = await fetch(`/api/teams/${teamId}/leave`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      alert(data.message || "You left the team!");
+      router.push("/teams");
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to leave team");
+    }
+  }
+
   useEffect(() => {
     if (showConfetti) {
       setTimeout(() => {
@@ -191,6 +204,7 @@ export default function TeamDetailPage() {
 
   const isMember = team.player1.id === session?.user?.id || team.player2.id === session?.user?.id;
   const isCreator = team.player1.id === session?.user?.id;
+  const isPlayer2 = team.player2?.id === session?.user?.id;
   const w = team.totalWins;
   const l = team.totalLosses;
   const total = team.totalMatchesPlayed;
@@ -337,6 +351,11 @@ export default function TeamDetailPage() {
               {/* Actions */}
               {!isEditing && (
                 <div className="flex gap-2">
+                  {isMember && team.isActive && isPlayer2 && (
+                    <Button variant="ghost" size="sm" onClick={leaveTeam} className="text-red-500">
+                      Leave Team
+                    </Button>
+                  )}
                   {isMember && team.isActive && isCreator && (
                     <Button variant="ghost" size="sm" onClick={deactivateTeam} className="text-red-500">
                       Deactivate

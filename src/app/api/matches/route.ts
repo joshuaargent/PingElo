@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor } from "@/lib/elo";
+import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor, calculateStreak, calculateStreakBonus } from "@/lib/elo";
 
 // Validation constants
 const MIN_SCORE = 3;
@@ -291,6 +291,11 @@ export async function POST(request: NextRequest) {
 
       const players = await prisma.user.findMany({
         where: { id: { in: playerIds } },
+        select: { 
+          id: true, name: true, isBanned: true, 
+          doublesForeverElo: true, doublesMatchesPlayed: true, doublesSeasonElo: true, 
+          currentStreak: true, longestStreak: true, lastMatchDate: true 
+        },
       });
 
       if (players.length !== 4) {
@@ -383,14 +388,19 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Store ELO values before changes
+      // Store ELO values before changes and calculate streaks
+      const p1Streak = calculateStreak(p1.lastMatchDate, p1.currentStreak, p1.longestStreak);
+      const p2Streak = calculateStreak(p2.lastMatchDate, p2.currentStreak, p2.longestStreak);
+      const p3Streak = calculateStreak(p3.lastMatchDate, p3.currentStreak, p3.longestStreak);
+      const p4Streak = calculateStreak(p4.lastMatchDate, p4.currentStreak, p4.longestStreak);
+      
       const team1Players = [
-        { id: t1p1Id, name: p1.name, eloBefore: p1.doublesForeverElo, change: eloResult.individualChanges.team1Player1, seasonEloBefore: p1.doublesSeasonElo },
-        { id: t1p2Id, name: p2.name, eloBefore: p2.doublesForeverElo, change: eloResult.individualChanges.team1Player2, seasonEloBefore: p2.doublesSeasonElo },
+        { id: t1p1Id, name: p1.name, eloBefore: p1.doublesForeverElo, change: eloResult.individualChanges.team1Player1, seasonEloBefore: p1.doublesSeasonElo, streak: p1Streak },
+        { id: t1p2Id, name: p2.name, eloBefore: p2.doublesForeverElo, change: eloResult.individualChanges.team1Player2, seasonEloBefore: p2.doublesSeasonElo, streak: p2Streak },
       ];
       const team2Players = [
-        { id: t2p1Id, name: p3.name, eloBefore: p3.doublesForeverElo, change: eloResult.individualChanges.team2Player1, seasonEloBefore: p3.doublesSeasonElo },
-        { id: t2p2Id, name: p4.name, eloBefore: p4.doublesForeverElo, change: eloResult.individualChanges.team2Player2, seasonEloBefore: p4.doublesSeasonElo },
+        { id: t2p1Id, name: p3.name, eloBefore: p3.doublesForeverElo, change: eloResult.individualChanges.team2Player1, seasonEloBefore: p3.doublesSeasonElo, streak: p3Streak },
+        { id: t2p2Id, name: p4.name, eloBefore: p4.doublesForeverElo, change: eloResult.individualChanges.team2Player2, seasonEloBefore: p4.doublesSeasonElo, streak: p4Streak },
       ];
 
       match = await prisma.$transaction(async (tx) => {
@@ -423,11 +433,16 @@ export async function POST(request: NextRequest) {
 
         const allUpdates = [...team1Players, ...team2Players];
         for (const update of allUpdates) {
+          const streakBonus = calculateStreakBonus(update.streak.newStreak);
+          
           await tx.user.update({
             where: { id: update.id },
             data: {
-              doublesForeverElo: update.eloBefore + update.change,
+              doublesForeverElo: update.eloBefore + update.change + streakBonus,
               doublesMatchesPlayed: { increment: 1 },
+              currentStreak: update.streak.newStreak,
+              longestStreak: update.streak.newLongestStreak,
+              lastMatchDate: new Date(),
             },
           });
 
@@ -538,19 +553,39 @@ export async function POST(request: NextRequest) {
               createdById: userId,
             },
             include: {
-              player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
-              player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
+              player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true } },
+              player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true } },
             },
           });
 
+          // Calculate streak for player 1
+          const p1Streak = calculateStreak(player1.lastMatchDate, player1.currentStreak, player1.longestStreak);
+          const p1StreakBonus = calculateStreakBonus(p1Streak.newStreak);
+          
           await tx.user.update({
             where: { id: player1Id },
-            data: { foreverElo: player1.foreverElo + eloResult.player1Change, matchesPlayed: { increment: 1 } },
+            data: { 
+              foreverElo: player1.foreverElo + eloResult.player1Change + p1StreakBonus, 
+              matchesPlayed: { increment: 1 },
+              currentStreak: p1Streak.newStreak,
+              longestStreak: p1Streak.newLongestStreak,
+              lastMatchDate: new Date(),
+            },
           });
 
+          // Calculate streak for player 2
+          const p2Streak = calculateStreak(player2.lastMatchDate, player2.currentStreak, player2.longestStreak);
+          const p2StreakBonus = calculateStreakBonus(p2Streak.newStreak);
+          
           await tx.user.update({
             where: { id: player2Id },
-            data: { foreverElo: player2.foreverElo + eloResult.player2Change, matchesPlayed: { increment: 1 } },
+            data: { 
+              foreverElo: player2.foreverElo + eloResult.player2Change + p2StreakBonus, 
+              matchesPlayed: { increment: 1 },
+              currentStreak: p2Streak.newStreak,
+              longestStreak: p2Streak.newLongestStreak,
+              lastMatchDate: new Date(),
+            },
           });
 
           if (currentSeason) {

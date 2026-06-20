@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
         },
       });
       
-      const player2ActiveTeams = await prisma.team.count({
+      const player2ActiveTeams = existingTeam.player2Id ? await prisma.team.count({
         where: {
           isActive: true,
           OR: [
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
             { player2Id: existingTeam.player2Id },
           ],
         },
-      });
+      }) : 0;
       
       if (player1ActiveTeams >= MAX_TEAMS_PER_PERSON) {
         const player1 = await prisma.user.findUnique({ where: { id: existingTeam.player1Id } });
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
       }
       
       if (player2ActiveTeams >= MAX_TEAMS_PER_PERSON) {
-        const player2 = await prisma.user.findUnique({ where: { id: existingTeam.player2Id } });
+        const player2 = existingTeam.player2Id ? await prisma.user.findUnique({ where: { id: existingTeam.player2Id } }) : null;
         return NextResponse.json({
           error: `${player2?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams`,
         }, { status: 400 });

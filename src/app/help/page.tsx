@@ -218,9 +218,10 @@ export default function HelpPage() {
             <div className="text-sm text-text-secondary space-y-1 mb-3">
               <p>The platform adds 500 ELO to each tournament prize pool:</p>
               <ul className="list-disc list-inside">
-                <li><strong>1st place:</strong> 60% of prize pool</li>
-                <li><strong>2nd place:</strong> 25% of prize pool</li>
-                <li><strong>3rd-4th:</strong> 7.5% each</li>
+                <li><strong>1st place:</strong> 50% of prize pool</li>
+                <li><strong>2nd place:</strong> 35% of prize pool</li>
+                <li><strong>3rd:</strong> 15%</li>
+                <li><strong>4th:</strong> Nothing</li>
               </ul>
             </div>
             <p className="text-sm text-text-secondary">

@@ -500,7 +500,40 @@ export default function AdminDashboardPage() {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="font-semibold text-text-primary mb-4">Data Integrity</h3>
+              <p className="text-sm text-text-secondary mb-4">
+                Use these tools to manage ELO data integrity.
+              </p>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (!confirm('Are you sure? This will recalculate ALL ELO values from match history. This cannot be undone!')) return;
+                  if (!confirm(' REALLY - This is destructive! All ELO will be recalculated from scratch.')) return;
+                  
+                  try {
+                    const res = await fetch('/api/admin/recalculate-elo', { method: 'POST' });
+                    const data = await res.json();
+                    if (res.ok) {
+                      alert('ELO recalculated successfully! ' + data.message);
+                    } else {
+                      alert('Error: ' + data.error);
+                    }
+                  } catch (err) {
+                    alert('Failed to recalculate ELO');
+                  }
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Recalculate All ELO
+              </Button>
+              <p className="text-xs text-text-muted mt-2">
+                This recalculates all ELO from scratch based on match history. Use with caution.
+              </p>
+            </Card>
+
+            <div className="grid lg:grid-cols-2 gap-6">
             <Card className="p-6">
               <h3 className="font-semibold text-text-primary mb-4">ELO Settings</h3>
               <p className="text-sm text-text-secondary mb-4">
@@ -517,14 +550,14 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">K-Factor (New Players)</p>
-                    <p className="text-sm text-text-secondary">ELO change multiplier for 0-10 games</p>
+                    <p className="text-sm text-text-secondary">ELO change multiplier for 0-9 games</p>
                   </div>
                   <Badge variant="primary">64</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">K-Factor (Established)</p>
-                    <p className="text-sm text-text-secondary">ELO change multiplier for 31-100 games</p>
+                    <p className="text-sm text-text-secondary">ELO change multiplier for 30-99 games</p>
                   </div>
                   <Badge variant="primary">32</Badge>
                 </div>
@@ -570,6 +603,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             </Card>
+          </div>
           </div>
         )}
       </div>

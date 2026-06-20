@@ -188,6 +188,68 @@ export function getKFactorLabel(gamesPlayed: number): string {
 }
 
 // ============================================
+// Seasonal K-Factor Calculation  
+// ============================================
+
+/** Seasonal K-factor thresholds - same as lifetime thresholds */
+export const SEASONAL_K_FACTOR_THRESHOLDS = {
+  NEW_PLAYER: 10,      // 0-10 season games (same as lifetime)
+  ADJUSTING: 30,       // 11-30 season games (same as lifetime)
+  ESTABLISHED: 100,   // 31-100 season games (same as lifetime)
+  // 100+ season games uses veteran K-factor
+} as const;
+
+/** Seasonal K-factor values (same as lifetime) */
+export const SEASONAL_K_FACTORS = {
+  NEW_PLAYER: 64,      // Same as lifetime new player
+  ADJUSTING: 48,       // Same as lifetime adjusting
+  ESTABLISHED: 32,     // Same as lifetime established
+  VETERAN: 24,         // Same as lifetime veteran
+} as const;
+
+/**
+ * Gets the K-factor based on season-specific games played
+ * Lower thresholds than lifetime since season resets affect experience
+ */
+export function getSeasonalKFactor(seasonMatchesPlayed: number): number {
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.NEW_PLAYER) {
+    return SEASONAL_K_FACTORS.NEW_PLAYER;
+  }
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.ADJUSTING) {
+    return SEASONAL_K_FACTORS.ADJUSTING;
+  }
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.ESTABLISHED) {
+    return SEASONAL_K_FACTORS.ESTABLISHED;
+  }
+  return SEASONAL_K_FACTORS.VETERAN;
+}
+
+/**
+ * Gets the K-factor for doubles based on season matches played
+ * Uses average of both players' season matches
+ */
+export function getSeasonalDoublesKFactor(player1SeasonMatches: number, player2SeasonMatches: number): number {
+  const averageSeasonMatches = Math.floor((player1SeasonMatches + player2SeasonMatches) / 2);
+  return getSeasonalKFactor(averageSeasonMatches);
+}
+
+/**
+ * Gets a human-readable label for the seasonal K-factor tier
+ */
+export function getSeasonalKFactorLabel(seasonMatchesPlayed: number): string {
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.NEW_PLAYER) {
+    return `Season New (${SEASONAL_K_FACTORS.NEW_PLAYER})`;
+  }
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.ADJUSTING) {
+    return `Season Adjusting (${SEASONAL_K_FACTORS.ADJUSTING})`;
+  }
+  if (seasonMatchesPlayed < SEASONAL_K_FACTOR_THRESHOLDS.ESTABLISHED) {
+    return `Season Established (${SEASONAL_K_FACTORS.ESTABLISHED})`;
+  }
+  return `Season Veteran (${SEASONAL_K_FACTORS.VETERAN})`;
+}
+
+// ============================================
 // Expected Score Calculation
 // ============================================
 
@@ -705,4 +767,85 @@ export function formatEloChange(change: number): string {
   if (change > 0) return `+${change}`;
   if (change < 0) return `${change}`;
   return "0";
+}
+
+// ============================================
+// Activity Streak System
+// ============================================
+
+/** Streak bonus configuration */
+export const STREAK_CONFIG = {
+  /** Days in a row to get bonus */
+  STREAK_THRESHOLD: 3,
+  /** Extra ELO per match when on streak */
+  STREAK_BONUS: 2,
+  /** Maximum streak bonus per day */
+  MAX_DAILY_BONUS: 4,
+  /** Days without play to reset streak */
+  STREAK_GRACE_PERIOD: 2, // Can miss 2 days before losing streak
+} as const;
+
+/**
+ * Calculates new streak values after a match
+ */
+export function calculateStreak(
+  lastMatchDate: Date | null,
+  currentStreak: number,
+  longestStreak: number,
+  today: Date = new Date()
+): { newStreak: number; newLongestStreak: number; hasStreakBonus: boolean } {
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  if (!lastMatchDate) {
+    // First match ever
+    return { newStreak: 1, newLongestStreak: Math.max(1, longestStreak), hasStreakBonus: false };
+  }
+
+  const lastMatchStart = new Date(lastMatchDate);
+  lastMatchStart.setHours(0, 0, 0, 0);
+
+  // Check if already played today
+  if (lastMatchStart.getTime() === todayStart.getTime()) {
+    // Already played today, just return current state
+    const hasStreakBonus = currentStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
+    return { newStreak: currentStreak, newLongestStreak: longestStreak, hasStreakBonus };
+  }
+
+  // Calculate days since last match
+  const daysDiff = Math.floor((todayStart.getTime() - lastMatchStart.getTime()) / (1000 * 60 * 60 * 24));
+
+  let newStreak: number;
+  if (daysDiff === 0) {
+    // Same day - shouldn't happen if checked above
+    newStreak = currentStreak;
+  } else if (daysDiff === 1) {
+    // Consecutive day
+    newStreak = currentStreak + 1;
+  } else if (daysDiff <= STREAK_CONFIG.STREAK_GRACE_PERIOD + 1) {
+    // Within grace period - streak continues but we "missed" some days
+    newStreak = currentStreak + 1;
+  } else {
+    // Streak broken
+    newStreak = 1;
+  }
+
+  const newLongestStreak = Math.max(newStreak, longestStreak);
+  const hasStreakBonus = newStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
+
+  return { newStreak, newLongestStreak, hasStreakBonus };
+}
+
+/**
+ * Calculates the streak bonus ELO for a match
+ */
+export function calculateStreakBonus(currentStreak: number): number {
+  if (currentStreak < STREAK_CONFIG.STREAK_THRESHOLD) {
+    return 0;
+  }
+  // 2 ELO per match, up to max daily bonus
+  return Math.min(STREAK_CONFIG.STREAK_BONUS, STREAK_CONFIG.MAX_DAILY_BONUS);
 }

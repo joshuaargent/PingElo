@@ -64,6 +64,11 @@ model User {
   doublesSeasonElo      Int       @default(1000)
   doublesMatchesPlayed  Int       @default(0)
 
+  // Activity streak tracking
+  currentStreak        Int       @default(0)  // Consecutive days with matches
+  longestStreak        Int       @default(0)   // All-time best streak
+  lastMatchDate        DateTime?
+
   // Season tracking
   seasonId       String?
   season         Season?   @relation(fields: [seasonId], references: [id])
@@ -162,7 +167,7 @@ model Team {
   name          String?   // Optional custom name (e.g., "The Dynamic Duo")
   image         String?   // Optional team avatar/cover image URL
   player1Id     String
-  player2Id     String
+  player2Id     String?
   
   // Whether this team is currently active in the season
   isActive      Boolean   @default(true)
@@ -181,7 +186,7 @@ model Team {
 
   // Relationships
   player1      User      @relation("TeamPlayer1", fields: [player1Id], references: [id])
-  player2      User      @relation("TeamPlayer2", fields: [player2Id], references: [id])
+  player2      User?     @relation("TeamPlayer2", fields: [player2Id], references: [id])
   seasonStats  TeamSeasonStats[]
   tournamentParticipants TournamentParticipant[]
 
