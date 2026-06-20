@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { Users, Plus, Trash2, Info, Calendar, Trophy, Target, Flame, Clock, History } from "lucide-react";
+import { Users, Plus, Trash2, Info, Calendar, Trophy, Target, Flame, Clock, History, Sparkles } from "lucide-react";
 
 interface Team {
   id: string;
@@ -134,6 +134,19 @@ export default function TeamsPage() {
     }
   }
 
+  async function reactivateTeam(teamId: string) {
+    const res = await fetch(`/api/teams/${teamId}`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      alert(data.message || "Team reactivated!");
+      setShowHistory(false);
+      fetchData();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to reactivate team");
+    }
+  }
+
   const canCreateTeam = limits && limits.teamsCreatedByYou < limits.maxTeamsYouCanCreate;
   const canBeInMoreTeams = limits && limits.teamsYouAreIn < limits.maxTeamsYouCanBeIn;
   const hasActiveSeason = currentSeason !== null;
@@ -240,14 +253,14 @@ export default function TeamsPage() {
           <div className="flex justify-between items-center mb-8">
             <div className="flex gap-2">
               <Button 
-                variant={showHistory ? "outline" : "default"} 
+                variant={showHistory ? "secondary" : "primary"} 
                 size="sm"
                 onClick={() => setShowHistory(false)}
               >
                 Current Season
               </Button>
               <Button 
-                variant={showHistory ? "default" : "outline"} 
+                variant={showHistory ? "primary" : "secondary"} 
                 size="sm"
                 onClick={() => setShowHistory(true)}
               >
@@ -353,6 +366,21 @@ export default function TeamsPage() {
                       <div className="text-center"><p className="text-xl font-bold">{l}</p><p className="text-xs text-text-muted">Losses</p></div>
                       <div className="text-center"><p className="text-xl font-bold text-accent">{total > 0 ? Math.round((w/total)*100) : 0}%</p><p className="text-xs text-text-muted">Win Rate</p></div>
                     </div>
+                    
+                    {/* Reactivate Button for Past Teams */}
+                    {!team.isActive && isCurrentSeason && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Button 
+                          onClick={() => reactivateTeam(team.id)} 
+                          size="sm" 
+                          className="w-full"
+                          variant="accent"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Reactivate for This Season
+                        </Button>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
