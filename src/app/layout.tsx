@@ -16,7 +16,7 @@ import './globals.css';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#FAFAF9',
+  themeColor: '#f97316',
 };
 
 export const metadata: Metadata = {
@@ -88,8 +88,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <meta name="theme-color" content="#FAFAF9" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#0C0A09" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#f97316" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -102,12 +102,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     root.classList.add('dark');
                     var themeColorMeta = document.querySelector('meta[name="theme-color"]');
                     if (themeColorMeta) {
-                      themeColorMeta.setAttribute('content', '#0C0A09');
+                      themeColorMeta.setAttribute('content', '#1c1917');
                     }
                   } else {
                     var themeColorMeta = document.querySelector('meta[name="theme-color"]');
                     if (themeColorMeta) {
-                      themeColorMeta.setAttribute('content', '#FAFAF9');
+                      themeColorMeta.setAttribute('content', '#f97316');
                     }
                   }
                 } catch (e) {}

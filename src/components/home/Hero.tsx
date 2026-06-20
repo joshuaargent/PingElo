@@ -1,55 +1,92 @@
 import Link from 'next/link';
-import { ArrowRight, Mail, Play } from 'lucide-react';
-import { Avatar } from '@/components/ui/Avatar';
-import { siteConfig } from '@/lib/constants';
+import { ArrowRight, Trophy, TrendingUp, Users } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 // ============================================
-// Hero Component
+// Hero Component - PingElo Landing
 // ============================================
 
 export function Hero() {
   return (
-    <section className="py-12 md:py-16 lg:py-20">
+    <section className="relative overflow-hidden py-16 md:py-24 lg:py-32">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
+      </div>
+
       <div className="container">
-        <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-16">
-          {/* Text Content */}
-          <div className="flex-1 text-center lg:text-left">
-            <h1 className="text-text-primary text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
-              Hi, I&apos;m <span className="text-accent">{siteConfig.author.name}</span>
-            </h1>
-            <p className="text-text-secondary mx-auto mt-6 max-w-xl text-lg md:text-xl lg:mx-0">
-              {siteConfig.author.bio}
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
-              <Link
-                href="/about"
-                style={{ backgroundColor: '#0D9488', color: '#ffffff' }}
-                className="focus-visible:ring-accent inline-flex h-14 items-center justify-center gap-2 rounded-lg px-7 text-lg font-medium shadow-sm transition-all duration-200 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                Read my story
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-              <Link
-                href="/contact"
-                className="focus-visible:ring-accent border-border text-text-primary hover:bg-bg-secondary inline-flex h-14 items-center justify-center gap-2 rounded-lg border bg-transparent px-7 text-lg font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Get in touch
-              </Link>
-            </div>
+        <div className="mx-auto max-w-4xl text-center">
+          {/* Badge */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-accent-light px-4 py-1.5 text-sm font-medium text-accent">
+            <Trophy className="h-4 w-4" />
+            <span>Track Your Ping Pong Journey</span>
           </div>
 
-          {/* Avatar */}
-          <div className="flex-shrink-0">
-            <div className="relative">
-              <div className="bg-accent/20 absolute inset-0 rounded-full blur-3xl" />
-              <Avatar
-                alt={siteConfig.author.name}
-                size="xl"
-                className="border-bg-card relative border-4 shadow-xl"
+          {/* Main Heading */}
+          <h1 className="text-text-primary text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
+            Climb the{' '}
+            <span className="relative">
+              <span className="text-accent">Leaderboard</span>
+              <svg
+                className="absolute -bottom-2 left-0 h-3 w-full text-accent/30"
+                viewBox="0 0 200 12"
+                fill="none"
               >
-                <span className="text-2xl">{siteConfig.author.name.charAt(0)}</span>
-              </Avatar>
+                <path
+                  d="M2 10C50 4 150 4 198 10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>{' '}
+            with Every Match
+          </h1>
+
+          {/* Subheading */}
+          <p className="text-text-secondary mx-auto mt-6 max-w-2xl text-lg md:text-xl">
+            PingElo tracks your ping pong skills using the proven ELO rating system.
+            Log matches, compete with friends, and watch your rating grow.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link href="/matches/new">
+              <Button size="lg" className="group">
+                Log a Match
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
+            <Link href="/leaderboard">
+              <Button variant="outline" size="lg">
+                View Leaderboard
+              </Button>
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-16 grid grid-cols-3 gap-8 rounded-2xl bg-bg-card/50 p-8 backdrop-blur-sm">
+            <div className="text-center">
+              <div className="text-accent flex items-center justify-center gap-2 text-3xl font-bold md:text-4xl">
+                <TrendingUp className="h-8 w-8" />
+                <span>ELO</span>
+              </div>
+              <p className="text-text-secondary mt-1 text-sm">Dynamic Ratings</p>
+            </div>
+            <div className="text-center">
+              <div className="text-accent flex items-center justify-center gap-2 text-3xl font-bold md:text-4xl">
+                <Trophy className="h-8 w-8" />
+                <span>1v1</span>
+              </div>
+              <p className="text-text-secondary mt-1 text-sm">Singles & Doubles</p>
+            </div>
+            <div className="text-center">
+              <div className="text-accent flex items-center justify-center gap-2 text-3xl font-bold md:text-4xl">
+                <Users className="h-8 w-8" />
+                <span>Season</span>
+              </div>
+              <p className="text-text-secondary mt-1 text-sm">Monthly Rankings</p>
             </div>
           </div>
         </div>

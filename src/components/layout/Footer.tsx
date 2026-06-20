@@ -17,8 +17,16 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link
               href="/"
-              className="text-text-primary hover:text-accent text-xl font-semibold transition-colors"
+              className="text-text-primary hover:text-accent text-xl font-bold transition-colors flex items-center gap-2"
             >
+              {/* Ping Pong Paddle + Ball Logo */}
+              <svg className="h-8 w-8" viewBox="0 0 36 36" fill="none">
+                <ellipse cx="12" cy="18" rx="8" ry="12" fill="currentColor" opacity="0.9"/>
+                <ellipse cx="12" cy="18" rx="6" ry="10" fill="currentColor"/>
+                <rect x="18" y="15" width="10" height="6" rx="1" fill="currentColor"/>
+                <circle cx="28" cy="10" r="5" fill="#f97316"/>
+                <circle cx="26.5" cy="8.5" r="1.5" fill="white" opacity="0.6"/>
+              </svg>
               {siteConfig.name}
             </Link>
             <p className="text-text-secondary mt-3 max-w-xs text-sm">{siteConfig.description}</p>

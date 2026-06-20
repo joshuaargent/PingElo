@@ -73,13 +73,21 @@ export function Navbar() {
             {/* Logo */}
             <Link
               href="/"
-              className="text-text-primary hover:text-accent text-xl font-semibold transition-colors flex items-center gap-2"
+              className="text-text-primary hover:text-accent text-xl font-bold transition-colors flex items-center gap-2"
             >
-              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                <circle cx="12" cy="12" r="4" fill="currentColor" />
+              {/* Ping Pong Paddle + Ball Logo */}
+              <svg className="h-9 w-9" viewBox="0 0 36 36" fill="none">
+                {/* Paddle */}
+                <ellipse cx="12" cy="18" rx="8" ry="12" fill="currentColor" opacity="0.9"/>
+                <ellipse cx="12" cy="18" rx="6" ry="10" fill="currentColor"/>
+                {/* Paddle handle */}
+                <rect x="18" y="15" width="10" height="6" rx="1" fill="currentColor"/>
+                {/* Ping Pong Ball */}
+                <circle cx="28" cy="10" r="5" fill="#f97316"/>
+                {/* Ball shine */}
+                <circle cx="26.5" cy="8.5" r="1.5" fill="white" opacity="0.6"/>
               </svg>
-              {siteConfig.name}
+              <span className="hidden sm:inline">{siteConfig.name}</span>
             </Link>
 
             {/* Desktop Navigation */}
