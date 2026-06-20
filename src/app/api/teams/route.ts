@@ -199,6 +199,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
+    // Check if YOU are already in MAX_TEAMS_PER_PERSON teams this season
+    const yourTeams = await prisma.team.findMany({
+      where: {
+        seasonId: currentSeason.id,
+        OR: [
+          { player1Id: userId },
+          { player2Id: userId },
+        ],
+      },
+    });
+
     // Check if this partnership existed in a PAST season (for reactivation option)
     const pastTeamsWithPartner = await prisma.team.findMany({
       where: {
@@ -217,7 +228,7 @@ export async function POST(request: NextRequest) {
     
     // If partnership existed before, user can reactivate it
     if (pastTeamsWithPartner.length > 0) {
-      const canReactivate = !currentSeasonTeams.some(t => 
+      const canReactivate = !yourTeams.some(t => 
         (t.player1Id === userId && t.player2Id === partnerId) ||
         (t.player1Id === partnerId && t.player2Id === userId)
       );
@@ -230,17 +241,6 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-    
-    // Check if YOU are already in MAX_TEAMS_PER_PERSON teams this season
-    const yourTeams = await prisma.team.findMany({
-      where: {
-        seasonId: currentSeason.id,
-        OR: [
-          { player1Id: userId },
-          { player2Id: userId },
-        ],
-      },
-    });
     
     if (yourTeams.length >= MAX_TEAMS_PER_PERSON) {
       return NextResponse.json({ 
