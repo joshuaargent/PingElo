@@ -202,9 +202,15 @@ export default function TournamentsPage() {
   // Calculate entry fees for each tournament
   const tournamentsWithFees = tournaments.map((tournament) => {
     const userId = session?.user?.id;
-    const isRegistered = userId && tournament.participants?.some(
-      (p) => p.userId === userId
-    );
+    // Check if user is registered (works for both singles and doubles)
+    let isRegistered = false;
+    if (userId && tournament.participants) {
+      isRegistered = tournament.participants.some((p) => {
+        if (p.userId === userId) return true; // Singles
+        // For doubles, check if any of user's teams are registered
+        return userTeams.some((t) => t.id === p.teamId);
+      });
+    }
 
     if (isRegistered) {
       return { ...tournament, userIsRegistered: true, userEntryFee: 0 };
