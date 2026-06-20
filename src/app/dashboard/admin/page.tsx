@@ -69,7 +69,8 @@ interface Tournament {
   name: string;
   status: string;
   matchType: string;
-  participants: number;
+  participantCount: number;
+  participants?: Array<{ id: string; userId?: string | null; teamId?: string | null }>;
   maxParticipants: number;
   format: string;
 }
@@ -473,7 +474,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-text-secondary">Participants</span>
-                      <span className="font-medium">{tournament.participants}/{tournament.maxParticipants}</span>
+                      <span className="font-medium">{tournament.participantCount}/{tournament.maxParticipants}</span>
                     </div>
                   </div>
 
@@ -590,8 +591,8 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
-                    <p className="font-medium">3rd/4th Place Prize</p>
-                    <p className="text-sm text-text-secondary">Each place gets</p>
+                    <p className="font-medium">3rd Place Prize</p>
+                    <p className="text-sm text-text-secondary">Percentage of prize pool</p>
                   </div>
                   <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.third * 100)}%</Badge>
                 </div>
