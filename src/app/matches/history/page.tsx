@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { PageHero } from '@/components/layout/PageHero';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
 import { Clock, Filter, Trophy } from 'lucide-react';
 
@@ -84,24 +84,10 @@ export default function MatchHistoryPage() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-12 md:py-16">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
-        </div>
-
-        <div className="container">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
-              Match History
-            </h1>
-            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
-              Your recent ping pong matches
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        title="Match History"
+        description="Your recent ping pong matches"
+      />
 
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">

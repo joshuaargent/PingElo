@@ -213,11 +213,14 @@ export async function POST(
     }
 
     // Validate minimum participants based on match type
-    if (tournament.matchType === 'DOUBLES' && tournament.participants.length < 4) {
-      return NextResponse.json(
-        { error: "Doubles tournaments require at least 4 participants (2 teams)" },
-        { status: 400 }
-      );
+    if (tournament.matchType === 'DOUBLES') {
+      // For doubles, participants are teams, need at least 2 teams
+      if (tournament.participants.length < 2) {
+        return NextResponse.json(
+          { error: "Doubles tournaments require at least 2 teams" },
+          { status: 400 }
+        );
+      }
     }
 
     // For single elimination, validate power of 2 participants
@@ -257,9 +260,9 @@ export async function POST(
       );
     }
 
-    // Generate bracket slots
+    // Generate bracket slots (handle both singles and doubles)
     const participants = tournament.participants.map(p => ({
-      id: p.userId,
+      id: p.userId || p.teamId || '', // Use userId for singles, teamId for doubles
       eloAtEntry: p.eloAtEntry,
     }));
 

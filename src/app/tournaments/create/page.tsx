@@ -1,4 +1,5 @@
 'use client';
+import { PageHero } from '@/components/layout/PageHero';
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -81,29 +82,12 @@ export default function CreateTournamentPage() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-12 md:py-16">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
-        </div>
-
-        <div className="container">
-          <div className="mx-auto max-w-4xl">
-            <Link href="/tournaments" className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary mb-6">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Tournaments
-            </Link>
-
-            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
-              Create Tournament
-            </h1>
-            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg">
-              Set up a new competition for your ping pong community
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        title="Create Tournament"
+        description="Set up a new competition for your ping pong community"
+        backHref="/tournaments"
+        backLabel="Back to Tournaments"
+      />
 
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">

@@ -1,5 +1,7 @@
 'use client';
 
+import { PageHero } from '@/components/layout/PageHero';
+
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
@@ -151,23 +153,10 @@ export default function LogMatchPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-12 md:py-16">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
-        </div>
-
-        <div className="container">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
-              Log a Match
-            </h1>
-            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
-              Record your ping pong match and update the leaderboard
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageHero
+        title="Log a Match"
+        description="Record your ping pong match and update the leaderboard"
+      />
 
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">
