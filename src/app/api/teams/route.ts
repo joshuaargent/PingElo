@@ -29,10 +29,26 @@ export async function GET(request: NextRequest) {
     const includeHistory = searchParams.get('history') === 'true';
     const seasonId = searchParams.get('seasonId');
     
-    // Get current season
-    const currentSeason = await prisma.season.findFirst({
+    // Get current season - auto-create if none exists
+    let currentSeason = await prisma.season.findFirst({
       where: { isActive: true },
     });
+    
+    if (!currentSeason) {
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const seasonName = `Season ${startDate.toLocaleString("default", { month: "long" })} ${startDate.getFullYear()}`;
+      
+      currentSeason = await prisma.season.create({
+        data: {
+          name: seasonName,
+          startDate,
+          endDate,
+          isActive: true,
+        },
+      }).catch(() => null);
+    }
     
     // Build where clause
     const whereClause: Record<string, unknown> = {
@@ -144,13 +160,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "You cannot team with yourself" }, { status: 400 });
     }
     
-    // Get current season
-    const currentSeason = await prisma.season.findFirst({
+    // Get current season - auto-create if none exists
+    let currentSeason = await prisma.season.findFirst({
       where: { isActive: true },
     });
     
     if (!currentSeason) {
-      return NextResponse.json({ error: "No active season. Teams are seasonal." }, { status: 400 });
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const seasonName = `Season ${startDate.toLocaleString("default", { month: "long" })} ${startDate.getFullYear()}`;
+      
+      currentSeason = await prisma.season.create({
+        data: {
+          name: seasonName,
+          startDate,
+          endDate,
+          isActive: true,
+        },
+      }).catch(() => null);
+      
+      // If still no season (race condition), return error
+      if (!currentSeason) {
+        return NextResponse.json({ error: "Failed to create season. Please try again." }, { status: 500 });
+      }
     }
     
     // Check if partner exists
