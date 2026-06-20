@@ -86,8 +86,14 @@ export async function POST(
       entryFee = participant.eloAtEntry - participant.user.foreverElo;
     }
 
-    // Refund entry fee and create history entries
+    // Refund entry fee, create history entries, and deduct from prize pool
     if (entryFee > 0) {
+      // Deduct from prize pool first
+      await prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { prizePool: tournament.prizePool - entryFee },
+      });
+
       if (participant.teamId && participant.team) {
         await prisma.team.update({
           where: { id: participant.teamId },

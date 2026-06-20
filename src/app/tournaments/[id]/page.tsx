@@ -262,6 +262,44 @@ export default function TournamentDetailPage() {
     }
   };
 
+  const handleLeave = async () => {
+    if (!confirm('Leave this tournament? Your entry fee will be refunded.')) return;
+    setIsJoining(true);
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/leave`, { method: 'POST' });
+      if (res.ok) {
+        await refreshTournament();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to leave tournament');
+      }
+    } catch (error) {
+      console.error('Failed to leave tournament:', error);
+      alert('Failed to leave tournament');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleCancelTournament = async () => {
+    if (!confirm('Cancel this tournament? All participants will be refunded.')) return;
+    setIsStarting(true);
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/cancel`, { method: 'POST' });
+      if (res.ok) {
+        window.location.href = '/tournaments';
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to cancel tournament');
+      }
+    } catch (error) {
+      console.error('Failed to cancel tournament:', error);
+      alert('Failed to cancel tournament');
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
   const openEditModal = () => {
     if (tournament) {
       setEditForm({
@@ -640,7 +678,7 @@ export default function TournamentDetailPage() {
               Back to Tournaments
             </Link>
 
-            <Card className="p-8">
+            <Card className="p-4 md:p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
@@ -655,23 +693,23 @@ export default function TournamentDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 bg-bg-secondary rounded-xl text-center">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-6">
+                <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="flex items-center justify-center gap-2 text-accent text-lg font-bold">
                     {tournament.matchType === 'DOUBLES' ? <UsersIcon className="h-5 w-5" /> : <User className="h-5 w-5" />}
                     {tournament.matchType === 'DOUBLES' ? 'Doubles' : 'Singles'}
                   </div>
                   <p className="text-sm text-text-secondary mt-1">Match Type</p>
                 </div>
-                <div className="p-4 bg-bg-secondary rounded-xl text-center">
+                <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">{tournament.format.replace('_', ' ')}</div>
                   <p className="text-sm text-text-secondary mt-1">Format</p>
                 </div>
-                <div className="p-4 bg-bg-secondary rounded-xl text-center">
+                <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">{tournament.participants.length}/{tournament.maxParticipants}</div>
                   <p className="text-sm text-text-secondary mt-1">Players</p>
                 </div>
-                <div className="p-4 bg-bg-secondary rounded-xl text-center">
+                <div className="p-2 md:p-3 lg:p-4 bg-bg-secondary rounded-lg md:rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">
                     {isParticipant ? (
                       <span className="text-green-600">Paid</span>
@@ -712,7 +750,13 @@ export default function TournamentDetailPage() {
                 )}
 
                 {tournament.status === 'REGISTRATION_OPEN' && isParticipant && (
-                  <Badge variant="success">Registered</Badge>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleLeave}
+                    className="text-red-600 border-red-600 hover:bg-red-50"
+                  >
+                    Leave
+                  </Button>
                 )}
 
                 {tournament.status === 'REGISTRATION_OPEN' && (
@@ -752,8 +796,11 @@ export default function TournamentDetailPage() {
             </Card>
 
             {/* Prize Pool */}
-            <Card className="p-6 mt-6">
-              <div className="flex items-center justify-between">
+            
+
+            {/* Prize Pool */}
+            <Card className="p-4 md:p-6 mt-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="font-semibold text-text-primary flex items-center gap-2">
                     <Trophy className="h-5 w-5 text-accent" />
@@ -912,7 +959,7 @@ export default function TournamentDetailPage() {
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-text-primary mb-4">Edit Tournament</h2>
+            <h2 className="text-xl font-bold text-text-primary mb-4"><span className="hidden sm:inline">Edit Tournament</span><span className="sm:hidden">Edit</span></h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>

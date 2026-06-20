@@ -103,6 +103,14 @@ export async function POST(
       }
 
       const participant = await prisma.$transaction(async (tx) => {
+        // Add entry fee to tournament prize pool
+        if (entryFee > 0) {
+          await tx.tournament.update({
+            where: { id: tournamentId },
+            data: { prizePool: tournament.prizePool + entryFee },
+          });
+        }
+
         if (entryFee > 0) {
           await tx.team.update({
             where: { id: teamId },
