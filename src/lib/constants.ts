@@ -40,9 +40,10 @@ export const meta = {
 // ============================================
 
 export const mainNav = [
-  { label: 'Leaderboard', href: '/leaderboard' },
-  { label: 'Tournaments', href: '/tournaments' },
-  { label: 'How It Works', href: '/how-it-works' },
+  { label: 'Leaderboard', href: '/leaderboard', icon: 'trophy' },
+  { label: 'Tournaments', href: '/tournaments', icon: 'flag' },
+  { label: 'Log Match', href: '/matches/new', icon: 'plus' },
+  { label: 'How It Works', href: '/how-it-works', icon: 'help' },
 ];
 
 export const footerNav = {
@@ -60,46 +61,3 @@ export const footerNav = {
     { label: 'Contact', href: siteConfig.links.email },
   ],
 };
-
-// ============================================
-// Design Tokens
-// ============================================
-
-export const colors = {
-  primary: '#0D9488',
-  primaryHover: '#0F766E',
-} as const;
-
-// ============================================
-// Animation
-// ============================================
-
-export const transitions = {
-  fast: '150ms ease',
-  base: '200ms ease',
-  slow: '300ms ease',
-  slower: '500ms ease',
-} as const;
-
-export const animations = {
-  fadeIn: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    transition: { duration: 0.4 },
-  },
-  slideUp: {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.4 },
-  },
-  slideDown: {
-    initial: { opacity: 0, y: -20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.4 },
-  },
-  scaleIn: {
-    initial: { opacity: 0, scale: 0.9 },
-    animate: { opacity: 1, scale: 1 },
-    transition: { duration: 0.4 },
-  },
-} as const;

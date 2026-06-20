@@ -32,6 +32,23 @@ interface MatchCardProps {
   className?: string;
 }
 
+interface MatchCardFromMatchProps {
+  match: {
+    id: string;
+    player1: MatchPlayer;
+    player2: MatchPlayer;
+    player1Score: number;
+    player2Score: number;
+    winnerId: string;
+    isTournament?: boolean;
+    tournamentName?: string;
+    tournamentId?: string;
+    createdAt: Date | string;
+    eloChange?: { player1Change: number; player2Change: number };
+  };
+  className?: string;
+}
+
 /**
  * Card displaying a match result with ELO changes
  */
@@ -207,3 +224,26 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
 );
 
 MatchCard.displayName = 'MatchCard';
+
+/**
+ * MatchCard variant that accepts a single `match` object
+ */
+export function MatchCardFromMatch({ match, className }: MatchCardFromMatchProps) {
+  return (
+    <MatchCard
+      id={match.id}
+      player1={match.player1}
+      player2={match.player2}
+      player1Score={match.player1Score}
+      player2Score={match.player2Score}
+      player1EloChange={match.eloChange?.player1Change ?? 0}
+      player2EloChange={match.eloChange?.player2Change ?? 0}
+      winnerId={match.winnerId}
+      isTournamentMatch={match.isTournament}
+      tournamentName={match.tournamentName}
+      tournamentId={match.tournamentId}
+      createdAt={match.createdAt}
+      className={className}
+    />
+  );
+}
