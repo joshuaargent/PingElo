@@ -764,7 +764,16 @@ export default function TournamentDetailPage() {
                     {canEdit && (
                       <Button variant="outline" onClick={openEditModal}>
                         <Braces className="h-4 w-4 mr-2" />
-                        Edit Tournament
+                        Edit
+                      </Button>
+                    )}
+                    {canEdit && (
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancelTournament}
+                        className="text-red-600 border-red-600 hover:bg-red-50"
+                      >
+                        Cancel
                       </Button>
                     )}
                     {(() => {
