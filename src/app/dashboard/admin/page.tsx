@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Avatar } from '@/components/ui/Avatar';
 import { 
   Users, 
@@ -67,12 +68,18 @@ interface Match {
 interface Tournament {
   id: string;
   name: string;
+  description: string | null;
   status: string;
   matchType: string;
   participantCount: number;
   participants?: Array<{ id: string; userId?: string | null; teamId?: string | null }>;
   maxParticipants: number;
   format: string;
+  entryFee: number;
+  prizePool: number;
+  maxScore: number;
+  startsAt: string | null;
+  creatorId: string;
 }
 
 // ============================================
@@ -90,11 +97,21 @@ export default function AdminDashboardPage() {
   const [siteStats, setSiteStats] = useState<SiteStats>({ totalUsers: 0, totalMatches: 0, activeTournaments: 0, avgElo: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingUserName, setEditingUserName] = useState('');
+  const [editingUser, setEditingUser] = useState({ name: '', image: '', foreverElo: 0, seasonElo: 0 });
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [editingMatchScore, setEditingMatchScore] = useState({ p1: 0, p2: 0 });
   const [editingTournamentId, setEditingTournamentId] = useState<string | null>(null);
-  const [editingTournament, setEditingTournament] = useState({ name: '', entryFee: 0, maxParticipants: 0 });
+  const [editingTournament, setEditingTournament] = useState({ 
+    name: '', 
+    description: '',
+    entryFee: 0, 
+    prizePool: 0,
+    maxParticipants: 0,
+    maxScore: 21,
+    format: 'SINGLE_ELIMINATION',
+    matchType: 'SINGLES',
+    startsAt: ''
+  });
 
   // Check if user is admin
   useEffect(() => {
@@ -342,38 +359,81 @@ export default function AdminDashboardPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           {editingUserId === user.id ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={editingUserName}
-                                onChange={(e) => setEditingUserName(e.target.value)}
-                                className="h-8 w-48"
-                                autoFocus
-                              />
-                              <Button size="sm" onClick={async () => {
-                                try {
-                                  const res = await fetch(`/api/users/${user.id}`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ name: editingUserName })
-                                  });
-                                  if (res.ok) {
-                                    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, name: editingUserName } : u));
-                                    setEditingUserId(null);
-                                  } else {
-                                    alert('Failed to update name');
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingUser.name}
+                                  onChange={(e) => setEditingUser(prev => ({ ...prev, name: e.target.value }))}
+                                  placeholder="Name"
+                                  className="h-8 w-40"
+                                  autoFocus
+                                />
+                                <Input
+                                  value={editingUser.image}
+                                  onChange={(e) => setEditingUser(prev => ({ ...prev, image: e.target.value }))}
+                                  placeholder="Avatar URL"
+                                  className="h-8 w-40"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  value={editingUser.foreverElo}
+                                  onChange={(e) => setEditingUser(prev => ({ ...prev, foreverElo: parseInt(e.target.value) || 0 }))}
+                                  placeholder="Forever ELO"
+                                  className="h-8 w-28"
+                                />
+                                <Input
+                                  type="number"
+                                  value={editingUser.seasonElo}
+                                  onChange={(e) => setEditingUser(prev => ({ ...prev, seasonElo: parseInt(e.target.value) || 0 }))}
+                                  placeholder="Season ELO"
+                                  className="h-8 w-28"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/users/${user.id}`, {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ 
+                                        name: editingUser.name,
+                                        image: editingUser.image || null,
+                                        foreverElo: editingUser.foreverElo,
+                                        seasonElo: editingUser.seasonElo
+                                      })
+                                    });
+                                    if (res.ok) {
+                                      setUsers(prev => prev.map(u => u.id === user.id ? { 
+                                        ...u, 
+                                        name: editingUser.name,
+                                        image: editingUser.image || null,
+                                        foreverElo: editingUser.foreverElo,
+                                        seasonElo: editingUser.seasonElo
+                                      } : u));
+                                      setEditingUserId(null);
+                                    } else {
+                                      alert('Failed to update user');
+                                    }
+                                  } catch {
+                                    alert('Failed to update user');
                                   }
-                                } catch {
-                                  alert('Failed to update name');
-                                }
-                              }}>Save</Button>
-                              <Button size="sm" variant="ghost" onClick={() => setEditingUserId(null)}>Cancel</Button>
+                                }}>Save</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setEditingUserId(null)}>Cancel</Button>
+                              </div>
                             </div>
                           ) : (
                             <>
                               <p className="font-medium text-text-primary">{user.name}</p>
                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
                                 setEditingUserId(user.id);
-                                setEditingUserName(user.name);
+                                setEditingUser({
+                                  name: user.name,
+                                  image: user.image || '',
+                                  foreverElo: user.foreverElo,
+                                  seasonElo: user.foreverElo // Use foreverElo as proxy for season
+                                });
                               }}>
                                 <Edit className="h-3 w-3" />
                               </Button>
@@ -609,20 +669,35 @@ export default function AdminDashboardPage() {
                             onChange={(e) => setEditingTournament(prev => ({ ...prev, name: e.target.value }))}
                             placeholder="Tournament name"
                           />
-                          <div className="flex gap-2">
+                          <Textarea
+                            value={editingTournament.description}
+                            onChange={(e) => setEditingTournament(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Description"
+                            rows={2}
+                          />
+                          <div className="grid grid-cols-2 gap-2">
                             <Input
                               type="number"
                               value={editingTournament.entryFee}
                               onChange={(e) => setEditingTournament(prev => ({ ...prev, entryFee: parseInt(e.target.value) || 0 }))}
                               placeholder="Entry Fee"
-                              className="w-24"
                             />
                             <Input
                               type="number"
                               value={editingTournament.maxParticipants}
                               onChange={(e) => setEditingTournament(prev => ({ ...prev, maxParticipants: parseInt(e.target.value) || 0 }))}
-                              placeholder="Max"
-                              className="w-24"
+                              placeholder="Max Players"
+                            />
+                            <Input
+                              type="number"
+                              value={editingTournament.maxScore}
+                              onChange={(e) => setEditingTournament(prev => ({ ...prev, maxScore: parseInt(e.target.value) || 21 }))}
+                              placeholder="Max Score"
+                            />
+                            <Input
+                              type="datetime-local"
+                              value={editingTournament.startsAt?.slice(0, 16) || ''}
+                              onChange={(e) => setEditingTournament(prev => ({ ...prev, startsAt: e.target.value }))}
                             />
                           </div>
                           <div className="flex gap-2">
@@ -633,16 +708,22 @@ export default function AdminDashboardPage() {
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     name: editingTournament.name,
+                                    description: editingTournament.description,
                                     entryFee: editingTournament.entryFee,
-                                    maxParticipants: editingTournament.maxParticipants
+                                    maxParticipants: editingTournament.maxParticipants,
+                                    maxScore: editingTournament.maxScore,
+                                    startsAt: editingTournament.startsAt || null
                                   })
                                 });
                                 if (res.ok) {
                                   setTournaments(prev => prev.map(t => t.id === tournament.id ? {
                                     ...t,
                                     name: editingTournament.name,
+                                    description: editingTournament.description,
                                     entryFee: editingTournament.entryFee,
-                                    maxParticipants: editingTournament.maxParticipants
+                                    maxParticipants: editingTournament.maxParticipants,
+                                    maxScore: editingTournament.maxScore,
+                                    startsAt: editingTournament.startsAt
                                   } : t));
                                   setEditingTournamentId(null);
                                 } else {
@@ -659,11 +740,13 @@ export default function AdminDashboardPage() {
                       ) : (
                         <>
                           <h4 className="font-semibold text-text-primary">{tournament.name}</h4>
-                          <p className="text-sm text-text-secondary">{tournament.format.replace('_', ' ')}</p>
+                          {tournament.description && (
+                            <p className="text-sm text-text-secondary mt-1">{tournament.description}</p>
+                          )}
                         </>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
                       <Badge 
                         variant={tournament.status === 'IN_PROGRESS' ? 'primary' : 'success'}
                       >
@@ -673,8 +756,14 @@ export default function AdminDashboardPage() {
                         setEditingTournamentId(tournament.id);
                         setEditingTournament({
                           name: tournament.name,
-                          entryFee: (tournament as any).entryFee || 0,
-                          maxParticipants: tournament.maxParticipants
+                          description: tournament.description || '',
+                          entryFee: tournament.entryFee,
+                          prizePool: tournament.prizePool,
+                          maxParticipants: tournament.maxParticipants,
+                          maxScore: tournament.maxScore,
+                          format: tournament.format,
+                          matchType: tournament.matchType,
+                          startsAt: tournament.startsAt || ''
                         });
                       }}>
                         <Edit className="h-4 w-4 mr-1" /> Edit
@@ -682,19 +771,37 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Format</span>
+                      <span className="font-medium">{tournament.format.replace('_', ' ')}</span>
+                    </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-text-secondary">Match Type</span>
                       <span className="font-medium">{tournament.matchType}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-text-secondary">Entry Fee</span>
-                      <span className="font-medium">{(tournament as any).entryFee || 0} ELO</span>
+                      <span className="font-medium">{tournament.entryFee} ELO</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-text-secondary">Participants</span>
+                      <span className="text-text-secondary">Prize Pool</span>
+                      <span className="font-medium">{tournament.prizePool} ELO</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Players</span>
                       <span className="font-medium">{tournament.participantCount}/{tournament.maxParticipants}</span>
                     </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Max Score</span>
+                      <span className="font-medium">{tournament.maxScore}</span>
+                    </div>
+                    {tournament.startsAt && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-text-secondary">Starts</span>
+                        <span className="font-medium">{new Date(tournament.startsAt).toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
