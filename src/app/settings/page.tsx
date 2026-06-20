@@ -20,7 +20,8 @@ import {
   Check,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Image
 } from 'lucide-react';
 
 type Tab = 'profile' | 'account' | 'notifications' | 'appearance';
@@ -33,17 +34,20 @@ interface UserStats {
   wins: number;
   losses: number;
   winRate: number;
+  image: string | null;
 }
 
 export default function SettingsPage() {
   const { data: session, status, update } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [name, setName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [theme, setTheme] = useState<Theme>('system');
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -54,7 +58,7 @@ export default function SettingsPage() {
       setName(session.user.name);
     }
     
-    // Fetch user stats
+    // Fetch user stats including image
     async function fetchStats() {
       if (!session?.user?.id) return;
       try {
@@ -62,6 +66,15 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           setUserStats(data.user);
+          setAvatarUrl(data.user.image || '');
+        }
+        
+        // Check if user has Google account
+        const accountsRes = await fetch(`/api/users/${session.user.id}/accounts`);
+        if (accountsRes.ok) {
+          const accountsData = await accountsRes.json();
+          const hasGoogle = accountsData.accounts?.some((a: any) => a.provider === 'google');
+          setIsGoogleUser(hasGoogle);
         }
       } catch (error) {
         console.error('Failed to fetch stats:', error);
@@ -87,12 +100,12 @@ export default function SettingsPage() {
       const res = await fetch(`/api/users/${session.user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, image: avatarUrl }),
       });
       
       if (res.ok) {
         setSaveSuccess(true);
-        await update({ name });
+        await update({ name, image: avatarUrl || undefined });
         setTimeout(() => setSaveSuccess(false), 3000);
       }
     } catch (error) {
@@ -213,7 +226,7 @@ export default function SettingsPage() {
               
               <div className="flex items-center gap-6 mb-8">
                 <Avatar
-                  src={session.user.image}
+                  src={avatarUrl || session.user.image || undefined}
                   alt={session.user.name || 'User'}
                   fallback={session.user.name?.charAt(0) || 'U'}
                   size="xl"
@@ -236,10 +249,32 @@ export default function SettingsPage() {
                       placeholder="Your name"
                       className="flex-1"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">
+                    Avatar URL {isGoogleUser && <span className="text-text-muted">(Using Google profile)</span>}
+                  </label>
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1">
+                      <Input
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        placeholder="https://example.com/your-avatar.jpg"
+                        disabled={isGoogleUser}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-text-muted mt-1">
+                        {isGoogleUser 
+                          ? "Your avatar is managed by Google sign-in" 
+                          : "Enter a URL to an image (jpg, png, gif). Leave empty to use initials."}
+                      </p>
+                    </div>
                     <Button 
                       onClick={handleSaveProfile} 
                       isLoading={isSaving}
-                      disabled={isSaving || name === session.user.name}
+                      disabled={isSaving || (name === session.user.name && avatarUrl === (userStats?.image || ''))}
                     >
                       {saveSuccess ? (
                         <>

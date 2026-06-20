@@ -1,6 +1,6 @@
 /**
  * Team by ID API Route
- * Get team details, reactivate, or delete team
+ * Get team details, reactivate, update, or delete team
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -42,6 +42,65 @@ export async function GET(
   } catch (error) {
     console.error("Error fetching team:", error);
     return NextResponse.json({ error: "Failed to fetch team" }, { status: 500 });
+  }
+}
+
+// PATCH /api/teams/[id] - Update team name or image
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { session, response } = await getSessionOrUnauthorized();
+    if (response) return response;
+    
+    const { id } = await params;
+    const userId = session!.user.id;
+    const body = await request.json();
+    const { name, image } = body;
+    
+    const team = await prisma.team.findUnique({
+      where: { id },
+    });
+    
+    if (!team) {
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+    }
+    
+    // Only team creator (player1) can update
+    if (team.player1Id !== userId) {
+      return NextResponse.json({ 
+        error: "Only the team creator can update this team" 
+      }, { status: 403 });
+    }
+    
+    const updateData: Record<string, string | null> = {};
+    if (name !== undefined) updateData.name = name || null;
+    if (image !== undefined) updateData.image = image || null;
+    
+    const updatedTeam = await prisma.team.update({
+      where: { id },
+      data: updateData,
+      include: {
+        player1: {
+          select: { id: true, name: true, image: true, doublesForeverElo: true },
+        },
+        player2: {
+          select: { id: true, name: true, image: true, doublesForeverElo: true },
+        },
+        seasonStats: {
+          include: {
+            season: { select: { id: true, name: true, isActive: true } },
+          },
+          orderBy: { season: { startDate: 'desc' } },
+        },
+      },
+    });
+    
+    return NextResponse.json({ team: updatedTeam });
+  } catch (error) {
+    console.error("Error updating team:", error);
+    return NextResponse.json({ error: "Failed to update team" }, { status: 500 });
   }
 }
 
@@ -163,8 +222,27 @@ export async function POST(
       },
     });
     
+    // Fetch full team with relations
+    const fullTeam = await prisma.team.findUnique({
+      where: { id },
+      include: {
+        player1: {
+          select: { id: true, name: true, image: true, doublesForeverElo: true },
+        },
+        player2: {
+          select: { id: true, name: true, image: true, doublesForeverElo: true },
+        },
+        seasonStats: {
+          include: {
+            season: { select: { id: true, name: true, isActive: true } },
+          },
+          orderBy: { season: { startDate: 'desc' } },
+        },
+      },
+    });
+    
     return NextResponse.json({ 
-      team: updatedTeam, 
+      team: fullTeam, 
       message: `${team.name || 'Team'} reactivated for ${currentSeason.name}!`,
       reactivated: true,
     }, { status: 200 });

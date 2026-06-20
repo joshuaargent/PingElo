@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
+import Link from "next/link";
 import confetti from "canvas-confetti";
 import { PageHero } from "@/components/layout/PageHero";
 import { Card } from "@/components/ui/Card";
@@ -329,25 +330,26 @@ export default function TeamsPage() {
                 const latestSeason = team.seasonStats[0];
                 
                 return (
-                  <Card key={team.id} className={`p-6 hover:shadow-lg ${!team.isActive ? 'opacity-75' : ''}`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-text-primary text-lg">
-                            {team.name || team.player1.name.split(" ")[0] + " & " + team.player2.name.split(" ")[0]}
-                          </h3>
-                          {!team.isActive && (
-                            <Badge variant="outline" size="sm">Inactive</Badge>
-                          )}
+                  <Link key={team.id} href={`/teams/${team.id}`} className="block">
+                    <Card className={`p-6 hover:shadow-lg transition-shadow cursor-pointer ${!team.isActive ? 'opacity-75' : ''}`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-text-primary text-lg">
+                              {team.name || team.player1.name.split(" ")[0] + " & " + team.player2.name.split(" ")[0]}
+                            </h3>
+                            {!team.isActive && (
+                              <Badge variant="outline" size="sm">Inactive</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge>{team.foreverElo} ELO</Badge>
+                            {currentSeasonStat && (
+                              <Badge variant="accent">{currentSeasonStat.seasonElo} Season</Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge>{team.foreverElo} ELO</Badge>
-                          {currentSeasonStat && (
-                            <Badge variant="accent">{currentSeasonStat.seasonElo} Season</Badge>
-                          )}
-                        </div>
-                      </div>
-                      {team.isActive && isCreator && (
+                        {team.isActive && isCreator && (
                         <Button variant="ghost" size="sm" onClick={() => deactivateTeam(team.id)} className="text-red-500">
                           <Trash2 className="h-4 w-4"/>
                         </Button>
@@ -422,6 +424,7 @@ export default function TeamsPage() {
                       </div>
                     )}
                   </Card>
+                  </Link>
                 );
               })}
             </div>

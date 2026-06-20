@@ -158,6 +158,7 @@ model Season {
 model Team {
   id            String    @id @default(cuid())
   name          String?   // Optional custom name (e.g., "The Dynamic Duo")
+  image         String?   // Optional team avatar/cover image URL
   player1Id     String
   player2Id     String
   
