@@ -673,15 +673,19 @@ export default function TournamentDetailPage() {
                 </div>
                 <div className="p-4 bg-bg-secondary rounded-xl text-center">
                   <div className="text-accent text-lg font-bold">
-                    {userElo !== null
-                      ? tournament.matchType === 'DOUBLES'
+                    {isParticipant ? (
+                      <span className="text-green-600">Paid</span>
+                    ) : userElo !== null ? (
+                      tournament.matchType === 'DOUBLES'
                         ? userTeams.length > 0
                           ? userTeams.length === 1
                             ? `${calculateEntryFee(userTeams[0].foreverElo)} ELO`
                             : `${calculateEntryFee(userTeams[0].foreverElo)} | ${calculateEntryFee(userTeams[1].foreverElo)} ELO`
                           : 'Create a team first'
                         : `${calculateEntryFee(userElo)} ELO`
-                      : '—'}
+                    ) : (
+                      '—'
+                    )}
                   </div>
                   <p className="text-sm text-text-secondary mt-1">Your Entry Fee</p>
                 </div>

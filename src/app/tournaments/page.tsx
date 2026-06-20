@@ -53,7 +53,7 @@ interface UserTeams {
 }
 
 interface ExtendedTournament extends Tournament {
-  userEntryFee?: number;
+  userEntryFee?: number | null;
   userIsRegistered?: boolean;
   userTeams?: UserTeams[];
 }
@@ -107,10 +107,12 @@ function TournamentCard({ tournament }: { tournament: ExtendedTournament }) {
             </span>
             {tournament.userIsRegistered ? (
               <span className="text-green-600 font-medium">Paid</span>
-            ) : (
+            ) : typeof tournament.userEntryFee === 'number' ? (
               <span className="text-text-muted">
-                Entry: {tournament.userEntryFee ?? tournament.entryFee} ELO
+                Entry: {tournament.userEntryFee} ELO
               </span>
+            ) : (
+              <span className="text-text-muted">Entry: —</span>
             )}
           </div>
 
@@ -208,16 +210,22 @@ export default function TournamentsPage() {
       return { ...tournament, userIsRegistered: true, userEntryFee: 0 };
     }
 
-    let entryFee = tournament.entryFee;
-    
-    if (userElo !== null && tournament.matchType === 'SINGLES') {
-      entryFee = calculateEntryFee(userElo);
-    } else if (tournament.matchType === 'DOUBLES' && userTeams.length > 0) {
-      // Use lowest team fee (best deal for user)
-      entryFee = Math.min(...userTeams.map(t => calculateEntryFee(t.foreverElo)));
+    // Only calculate personalized fee if user is logged in
+    if (userId) {
+      let entryFee: number | null = null;
+      
+      if (userElo !== null && tournament.matchType === 'SINGLES') {
+        entryFee = calculateEntryFee(userElo);
+      } else if (tournament.matchType === 'DOUBLES' && userTeams.length > 0) {
+        // Use lowest team fee (best deal for user)
+        entryFee = Math.min(...userTeams.map(t => calculateEntryFee(t.foreverElo)));
+      }
+
+      return { ...tournament, userIsRegistered: false, userEntryFee: entryFee, userTeams };
     }
 
-    return { ...tournament, userIsRegistered: false, userEntryFee: entryFee, userTeams };
+    // User not logged in
+    return { ...tournament, userIsRegistered: false, userEntryFee: null, userTeams };
   });
 
   const filteredTournaments = tournamentsWithFees.filter((t) => {
