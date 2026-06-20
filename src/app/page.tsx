@@ -4,19 +4,56 @@ import { Leaderboard } from '@/components/elo/Leaderboard';
 import { Button } from '@/components/ui/Button';
 import { Trophy, TrendingUp, Users, ArrowRight } from 'lucide-react';
 
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  image: string | null;
+  foreverElo: number;
+  seasonElo: number;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  lastMatchDate: Date | null;
+  isRusty: boolean;
+  isActive: boolean;
+}
+
 // ============================================
 // Homepage - PingElo
 // ============================================
 
-export default function HomePage() {
-  // Mock data for the preview - in production this would come from API
-  const previewLeaderboard = [
-    { rank: 1, userId: '1', name: 'Alex Chen', image: null, foreverElo: 1285, seasonElo: 1250, matchesPlayed: 45, wins: 32, losses: 13, winRate: 71.1, lastMatchDate: new Date(), isRusty: false, isActive: true },
-    { rank: 2, userId: '2', name: 'Sarah Miller', image: null, foreverElo: 1240, seasonElo: 1220, matchesPlayed: 38, wins: 26, losses: 12, winRate: 68.4, lastMatchDate: new Date(), isRusty: false, isActive: true },
-    { rank: 3, userId: '3', name: 'Mike Johnson', image: null, foreverElo: 1198, seasonElo: 1180, matchesPlayed: 52, wins: 34, losses: 18, winRate: 65.4, lastMatchDate: new Date(), isRusty: false, isActive: true },
-    { rank: 4, userId: '4', name: 'Emma Wilson', image: null, foreverElo: 1156, seasonElo: 1140, matchesPlayed: 29, wins: 18, losses: 11, winRate: 62.1, lastMatchDate: new Date(), isRusty: false, isActive: true },
-    { rank: 5, userId: '5', name: 'James Brown', image: null, foreverElo: 1105, seasonElo: 1090, matchesPlayed: 22, wins: 12, losses: 10, winRate: 54.5, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  ];
+export default async function HomePage() {
+  // Fetch real leaderboard data
+  let previewLeaderboard: LeaderboardEntry[] = [];
+  
+  try {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const res = await fetch(`${baseUrl}/api/users?includeStats=true&sortBy=foreverElo&order=desc&limit=5`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      previewLeaderboard = (data.users || []).map((user: any, index: number) => ({
+        rank: index + 1,
+        userId: user.id,
+        name: user.name,
+        image: user.image,
+        foreverElo: user.foreverElo,
+        seasonElo: user.seasonElo,
+        matchesPlayed: user.matchesPlayed,
+        wins: user.wins || 0,
+        losses: user.losses || 0,
+        winRate: user.winRate || 0,
+        lastMatchDate: user.lastMatchDate,
+        isRusty: user.isRusty || false,
+        isActive: user.isActive || false,
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to fetch leaderboard:', error);
+  }
 
   return (
     <>
@@ -88,11 +125,22 @@ export default function HomePage() {
             </Link>
           </div>
           
-          <Leaderboard
-            entries={previewLeaderboard}
-            type="forever"
-            showSeasonElo
-          />
+          {previewLeaderboard.length > 0 ? (
+            <Leaderboard
+              entries={previewLeaderboard}
+              type="forever"
+              showSeasonElo
+            />
+          ) : (
+            <div className="rounded-xl bg-bg-card p-12 text-center border border-border">
+              <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-text-primary mb-2">No Players Yet</h3>
+              <p className="text-text-secondary mb-4">Be the first to log a match!</p>
+              <Link href="/matches/new">
+                <Button>Log Your First Match</Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

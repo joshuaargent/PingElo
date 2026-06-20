@@ -44,9 +44,16 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           image: true,
+          email: true,
           foreverElo: true,
           seasonElo: true,
+          doublesForeverElo: true,
+          doublesSeasonElo: true,
           matchesPlayed: true,
+          doublesMatchesPlayed: true,
+          role: true,
+          isBanned: true,
+          banReason: true,
           createdAt: true,
         },
         orderBy: { [sortField]: sortOrder },
@@ -74,12 +81,29 @@ export async function GET(request: NextRequest) {
       });
       const lastMatchMap = new Map(lastMatches.map(m => [m.winnerId, m._max.createdAt]));
 
+      // Get wins and losses for each user
+      const winCounts = await prisma.match.groupBy({
+        by: ["winnerId"],
+        _count: { winnerId: true },
+      });
+      const winMap = new Map(winCounts.map(m => [m.winnerId, m._count.winnerId]));
+
       responseUsers = users.map(user => {
         const lastMatchDate = lastMatchMap.get(user.id) || null;
         const rustyStatus = checkRustyStatus(lastMatchDate);
+        const wins = winMap.get(user.id) || 0;
+        const losses = user.matchesPlayed - wins;
+        const winRate = user.matchesPlayed > 0 ? Math.round((wins / user.matchesPlayed) * 100) : 0;
+
+        // Calculate rank based on foreverElo
+        const rank = eloValues.filter(elo => elo > user.foreverElo).length + 1;
 
         return {
           ...user,
+          wins,
+          losses,
+          winRate,
+          rank,
           lastMatchDate,
           isRusty: rustyStatus.isRusty,
           weeksSinceLastMatch: rustyStatus.weeksSinceLastMatch,

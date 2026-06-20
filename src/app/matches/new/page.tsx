@@ -1,630 +1,483 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { 
-  User,
-  Users, 
-  Plus, 
-  Minus, 
-  Trophy,
-  ArrowRight,
-  CheckCircle,
-  UserPlus
-} from 'lucide-react';
-
-// ============================================
-// Match Logging Page - Singles & Doubles
-// ============================================
+import { Avatar } from '@/components/ui/Avatar';
+import { EloBadge } from '@/components/elo/EloBadge';
+import { Trophy, Users, User, ArrowRight, Check, X, Zap } from 'lucide-react';
 
 type MatchType = 'SINGLES' | 'DOUBLES';
 
 interface Player {
   id: string;
   name: string;
-  elo: number;
+  image?: string | null;
+  foreverElo: number;
 }
 
-// Mock players for demo - in production would fetch from API
-const mockPlayers: Player[] = [
-  { id: '1', name: 'You', elo: 1042 },
-  { id: '2', name: 'Alex Chen', elo: 1285 },
-  { id: '3', name: 'Sarah Miller', elo: 1240 },
-  { id: '4', name: 'Mike Johnson', elo: 1198 },
-  { id: '5', name: 'Emma Wilson', elo: 1156 },
-  { id: '6', name: 'James Brown', elo: 1105 },
-  { id: '7', name: 'Lisa Davis', elo: 1050 },
-  { id: '8', name: 'Tom Anderson', elo: 980 },
-];
+// ============================================
+// Log Match Page
+// ============================================
 
-export default function NewMatchPage() {
+export default function LogMatchPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  
-  // Match type selection
   const [matchType, setMatchType] = useState<MatchType>('SINGLES');
-  
-  // Singles state
+  const [players, setPlayers] = useState<Player[]>([]);
   const [player1, setPlayer1] = useState<Player | null>(null);
   const [player2, setPlayer2] = useState<Player | null>(null);
-  
-  // Doubles state
   const [team1Player1, setTeam1Player1] = useState<Player | null>(null);
   const [team1Player2, setTeam1Player2] = useState<Player | null>(null);
   const [team2Player1, setTeam2Player1] = useState<Player | null>(null);
   const [team2Player2, setTeam2Player2] = useState<Player | null>(null);
-  
-  // Score state
-  const [team1Score, setTeam1Score] = useState<number>(0);
-  const [team2Score, setTeam2Score] = useState<number>(0);
-  
-  // UI state
-  const [step, setStep] = useState<'type' | 'select' | 'score' | 'confirm' | 'success'>('type');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [player1Score, setPlayer1Score] = useState<string>('');
+  const [player2Score, setPlayer2Score] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not authenticated
-  if (status === "unauthenticated") {
-    router.push("/auth/signin?callbackUrl=/matches/new");
-    return null;
-  }
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session?.user) {
+      redirect('/auth/signin');
+    }
+  }, [session, status]);
 
-  const resetState = () => {
-    setPlayer1(null);
-    setPlayer2(null);
-    setTeam1Player1(null);
-    setTeam1Player2(null);
-    setTeam2Player1(null);
-    setTeam2Player2(null);
-    setTeam1Score(0);
-    setTeam2Score(0);
-    setStep('type');
-    setError('');
-  };
+  useEffect(() => {
+    async function fetchPlayers() {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/users?includeStats=true');
+        if (res.ok) {
+          const data = await res.json();
+          setPlayers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch players:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchPlayers();
+  }, []);
 
-  const handleSelectMatchType = (type: MatchType) => {
-    setMatchType(type);
-    setStep('select');
-  };
-
-  const handleNextToScore = () => {
-    setError('');
+  const handleSubmit = async () => {
+    if (!session?.user) return;
     
+    const p1Score = parseInt(player1Score);
+    const p2Score = parseInt(player2Score);
+    
+    if (isNaN(p1Score) || isNaN(p2Score) || p1Score < 0 || p2Score < 0) {
+      setError('Please enter valid scores');
+      return;
+    }
+
     if (matchType === 'SINGLES') {
       if (!player1 || !player2) {
         setError('Please select both players');
         return;
       }
-      if (player1.id === player2.id) {
-        setError('Please select two different players');
-        return;
-      }
     } else {
-      // Doubles validation
       if (!team1Player1 || !team1Player2 || !team2Player1 || !team2Player2) {
-        setError('Please select all 4 players');
-        return;
-      }
-      const allIds = [team1Player1.id, team1Player2.id, team2Player1.id, team2Player2.id];
-      const uniqueIds = new Set(allIds);
-      if (uniqueIds.size !== 4) {
-        setError('Each player must be unique');
+        setError('Please select all team members');
         return;
       }
     }
-    
-    setStep('score');
-  };
 
-  const handleNextToConfirm = () => {
-    setError('');
-    
-    // Validate scores
-    if (team1Score < 3 || team2Score < 3) {
-      setError('Both teams must have at least 3 points');
-      return;
-    }
-    if (team1Score > 30 || team2Score > 30) {
-      setError('Scores cannot exceed 30 points');
-      return;
-    }
-    if (Math.abs(team1Score - team2Score) < 2 && Math.max(team1Score, team2Score) === 21) {
-      setError('Winner must win by at least 2 points');
-      return;
-    }
-    if (team1Score < 11 && team2Score < 11) {
-      setError('Winner must have at least 11 points');
-      return;
-    }
-    
-    setStep('confirm');
-  };
-
-  const handleSubmit = async () => {
-    setIsLoading(true);
-    setError('');
+    setIsSubmitting(true);
+    setError(null);
 
     try {
-      const payload = matchType === 'SINGLES' 
-        ? {
-            matchType: 'SINGLES',
-            player1Id: player1?.id,
-            player2Id: player2?.id,
-            player1Score: team1Score,
-            player2Score: team2Score,
-          }
-        : {
-            matchType: 'DOUBLES',
-            team1Player1Id: team1Player1?.id,
-            team1Player2Id: team1Player2?.id,
-            team2Player1Id: team2Player1?.id,
-            team2Player2Id: team2Player2?.id,
-            player1Score: team1Score,
-            player2Score: team2Score,
-          };
+      const body: any = {
+        matchType,
+        player1Score: p1Score,
+        player2Score: p2Score,
+      };
+
+      if (matchType === 'SINGLES') {
+        body.player1Id = player1!.id;
+        body.player2Id = player2!.id;
+      } else {
+        body.team1Player1Id = team1Player1!.id;
+        body.team1Player2Id = team1Player2!.id;
+        body.team2Player1Id = team2Player1!.id;
+        body.team2Player2Id = team2Player2!.id;
+      }
 
       const res = await fetch('/api/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
 
-      if (!res.ok) {
+      if (res.ok) {
+        router.push('/dashboard');
+      } else {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to create match');
+        setError(data.error || 'Failed to log match');
       }
-
-      setStep('success');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } catch (error) {
+      setError('Failed to log match');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const team1Won = team1Score > team2Score;
-  const winner: string = matchType === 'SINGLES' 
-    ? (team1Won ? player1?.name : player2?.name) || ''
-    : (team1Won ? `${team1Player1?.name} & ${team1Player2?.name}` : `${team2Player1?.name} & ${team2Player2?.name}`) || '';
-  
-  const scoreMargin = Math.abs(team1Score - team2Score);
-  const marginMultiplier = scoreMargin >= 10 ? 1.5 : scoreMargin >= 5 ? 1.25 : 1.0;
+  const excludeIds = matchType === 'SINGLES' 
+    ? (player1 ? [player1.id] : [])
+    : (team1Player1 && team1Player2 ? [team1Player1.id, team1Player2.id] : []);
 
-  const availablePlayers = (selectedIds: string[]) => 
-    mockPlayers.filter(p => !selectedIds.includes(p.id));
+  const excludeIds2 = matchType === 'SINGLES'
+    ? (player2 ? [player2.id] : [])
+    : (team2Player1 && team2Player2 ? [team2Player1.id, team2Player2.id] : []);
 
-  // Player Selection Component
-  const PlayerSelector = ({ 
-    label, 
-    selected, 
-    onSelect, 
-    teamLabel,
-    excludeIds = [],
-    disabled = false
-  }: { 
-    label: string; 
-    selected: Player | null; 
-    onSelect: (p: Player) => void;
-    teamLabel: string;
-    excludeIds?: string[];
-    disabled?: boolean;
-  }) => (
-    <div>
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-          selected ? 'bg-accent text-white' : 'bg-bg-secondary text-text-secondary'
-        }`}>
-          {selected ? <CheckCircle className="h-5 w-5" /> : teamLabel}
-        </span>
-        {label}
-      </h3>
-      <div className="space-y-2">
-        {mockPlayers.filter(p => !excludeIds.includes(p.id) || p.id === selected?.id).map((player) => (
-          <button
-            key={player.id}
-            onClick={() => !disabled && onSelect(player)}
-            disabled={disabled || excludeIds.includes(player.id)}
-            className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-              selected?.id === player.id
-                ? 'border-accent bg-accent/5'
-                : disabled || excludeIds.includes(player.id)
-                  ? 'border-border opacity-50 cursor-not-allowed'
-                  : 'border-border hover:border-accent/50'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{player.name}</span>
-              <Badge variant="outline">{player.elo} ELO</Badge>
-            </div>
-          </button>
-        ))}
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Step 1: Select Match Type */}
-      {step === 'type' && (
-        <>
-          <PageHeader
-            title="Log a Match"
-            description="Choose the type of match you want to record"
-          />
-          
-          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <Card 
-              className={`p-8 text-center cursor-pointer transition-all ${
-                matchType === 'SINGLES' ? 'ring-2 ring-accent' : 'hover:border-accent'
-              }`}
-              onClick={() => handleSelectMatchType('SINGLES')}
-            >
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="h-8 w-8 text-accent" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Singles</h3>
-              <p className="text-text-secondary text-sm">
-                1 vs 1 match between two players
-              </p>
-            </Card>
-            
-            <Card 
-              className={`p-8 text-center cursor-pointer transition-all ${
-                matchType === 'DOUBLES' ? 'ring-2 ring-accent' : 'hover:border-accent'
-              }`}
-              onClick={() => handleSelectMatchType('DOUBLES')}
-            >
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-purple-500" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Doubles</h3>
-              <p className="text-text-secondary text-sm">
-                2 vs 2 team match with partners
-              </p>
-            </Card>
+    <>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-12 md:py-16">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
+        </div>
+
+        <div className="container">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Log a Match
+            </h1>
+            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
+              Record your ping pong match and update the leaderboard
+            </p>
           </div>
-        </>
-      )}
+        </div>
+      </section>
 
-      {/* Step 2: Select Players */}
-      {step === 'select' && (
-        <>
-          <PageHeader
-            title={`Log a ${matchType === 'SINGLES' ? 'Singles' : 'Doubles'} Match`}
-            description={matchType === 'SINGLES' 
-              ? "Select the two players who competed"
-              : "Select the four players (two teams)"
-            }
-          />
+      {/* Content Section */}
+      <div className="container mx-auto px-4 pb-16">
+        <div className="mx-auto max-w-4xl">
+          {/* Match Type Selector */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex h-12 items-center justify-center rounded-lg bg-bg-secondary p-1">
+              <button
+                onClick={() => {
+                  setMatchType('SINGLES');
+                  setPlayer1(null);
+                  setPlayer2(null);
+                  setTeam1Player1(null);
+                  setTeam1Player2(null);
+                  setTeam2Player1(null);
+                  setTeam2Player2(null);
+                }}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all ${
+                  matchType === 'SINGLES'
+                    ? 'bg-bg-primary text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <User className="h-4 w-4" />
+                Singles
+              </button>
+              <button
+                onClick={() => {
+                  setMatchType('DOUBLES');
+                  setPlayer1(null);
+                  setPlayer2(null);
+                  setTeam1Player1(null);
+                  setTeam1Player2(null);
+                  setTeam2Player1(null);
+                  setTeam2Player2(null);
+                }}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all ${
+                  matchType === 'DOUBLES'
+                    ? 'bg-bg-primary text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Doubles
+              </button>
+            </div>
+          </div>
 
+          {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+            <Card className="p-4 mb-6 border-red-500/50 bg-red-500/10">
+              <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
+            </Card>
+          )}
+
+          {/* Singles Match */}
+          {matchType === 'SINGLES' && (
+            <div className="space-y-6">
+              {/* Player Selection */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Select Players</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Player 1 */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Player 1 (Winner)
+                    </label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      value={player1?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setPlayer1(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => p.id !== player2?.id).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {player1 && (
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar
+                          src={player1.image}
+                          alt={player1.name}
+                          fallback={player1.name.charAt(0)}
+                          size="md"
+                        />
+                        <div>
+                          <p className="font-medium text-text-primary">{player1.name}</p>
+                          <EloBadge elo={player1.foreverElo} size="sm" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Player 2 */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Player 2
+                    </label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                      value={player2?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setPlayer2(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => p.id !== player1?.id).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {player2 && (
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar
+                          src={player2.image}
+                          alt={player2.name}
+                          fallback={player2.name.charAt(0)}
+                          size="md"
+                        />
+                        <div>
+                          <p className="font-medium text-text-primary">{player2.name}</p>
+                          <EloBadge elo={player2.foreverElo} size="sm" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Score Entry */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">{player1?.name || 'Player 1'}</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player1Score}
+                      onChange={(e) => setPlayer1Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
+                  <div className="text-center text-text-muted text-2xl">-</div>
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">{player2?.name || 'Player 2'}</p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player2Score}
+                      onChange={(e) => setPlayer2Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
+                </div>
+                <p className="text-center text-sm text-text-muted mt-4">
+                  Winner must have at least 3 points and win by 2
+                </p>
+              </Card>
             </div>
           )}
 
-          {matchType === 'SINGLES' ? (
-            /* Singles Player Selection */
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <PlayerSelector
-                label="Player 1 (Winner)"
-                selected={player1}
-                onSelect={setPlayer1}
-                teamLabel="1"
-                excludeIds={player2 ? [player2.id] : []}
-              />
-              <PlayerSelector
-                label="Player 2 (Loser)"
-                selected={player2}
-                onSelect={setPlayer2}
-                teamLabel="2"
-                excludeIds={player1 ? [player1.id] : []}
-              />
-            </div>
-          ) : (
-            /* Doubles Player Selection */
-            <>
+          {/* Doubles Match */}
+          {matchType === 'DOUBLES' && (
+            <div className="space-y-6">
               {/* Team 1 */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center font-bold">
-                    T1
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-accent" />
+                  Team 1 (Winner)
+                </h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team1Player1?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam1Player1(p || null);
+                      }}
+                    >
+                      <option value="">Select</option>
+                      {players.filter(p => p.id !== team1Player2?.id && p.id !== team2Player1?.id && p.id !== team2Player2?.id).map((player) => (
+                        <option key={player.id} value={player.id}>{player.name}</option>
+                      ))}
+                    </select>
                   </div>
-                  <h2 className="text-xl font-bold">Team 1 (Winner)</h2>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team1Player2?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam1Player2(p || null);
+                      }}
+                    >
+                      <option value="">Select</option>
+                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team2Player1?.id && p.id !== team2Player2?.id).map((player) => (
+                        <option key={player.id} value={player.id}>{player.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <PlayerSelector
-                    label="Player 1"
-                    selected={team1Player1}
-                    onSelect={setTeam1Player1}
-                    teamLabel="1"
-                    excludeIds={[
-                      team1Player2?.id, 
-                      team2Player1?.id, 
-                      team2Player2?.id
-                    ].filter(Boolean) as string[]}
-                  />
-                  <PlayerSelector
-                    label="Player 2"
-                    selected={team1Player2}
-                    onSelect={setTeam1Player2}
-                    teamLabel="2"
-                    excludeIds={[
-                      team1Player1?.id, 
-                      team2Player1?.id, 
-                      team2Player2?.id
-                    ].filter(Boolean) as string[]}
-                  />
-                </div>
-              </div>
+              </Card>
 
               {/* Team 2 */}
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-red-500/10 text-red-600 rounded-full flex items-center justify-center font-bold">
-                    T2
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Team 2</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team2Player1?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam2Player1(p || null);
+                      }}
+                    >
+                      <option value="">Select</option>
+                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team1Player2?.id && p.id !== team2Player2?.id).map((player) => (
+                        <option key={player.id} value={player.id}>{player.name}</option>
+                      ))}
+                    </select>
                   </div>
-                  <h2 className="text-xl font-bold">Team 2 (Loser)</h2>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team2Player2?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam2Player2(p || null);
+                      }}
+                    >
+                      <option value="">Select</option>
+                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team1Player2?.id && p.id !== team2Player1?.id).map((player) => (
+                        <option key={player.id} value={player.id}>{player.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <PlayerSelector
-                    label="Player 1"
-                    selected={team2Player1}
-                    onSelect={setTeam2Player1}
-                    teamLabel="1"
-                    excludeIds={[
-                      team1Player1?.id, 
-                      team1Player2?.id, 
-                      team2Player2?.id
-                    ].filter(Boolean) as string[]}
-                  />
-                  <PlayerSelector
-                    label="Player 2"
-                    selected={team2Player2}
-                    onSelect={setTeam2Player2}
-                    teamLabel="2"
-                    excludeIds={[
-                      team1Player1?.id, 
-                      team1Player2?.id, 
-                      team2Player1?.id
-                    ].filter(Boolean) as string[]}
-                  />
+              </Card>
+
+              {/* Score Entry */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">
+                      {team1Player1 && team1Player2 ? `${team1Player1.name} & ${team1Player2.name}` : 'Team 1'}
+                    </p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player1Score}
+                      onChange={(e) => setPlayer1Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
+                  <div className="text-center text-text-muted text-2xl">-</div>
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">
+                      {team2Player1 && team2Player2 ? `${team2Player1.name} & ${team2Player2.name}` : 'Team 2'}
+                    </p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player2Score}
+                      onChange={(e) => setPlayer2Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={resetState}>
-              Back
-            </Button>
-            <Button onClick={handleNextToScore}>
-              Continue to Score
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Step 3: Enter Score */}
-      {step === 'score' && (
-        <>
-          <PageHeader
-            title="Enter the Score"
-            description="Record the final score of the match"
-          />
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+              </Card>
             </div>
           )}
 
-          <Card className="p-8 mb-8">
-            <div className="grid md:grid-cols-3 gap-8 items-center">
-              {/* Team 1 */}
-              <div className="text-center">
-                <div className="mb-2">
-                  {matchType === 'DOUBLES' ? (
-                    <Badge variant="success">Team 1</Badge>
-                  ) : null}
-                </div>
-                <p className="font-medium text-text-secondary mb-4">
-                  {matchType === 'SINGLES' 
-                    ? player1?.name
-                    : `${team1Player1?.name} & ${team1Player2?.name}`
-                  }
-                </p>
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    onClick={() => setTeam1Score(Math.max(0, team1Score - 1))}
-                    className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
-                  >
-                    <Minus className="h-6 w-6" />
-                  </button>
-                  <span className="text-6xl font-bold text-text-primary w-20">
-                    {team1Score}
-                  </span>
-                  <button
-                    onClick={() => setTeam1Score(Math.min(30, team1Score + 1))}
-                    className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
-                  >
-                    <Plus className="h-6 w-6" />
-                  </button>
-                </div>
-                <Badge variant="outline" className="mt-2">
-                  {matchType === 'SINGLES' 
-                    ? `${player1?.elo} ELO`
-                    : `Avg: ${Math.round(((team1Player1?.elo || 0) + (team1Player2?.elo || 0)) / 2)} ELO`
-                  }
-                </Badge>
-              </div>
-
-              {/* VS Divider */}
-              <div className="text-center">
-                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto">
-                  <span className="text-2xl font-bold text-accent">VS</span>
-                </div>
-              </div>
-
-              {/* Team 2 */}
-              <div className="text-center">
-                <div className="mb-2">
-                  {matchType === 'DOUBLES' ? (
-                    <Badge variant="danger">Team 2</Badge>
-                  ) : null}
-                </div>
-                <p className="font-medium text-text-secondary mb-4">
-                  {matchType === 'SINGLES' 
-                    ? player2?.name
-                    : `${team2Player1?.name} & ${team2Player2?.name}`
-                  }
-                </p>
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    onClick={() => setTeam2Score(Math.max(0, team2Score - 1))}
-                    className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
-                  >
-                    <Minus className="h-6 w-6" />
-                  </button>
-                  <span className="text-6xl font-bold text-text-primary w-20">
-                    {team2Score}
-                  </span>
-                  <button
-                    onClick={() => setTeam2Score(Math.min(30, team2Score + 1))}
-                    className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
-                  >
-                    <Plus className="h-6 w-6" />
-                  </button>
-                </div>
-                <Badge variant="outline" className="mt-2">
-                  {matchType === 'SINGLES' 
-                    ? `${player2?.elo} ELO`
-                    : `Avg: ${Math.round(((team2Player1?.elo || 0) + (team2Player2?.elo || 0)) / 2)} ELO`
-                  }
-                </Badge>
-              </div>
-            </div>
-          </Card>
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep('select')}>
-              Back
-            </Button>
-            <Button onClick={handleNextToConfirm}>
-              Review Match
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Step 4: Confirm */}
-      {step === 'confirm' && (
-        <>
-          <PageHeader
-            title="Confirm Match"
-            description="Review the match details before submitting"
-          />
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
-              <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-
-          <Card className="p-8 mb-8">
-            {/* Winner Announcement */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 rounded-full mb-4">
-                <Trophy className="h-5 w-5" />
-                <span className="font-semibold">{winner} wins!</span>
-              </div>
-              <div className="flex items-center justify-center gap-8 text-5xl font-bold">
-                <span className={team1Won ? 'text-accent' : 'text-text-secondary'}>
-                  {team1Score}
-                </span>
-                <span className="text-text-muted">-</span>
-                <span className={!team1Won ? 'text-accent' : 'text-text-secondary'}>
-                  {team2Score}
-                </span>
-              </div>
-            </div>
-
-            {/* Match Details */}
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <Badge variant="success" className="mb-2">Team 1</Badge>
-                <p className="font-medium">
-                  {matchType === 'SINGLES' 
-                    ? player1?.name
-                    : `${team1Player1?.name} & ${team1Player2?.name}`
-                  }
-                </p>
-              </div>
-              <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <Badge variant="danger" className="mb-2">Team 2</Badge>
-                <p className="font-medium">
-                  {matchType === 'SINGLES' 
-                    ? player2?.name
-                    : `${team2Player1?.name} & ${team2Player2?.name}`
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* Match Info */}
-            <div className="text-center text-sm text-text-secondary space-y-1">
-              <p>Match type: <strong>{matchType}</strong></p>
-              <p>Score margin: <strong>{scoreMargin} points</strong></p>
-              <p>Margin multiplier: <strong>{marginMultiplier}x</strong> (casual match)</p>
-            </div>
-          </Card>
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep('score')}>
-              Back
-            </Button>
-            <Button 
+          {/* Submit Button */}
+          <div className="mt-8 flex justify-center">
+            <Button
+              size="lg"
               onClick={handleSubmit}
-              isLoading={isLoading}
-              leftIcon={<Trophy className="h-4 w-4" />}
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+              className="min-w-[200px]"
             >
+              <Check className="h-5 w-5 mr-2" />
               Log Match
             </Button>
           </div>
-        </>
-      )}
-
-      {/* Success */}
-      {step === 'success' && (
-        <div className="text-center py-12">
-          <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="h-10 w-10 text-green-500" />
-          </div>
-          <h1 className="text-3xl font-bold text-text-primary mb-4">
-            Match Logged!
-          </h1>
-          <p className="text-text-secondary mb-8 max-w-md mx-auto">
-            {winner} won {Math.max(team1Score, team2Score)}-{Math.min(team1Score, team2Score)}. 
-            The {matchType === 'SINGLES' ? 'ELO ratings' : 'doubles ELO ratings'} have been updated.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="outline">
-                Back to Dashboard
-              </Button>
-            </Link>
-            <Button onClick={resetState}>
-              Log Another Match
-            </Button>
-          </div>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

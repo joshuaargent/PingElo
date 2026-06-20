@@ -1,242 +1,179 @@
 'use client';
 
-import { useState } from 'react';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
-import { Filter, Calendar, Trophy, TrendingUp, Clock } from 'lucide-react';
+import { Clock, Filter, Trophy } from 'lucide-react';
+
+interface Match {
+  id: string;
+  matchType: string;
+  player1: { id: string; name: string; image?: string | null };
+  player2: { id: string; name: string; image?: string | null };
+  player1Score: number;
+  player2Score: number;
+  winnerId: string;
+  createdAt: string;
+  isTournamentMatch: boolean;
+  tournament?: { id: string; name: string };
+}
 
 // ============================================
 // Match History Page
 // ============================================
 
-const mockMatches = [
-  {
-    id: '1',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '2', name: 'Alex Chen', image: null },
-    player1Score: 21,
-    player2Score: 18,
-    winnerId: '1',
-    isTournament: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    eloChange: { player1Change: 12, player2Change: -12 },
-  },
-  {
-    id: '2',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '3', name: 'Sarah Miller', image: null },
-    player1Score: 15,
-    player2Score: 21,
-    winnerId: '3',
-    isTournament: false,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    eloChange: { player1Change: -18, player2Change: 18 },
-  },
-  {
-    id: '3',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '4', name: 'Mike Johnson', image: null },
-    player1Score: 21,
-    player2Score: 12,
-    winnerId: '1',
-    isTournament: false,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    eloChange: { player1Change: 24, player2Change: -24 },
-  },
-  {
-    id: '4',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '5', name: 'Emma Wilson', image: null },
-    player1Score: 19,
-    player2Score: 21,
-    winnerId: '5',
-    isTournament: false,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    eloChange: { player1Change: -8, player2Change: 8 },
-  },
-  {
-    id: '5',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '6', name: 'James Brown', image: null },
-    player1Score: 21,
-    player2Score: 15,
-    winnerId: '1',
-    isTournament: false,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    eloChange: { player1Change: 16, player2Change: -16 },
-  },
-  {
-    id: '6',
-    player1: { id: '1', name: 'You', image: null },
-    player2: { id: '7', name: 'Lisa Davis', image: null },
-    player1Score: 21,
-    player2Score: 8,
-    winnerId: '1',
-    isTournament: true,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    eloChange: { player1Change: 32, player2Change: -32 },
-  },
-];
-
-type FilterType = 'all' | 'wins' | 'losses' | 'tournament';
-type TimeFilter = 'all' | 'week' | 'month';
-
 export default function MatchHistoryPage() {
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const { data: session, status } = useSession();
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'wins' | 'losses'>('all');
 
-  const filteredMatches = mockMatches.filter((match) => {
-    if (filter === 'wins') return match.winnerId === '1';
-    if (filter === 'losses') return match.winnerId !== '1';
-    if (filter === 'tournament') return match.isTournament;
+  useEffect(() => {
+    if (status === 'loading') return;
+    if (!session?.user) {
+      redirect('/auth/signin');
+    }
+  }, [session, status]);
+
+  useEffect(() => {
+    async function fetchMatches() {
+      if (!session?.user?.id) return;
+      
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/matches?userId=${session.user.id}&limit=50`);
+        if (res.ok) {
+          const data = await res.json();
+          setMatches(data.matches || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch matches:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    if (session?.user?.id) {
+      fetchMatches();
+    }
+  }, [session?.user?.id]);
+
+  const filteredMatches = matches.filter((match) => {
+    if (filter === 'all') return true;
+    if (filter === 'wins') return match.winnerId === session?.user?.id;
+    if (filter === 'losses') return match.winnerId !== session?.user?.id;
     return true;
   });
 
-  const wins = mockMatches.filter((m) => m.winnerId === '1').length;
-  const losses = mockMatches.filter((m) => m.winnerId !== '1').length;
-  const totalEloChange = mockMatches.reduce((sum, m) => 
-    m.winnerId === '1' ? sum + m.eloChange.player1Change : sum + m.eloChange.player1Change, 0
-  );
+  const wins = matches.filter(m => m.winnerId === session?.user?.id).length;
+  const losses = matches.filter(m => m.winnerId !== session?.user?.id).length;
+
+  if (status === 'loading' || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading match history...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader
-        title="Match History"
-        description="View all your matches and track your progress"
-      />
-
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card className="p-4 text-center">
-          <p className="text-sm text-text-secondary mb-1">Total Matches</p>
-          <p className="text-3xl font-bold text-text-primary">{mockMatches.length}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-sm text-text-secondary mb-1">Wins</p>
-          <p className="text-3xl font-bold text-green-600">{wins}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-sm text-text-secondary mb-1">Losses</p>
-          <p className="text-3xl font-bold text-red-600">{losses}</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-sm text-text-secondary mb-1">ELO Change</p>
-          <p className={`text-3xl font-bold ${totalEloChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {totalEloChange >= 0 ? '+' : ''}{totalEloChange}
-          </p>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-text-secondary" />
-          <span className="text-sm text-text-secondary">Filter:</span>
-        </div>
-        <div className="inline-flex rounded-lg bg-bg-secondary p-1">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-bg-primary text-text-primary shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('wins')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              filter === 'wins'
-                ? 'bg-bg-primary text-green-600 shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            Wins
-          </button>
-          <button
-            onClick={() => setFilter('losses')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              filter === 'losses'
-                ? 'bg-bg-primary text-red-600 shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            Losses
-          </button>
-          <button
-            onClick={() => setFilter('tournament')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              filter === 'tournament'
-                ? 'bg-bg-primary text-accent shadow-sm'
-                : 'text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            Tournaments
-          </button>
+    <>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-12 md:py-16">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          <Calendar className="h-4 w-4 text-text-secondary" />
-          <span className="text-sm text-text-secondary">Time:</span>
-          <div className="inline-flex rounded-lg bg-bg-secondary p-1">
-            <button
-              onClick={() => setTimeFilter('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                timeFilter === 'all'
-                  ? 'bg-bg-primary text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              All Time
-            </button>
-            <button
-              onClick={() => setTimeFilter('month')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                timeFilter === 'month'
-                  ? 'bg-bg-primary text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              This Month
-            </button>
-            <button
-              onClick={() => setTimeFilter('week')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                timeFilter === 'week'
-                  ? 'bg-bg-primary text-text-primary shadow-sm'
-                  : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              This Week
-            </button>
+        <div className="container">
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Match History
+            </h1>
+            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
+              Your recent ping pong matches
+            </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Match List */}
-      <div className="space-y-4">
-        {filteredMatches.length > 0 ? (
-          filteredMatches.map((match) => (
-            <MatchCardFromMatch key={match.id} match={match} />
-          ))
-        ) : (
-          <Card className="p-12 text-center">
-            <Clock className="h-12 w-12 text-text-muted mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-text-primary mb-2">
-              No matches found
-            </h3>
-            <p className="text-text-secondary">
-              {filter !== 'all' 
-                ? `You don't have any ${filter} yet.`
-                : "You haven't logged any matches yet."}
-            </p>
-          </Card>
-        )}
+      {/* Content Section */}
+      <div className="container mx-auto px-4 pb-16">
+        <div className="mx-auto max-w-4xl">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <Card className="p-4 text-center">
+              <p className="text-3xl font-bold text-text-primary">{matches.length}</p>
+              <p className="text-sm text-text-secondary">Total Matches</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-3xl font-bold text-green-500">{wins}</p>
+              <p className="text-sm text-text-secondary">Wins</p>
+            </Card>
+            <Card className="p-4 text-center">
+              <p className="text-3xl font-bold text-red-500">{losses}</p>
+              <p className="text-sm text-text-secondary">Losses</p>
+            </Card>
+          </div>
+
+          {/* Filter */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1">
+              <button
+                onClick={() => setFilter('all')}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                  filter === 'all'
+                    ? 'bg-bg-primary text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('wins')}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                  filter === 'wins'
+                    ? 'bg-bg-primary text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Wins
+              </button>
+              <button
+                onClick={() => setFilter('losses')}
+                className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
+                  filter === 'losses'
+                    ? 'bg-bg-primary text-text-primary shadow-sm'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Losses
+              </button>
+            </div>
+          </div>
+
+          {/* Match List */}
+          {filteredMatches.length > 0 ? (
+            <div className="space-y-4">
+              {filteredMatches.map((match) => (
+                <MatchCardFromMatch key={match.id} match={match} />
+              ))}
+            </div>
+          ) : (
+            <Card className="p-12 text-center">
+              <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-text-primary mb-2">No Matches Yet</h3>
+              <p className="text-text-secondary">Start logging your matches!</p>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

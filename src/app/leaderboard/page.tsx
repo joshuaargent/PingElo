@@ -1,25 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Leaderboard } from '@/components/elo/Leaderboard';
+import { Card } from '@/components/ui/Card';
 import { User, Users, Trophy, TrendingUp, Crown } from 'lucide-react';
-
-// Mock data for preview - in production this would come from API
-const mockLeaderboardData = [
-  { rank: 1, userId: '1', name: 'Alex Chen', image: null, foreverElo: 1285, seasonElo: 1250, doublesForeverElo: 1190, doublesSeasonElo: 1150, matchesPlayed: 45, wins: 32, losses: 13, winRate: 71.1, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 2, userId: '2', name: 'Sarah Miller', image: null, foreverElo: 1240, seasonElo: 1220, doublesForeverElo: 1210, doublesSeasonElo: 1180, matchesPlayed: 38, wins: 26, losses: 12, winRate: 68.4, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 3, userId: '3', name: 'Mike Johnson', image: null, foreverElo: 1198, seasonElo: 1180, doublesForeverElo: 1150, doublesSeasonElo: 1120, matchesPlayed: 52, wins: 34, losses: 18, winRate: 65.4, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 4, userId: '4', name: 'Emma Wilson', image: null, foreverElo: 1156, seasonElo: 1140, doublesForeverElo: 1180, doublesSeasonElo: 1160, matchesPlayed: 29, wins: 18, losses: 11, winRate: 62.1, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 5, userId: '5', name: 'James Brown', image: null, foreverElo: 1105, seasonElo: 1090, doublesForeverElo: 1050, doublesSeasonElo: 1020, matchesPlayed: 22, wins: 12, losses: 10, winRate: 54.5, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 6, userId: '6', name: 'Lisa Garcia', image: null, foreverElo: 1089, seasonElo: 1080, doublesForeverElo: 1120, doublesSeasonElo: 1100, matchesPlayed: 18, wins: 10, losses: 8, winRate: 55.6, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 7, userId: '7', name: 'David Kim', image: null, foreverElo: 1050, seasonElo: 1040, doublesForeverElo: 980, doublesSeasonElo: 960, matchesPlayed: 15, wins: 7, losses: 8, winRate: 46.7, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 8, userId: '8', name: 'Anna Lee', image: null, foreverElo: 1020, seasonElo: 1015, doublesForeverElo: 1080, doublesSeasonElo: 1050, matchesPlayed: 12, wins: 5, losses: 7, winRate: 41.7, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 9, userId: '9', name: 'Tom Davis', image: null, foreverElo: 985, seasonElo: 980, doublesForeverElo: 950, doublesSeasonElo: 940, matchesPlayed: 8, wins: 3, losses: 5, winRate: 37.5, lastMatchDate: new Date(), isRusty: false, isActive: true },
-  { rank: 10, userId: '10', name: 'Rachel White', image: null, foreverElo: 960, seasonElo: 950, doublesForeverElo: 1000, doublesSeasonElo: 980, matchesPlayed: 6, wins: 2, losses: 4, winRate: 33.3, lastMatchDate: new Date(), isRusty: false, isActive: false },
-];
 
 type LeaderboardType = 'forever' | 'season';
 type MatchType = 'singles' | 'doubles';
+
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  image: string | null;
+  foreverElo: number;
+  seasonElo: number;
+  doublesForeverElo: number;
+  doublesSeasonElo: number;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  lastMatchDate: Date | null;
+  isRusty: boolean;
+  isActive: boolean;
+}
 
 // ============================================
 // Leaderboard Page
@@ -28,10 +33,47 @@ type MatchType = 'singles' | 'doubles';
 export default function LeaderboardPage() {
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>('forever');
   const [matchType, setMatchType] = useState<MatchType>('singles');
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/users?includeStats=true&sortBy=foreverElo&order=desc');
+        if (res.ok) {
+          const data = await res.json();
+          const usersWithRanks = data.users.map((user: any, index: number) => ({
+            rank: index + 1,
+            userId: user.id,
+            name: user.name,
+            image: user.image,
+            foreverElo: user.foreverElo,
+            seasonElo: user.seasonElo,
+            doublesForeverElo: user.doublesForeverElo || 1000,
+            doublesSeasonElo: user.doublesSeasonElo || 1000,
+            matchesPlayed: user.matchesPlayed,
+            wins: user.wins || 0,
+            losses: user.losses || 0,
+            winRate: user.winRate || 0,
+            lastMatchDate: user.lastMatchDate,
+            isRusty: user.isRusty || false,
+            isActive: user.isActive || false,
+          }));
+          setEntries(usersWithRanks);
+        }
+      } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchLeaderboard();
+  }, []);
 
   return (
     <>
-      {/* Hero Section - Consistent with homepage styling */}
+      {/* Hero Section - Consistent with homepage styling, no stats */}
       <section className="relative overflow-hidden py-12 md:py-16 lg:py-20">
         {/* Background Decoration */}
         <div className="absolute inset-0 -z-10">
@@ -56,31 +98,6 @@ export default function LeaderboardPage() {
             <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
               See how you rank against other players
             </p>
-
-            {/* Stats */}
-            <div className="mt-8 grid grid-cols-3 gap-8 rounded-2xl bg-bg-card/50 p-6 backdrop-blur-sm border border-border/50">
-              <div className="text-center">
-                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
-                  <Users className="h-6 w-6" />
-                  <span>48</span>
-                </div>
-                <p className="text-text-secondary mt-1 text-sm">Total Players</p>
-              </div>
-              <div className="text-center">
-                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
-                  <TrendingUp className="h-6 w-6" />
-                  <span>156</span>
-                </div>
-                <p className="text-text-secondary mt-1 text-sm">Active Matches</p>
-              </div>
-              <div className="text-center">
-                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
-                  <Crown className="h-6 w-6" />
-                  <span>1285</span>
-                </div>
-                <p className="text-text-secondary mt-1 text-sm">Top ELO</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -141,13 +158,26 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* Leaderboard */}
-        <Leaderboard
-          entries={mockLeaderboardData}
-          type={leaderboardType}
-          matchType={matchType}
-          showSeasonElo={leaderboardType === 'forever'}
-        />
+        {/* Loading or Leaderboard */}
+        {isLoading ? (
+          <Card className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+            <p className="text-text-secondary">Loading leaderboard...</p>
+          </Card>
+        ) : entries.length === 0 ? (
+          <Card className="p-12 text-center">
+            <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary mb-2">No Players Yet</h3>
+            <p className="text-text-secondary">Be the first to log a match!</p>
+          </Card>
+        ) : (
+          <Leaderboard
+            entries={entries}
+            type={leaderboardType}
+            matchType={matchType}
+            showSeasonElo={leaderboardType === 'forever'}
+          />
+        )}
       </div>
     </>
   );
