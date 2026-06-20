@@ -108,7 +108,7 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
               )}
             >
               <Link
-                href={`/players/${player1.id}`}
+                href={`/profile/${player1.id}`}
                 className="flex flex-col items-center gap-2"
               >
                 <Avatar
@@ -172,7 +172,7 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
               )}
             >
               <Link
-                href={`/players/${player2.id}`}
+                href={`/profile/${player2.id}`}
                 className="flex flex-col items-center gap-2"
               >
                 <Avatar
