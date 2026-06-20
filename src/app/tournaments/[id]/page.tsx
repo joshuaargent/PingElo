@@ -591,8 +591,8 @@ export default function TournamentDetailPage() {
                   <p className="text-sm text-text-secondary mt-1">Players</p>
                 </div>
                 <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                  <div className="text-accent text-lg font-bold">{tournament.entryFee > 0 ? `${tournament.entryFee} ELO` : 'Free'}</div>
-                  <p className="text-sm text-text-secondary mt-1">Entry Fee</p>
+                  <div className="text-accent text-lg font-bold">Dynamic</div>
+                  <p className="text-sm text-text-secondary mt-1">Entry: Based on ELO</p>
                 </div>
               </div>
 
