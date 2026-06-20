@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { PageHero } from "@/components/layout/PageHero";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -43,6 +43,7 @@ interface Player {
 }
 
 export default function TeamsPage() {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const [teams, setTeams] = useState<Team[]>([]);
   const [limits, setLimits] = useState<TeamLimits | null>(null);
@@ -120,6 +121,7 @@ export default function TeamsPage() {
 
   const canCreateTeam = limits && limits.teamsCreatedByYou < limits.maxTeamsYouCanCreate;
   const canBeInMoreTeams = limits && limits.teamsYouAreIn < limits.maxTeamsYouCanBeIn;
+  const hasActiveSeason = currentSeason !== null;
   
   // Filter out players who are already your teammate OR who are already in 2 teams
   const available = allPlayers.filter(p => {
@@ -131,6 +133,29 @@ export default function TeamsPage() {
 
   if (status === "loading" || isLoading) {
     return <div className="flex justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"/></div>;
+  }
+
+  // No active season
+  if (!hasActiveSeason) {
+    return (
+      <>
+        <PageHero title="My Teams" description="Manage your doubles partnerships for this season" />
+        <div className="container mx-auto px-4 pb-16">
+          <div className="mx-auto max-w-4xl">
+            <Card className="p-12 text-center">
+              <Calendar className="h-16 w-16 mx-auto text-text-muted mb-4"/>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">No Active Season</h3>
+              <p className="text-text-secondary mb-6">
+                Teams are seasonal. You&apos;ll be able to create teams when a new season starts!
+              </p>
+              <Button onClick={() => router.push('/dashboard')}>
+                Go to Dashboard
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (

@@ -28,9 +28,23 @@ export async function GET(request: NextRequest) {
       where: { isActive: true },
     });
     
+    // If no active season, return empty state
+    if (!currentSeason) {
+      return NextResponse.json({ 
+        teams: [],
+        currentSeason: null,
+        limits: {
+          maxTeamsYouCanBeIn: MAX_TEAMS_PER_PERSON,
+          maxTeamsYouCanCreate: MAX_TEAMS_CREATED_PER_PERSON,
+          teamsCreatedByYou: 0,
+          teamsYouAreIn: 0,
+        }
+      });
+    }
+    
     const teams = await prisma.team.findMany({
       where: {
-        seasonId: currentSeason?.id,
+        seasonId: currentSeason.id,
         OR: [
           { player1Id: userId },
           { player2Id: userId },
@@ -55,7 +69,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ 
       teams,
-      currentSeason: currentSeason ? { id: currentSeason.id, name: currentSeason.name } : null,
+      currentSeason: { id: currentSeason.id, name: currentSeason.name },
       limits: {
         maxTeamsYouCanBeIn: MAX_TEAMS_PER_PERSON,
         maxTeamsYouCanCreate: MAX_TEAMS_CREATED_PER_PERSON,
