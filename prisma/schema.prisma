@@ -319,6 +319,8 @@ model TournamentParticipant {
   userId          String?
   teamId          String?   // For doubles tournaments, the team participating
   eloAtEntry      Int       // Locked at entry time (user or team ELO)
+  player1EloAtEntry Int?     // For doubles: player 1's ELO at entry
+  player2EloAtEntry Int?     // For doubles: player 2's ELO at entry
   paidEntry       Boolean   @default(false)
   paidOut         Boolean   @default(false)
   finalPlacement  Int?

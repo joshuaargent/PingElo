@@ -1,11 +1,12 @@
 /**
  * Cancel Tournament API Route
  * Creator or admin can cancel a tournament before it starts
- * All participants are refunded
+ * All participants are refunded based on their individual entry fees
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
+import { calculateEntryFee } from "@/lib/elo";
 
 export async function POST(
   request: NextRequest,
@@ -40,34 +41,50 @@ export async function POST(
     // Refund all participants
     await prisma.$transaction(async (tx) => {
       for (const participant of tournament.participants) {
-        let entryFee = 0;
         if (participant.teamId && participant.team) {
-          entryFee = participant.eloAtEntry - participant.team.foreverElo;
-        } else if (participant.userId && participant.user) {
-          entryFee = participant.eloAtEntry - participant.user.foreverElo;
-        }
+          // Doubles: refund each player their individual fee
+          const player1Fee = calculateEntryFee(participant.player1EloAtEntry || participant.team.player1.foreverElo);
+          const player2Fee = calculateEntryFee(participant.player2EloAtEntry || participant.team.player2.foreverElo);
 
-        if (entryFee > 0) {
-          if (participant.teamId && participant.team) {
-            await tx.team.update({
-              where: { id: participant.teamId },
-              data: { foreverElo: participant.team.foreverElo + entryFee },
+          if (player1Fee > 0) {
+            await tx.user.update({
+              where: { id: participant.team.player1Id },
+              data: { foreverElo: participant.team.player1.foreverElo + player1Fee },
             });
-            const feePerPlayer = Math.floor(entryFee / 2);
-            for (const player of [participant.team.player1, participant.team.player2]) {
-              await tx.eloHistory.create({
-                data: {
-                  userId: player.id,
-                  changeType: 'TOURNAMENT_ENTRY',
-                  eloBefore: player.foreverElo,
-                  eloAfter: player.foreverElo + feePerPlayer,
-                  change: feePerPlayer,
-                  description: `Tournament cancelled: ${tournament.name}`,
-                  metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
-                },
-              });
-            }
-          } else if (participant.userId && participant.user) {
+            await tx.eloHistory.create({
+              data: {
+                userId: participant.team.player1Id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: participant.team.player1.foreverElo,
+                eloAfter: participant.team.player1.foreverElo + player1Fee,
+                change: player1Fee,
+                description: `Tournament cancelled: ${tournament.name}`,
+                metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
+              },
+            });
+          }
+
+          if (player2Fee > 0) {
+            await tx.user.update({
+              where: { id: participant.team.player2Id },
+              data: { foreverElo: participant.team.player2.foreverElo + player2Fee },
+            });
+            await tx.eloHistory.create({
+              data: {
+                userId: participant.team.player2Id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: participant.team.player2.foreverElo,
+                eloAfter: participant.team.player2.foreverElo + player2Fee,
+                change: player2Fee,
+                description: `Tournament cancelled: ${tournament.name}`,
+                metadata: { tournamentId, teamId: participant.teamId, isRefund: true, isCancellation: true },
+              },
+            });
+          }
+        } else if (participant.userId && participant.user) {
+          // Singles: refund the player
+          const entryFee = calculateEntryFee(participant.eloAtEntry);
+          if (entryFee > 0) {
             await tx.user.update({
               where: { id: participant.userId },
               data: { foreverElo: participant.user.foreverElo + entryFee },

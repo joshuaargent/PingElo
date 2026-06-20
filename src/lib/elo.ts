@@ -558,8 +558,21 @@ export function calculateTournamentPayout(
 }
 
 /**
- * Calculates entry fee based on player's ELO tier
- * Below 800 ELO = free, 800-1000 = 10 ELO, 1000-1200 = 20 ELO, 1200+ = 50 ELO
+ * Tournament Entry Fee Structure
+ * ===============================
+ * Singles: Each player pays based on their own ELO
+ * Doubles: Each player pays based on their individual ELO (not team total)
+ * 
+ * Fee Tiers:
+ * - Below 800 ELO: 0 ELO (free)
+ * - 800-999 ELO: 10 ELO per player
+ * - 1000-1199 ELO: 20 ELO per player
+ * - 1200+ ELO: 50 ELO per player
+ * 
+ * Examples (Doubles):
+ * - 1200 + 800 = 50 + 10 = 60 ELO total entry fee
+ * - 1000 + 1000 = 20 + 20 = 40 ELO total entry fee
+ * - 750 + 750 = 0 + 0 = 0 ELO (free for both)
  */
 export function calculateEntryFee(playerElo: number): number {
   if (playerElo < 800) {

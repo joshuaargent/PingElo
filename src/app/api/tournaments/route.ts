@@ -57,6 +57,13 @@ export async function GET(request: NextRequest) {
               participants: true,
             },
           },
+          participants: {
+            select: {
+              id: true,
+              userId: true,
+              teamId: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         skip,
