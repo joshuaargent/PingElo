@@ -92,10 +92,15 @@ export default function AdminDashboardPage() {
     if (status === 'loading') return;
     if (!session?.user) {
       router.push('/auth/signin');
+      return;
     }
-    // Check role from session - it might be stored differently
+    
+    // Get role from session user
     const userRole = (session?.user as any)?.role;
+    console.log('Admin check - role:', userRole, 'session:', JSON.stringify(session?.user));
+    
     if (userRole !== 'ADMIN') {
+      console.log('Not admin, redirecting to dashboard');
       router.push('/dashboard');
     }
   }, [session, status, router]);

@@ -110,18 +110,19 @@ export async function GET(
 }
 
 /**
- * PATCH /api/users/[id] - Update user (admin only)
+ * PATCH /api/users/[id] - Update user (own profile or admin)
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { session, response: authResponse } = await getAdminSessionOrForbidden();
+    const { session, response: authResponse } = await getSessionOrUnauthorized();
     if (authResponse) return authResponse;
 
     const { id } = await params;
     const body = await request.json();
+    const currentUserId = (session!.user as { id: string }).id;
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -135,18 +136,35 @@ export async function PATCH(
       );
     }
 
-    // Build update data
+    // Check if user is updating their own profile or is admin
+    const isOwnProfile = currentUserId === id;
+    const userRole = (session!.user as { role?: string }).role;
+    const isAdmin = userRole === 'ADMIN';
+
+    if (!isOwnProfile && !isAdmin) {
+      return NextResponse.json(
+        { error: "You can only update your own profile" },
+        { status: 403 }
+      );
+    }
+
+    // Build update data - regular users can only update name/image
+    // Admins can update any field
     const updateData: Record<string, unknown> = {};
 
     if (body.name !== undefined) updateData.name = body.name;
     if (body.image !== undefined) updateData.image = body.image;
-    if (body.role !== undefined) updateData.role = body.role;
-    if (body.isBanned !== undefined) {
-      updateData.isBanned = body.isBanned;
-      updateData.banReason = body.banReason || null;
+    
+    // Admin-only fields
+    if (isAdmin) {
+      if (body.role !== undefined) updateData.role = body.role;
+      if (body.isBanned !== undefined) {
+        updateData.isBanned = body.isBanned;
+        updateData.banReason = body.banReason || null;
+      }
+      if (body.foreverElo !== undefined) updateData.foreverElo = body.foreverElo;
+      if (body.seasonElo !== undefined) updateData.seasonElo = body.seasonElo;
     }
-    if (body.foreverElo !== undefined) updateData.foreverElo = body.foreverElo;
-    if (body.seasonElo !== undefined) updateData.seasonElo = body.seasonElo;
 
     const updatedUser = await prisma.user.update({
       where: { id },
