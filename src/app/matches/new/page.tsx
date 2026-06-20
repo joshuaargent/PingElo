@@ -11,15 +11,17 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EloBadge } from '@/components/elo/EloBadge';
-import { Trophy, Users, User, Check, Zap } from 'lucide-react';
+import { Trophy, Users, User, Check, Zap, Shuffle } from 'lucide-react';
 
 type MatchType = 'SINGLES' | 'DOUBLES';
+type DoublesMode = 'teams' | 'adhoc';
 
 interface Player {
   id: string;
   name: string;
   image?: string | null;
   foreverElo: number;
+  doublesForeverElo?: number;
 }
 
 interface Team {
@@ -36,12 +38,24 @@ export default function LogMatchPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [matchType, setMatchType] = useState<MatchType>('SINGLES');
+  const [doublesMode, setDoublesMode] = useState<DoublesMode>('teams');
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  
+  // Singles state
   const [player1, setPlayer1] = useState<Player | null>(null);
   const [player2, setPlayer2] = useState<Player | null>(null);
+  
+  // Team-based doubles state
   const [team1, setTeam1] = useState<Team | null>(null);
   const [team2, setTeam2] = useState<Team | null>(null);
+  
+  // Ad-hoc doubles state (4 individual players)
+  const [team1Player1, setTeam1Player1] = useState<Player | null>(null);
+  const [team1Player2, setTeam1Player2] = useState<Player | null>(null);
+  const [team2Player1, setTeam2Player1] = useState<Player | null>(null);
+  const [team2Player2, setTeam2Player2] = useState<Player | null>(null);
+  
   const [player1Score, setPlayer1Score] = useState<string>('');
   const [player2Score, setPlayer2Score] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -97,9 +111,23 @@ export default function LogMatchPage() {
         return;
       }
     } else {
-      if (!team1 || !team2) {
-        setError('Please select both teams');
-        return;
+      if (doublesMode === 'teams') {
+        if (!team1 || !team2) {
+          setError('Please select both teams');
+          return;
+        }
+      } else {
+        // Ad-hoc doubles
+        if (!team1Player1 || !team1Player2 || !team2Player1 || !team2Player2) {
+          setError('Please select all 4 players');
+          return;
+        }
+        // Check for duplicates
+        const ids = [team1Player1.id, team1Player2.id, team2Player1.id, team2Player2.id];
+        if (new Set(ids).size !== 4) {
+          setError('All 4 players must be different');
+          return;
+        }
       }
     }
 
@@ -116,10 +144,15 @@ export default function LogMatchPage() {
       if (matchType === 'SINGLES') {
         body.player1Id = player1!.id;
         body.player2Id = player2!.id;
-      } else {
-        // For doubles, pass team IDs and let API resolve to player IDs
+      } else if (doublesMode === 'teams') {
         body.team1Id = team1!.id;
         body.team2Id = team2!.id;
+      } else {
+        // Ad-hoc doubles - pass individual player IDs
+        body.team1Player1Id = team1Player1!.id;
+        body.team1Player2Id = team1Player2!.id;
+        body.team2Player1Id = team2Player1!.id;
+        body.team2Player2Id = team2Player2!.id;
       }
 
       const res = await fetch('/api/matches', {
@@ -146,6 +179,10 @@ export default function LogMatchPage() {
     setPlayer2(null);
     setTeam1(null);
     setTeam2(null);
+    setTeam1Player1(null);
+    setTeam1Player2(null);
+    setTeam2Player1(null);
+    setTeam2Player2(null);
     setPlayer1Score('');
     setPlayer2Score('');
   };
@@ -204,6 +241,41 @@ export default function LogMatchPage() {
           {error && (
             <Card className="p-4 mb-6 border-red-500/50 bg-red-500/10">
               <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
+            </Card>
+          )}
+
+          {/* Doubles Mode Selector */}
+          {matchType === 'DOUBLES' && (
+            <Card className="p-4 mb-6">
+              <div className="flex flex-wrap justify-center gap-4">
+                <button
+                  onClick={() => { setDoublesMode('teams'); clearSelections(); }}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    doublesMode === 'teams'
+                      ? 'bg-accent text-white'
+                      : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <Zap className="h-4 w-4" />
+                  Select Teams
+                </button>
+                <button
+                  onClick={() => { setDoublesMode('adhoc'); clearSelections(); }}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    doublesMode === 'adhoc'
+                      ? 'bg-accent text-white'
+                      : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Pick Players
+                </button>
+              </div>
+              <p className="text-center text-sm text-text-muted mt-2">
+                {doublesMode === 'teams' 
+                  ? 'Play with your registered team partners' 
+                  : 'Pick any 4 players for a pickup game'}
+              </p>
             </Card>
           )}
 
@@ -325,8 +397,8 @@ export default function LogMatchPage() {
             </div>
           )}
 
-          {/* Doubles Match - Team Selection */}
-          {matchType === 'DOUBLES' && (
+          {/* Doubles Match - Based on Mode */}
+          {matchType === 'DOUBLES' && doublesMode === 'teams' && (
             <div className="space-y-6">
               {/* Team 1 Selection */}
               <Card className="p-6">
@@ -420,6 +492,185 @@ export default function LogMatchPage() {
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">
                       {team2 ? (team2.name || `${team2.player1.name.split(' ')[0]} & ${team2.player2.name.split(' ')[0]}`) : 'Team 2'}
+                    </p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player2Score}
+                      onChange={(e) => setPlayer2Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Doubles Match - Ad-hoc 4 Players */}
+          {matchType === 'DOUBLES' && doublesMode === 'adhoc' && (
+            <div className="space-y-6">
+              {/* Team 1 (2 players) */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-accent" />
+                  Team 1 (Winner)
+                </h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team1Player1?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam1Player1(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => 
+                        p.id !== team1Player2?.id && 
+                        p.id !== team2Player1?.id && 
+                        p.id !== team2Player2?.id
+                      ).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.doublesForeverElo || player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {team1Player1 && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Avatar src={team1Player1.image || undefined} alt={team1Player1.name} fallback={team1Player1.name.charAt(0)} size="sm" />
+                        <span className="text-sm text-text-primary">{team1Player1.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team1Player2?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam1Player2(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => 
+                        p.id !== team1Player1?.id && 
+                        p.id !== team2Player1?.id && 
+                        p.id !== team2Player2?.id
+                      ).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.doublesForeverElo || player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {team1Player2 && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Avatar src={team1Player2.image || undefined} alt={team1Player2.name} fallback={team1Player2.name.charAt(0)} size="sm" />
+                        <span className="text-sm text-text-primary">{team1Player2.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* VS Divider */}
+              <div className="text-center">
+                <span className="text-2xl font-bold text-text-muted">VS</span>
+              </div>
+
+              {/* Team 2 (2 players) */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Team 2</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team2Player1?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam2Player1(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => 
+                        p.id !== team1Player1?.id && 
+                        p.id !== team1Player2?.id && 
+                        p.id !== team2Player2?.id
+                      ).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.doublesForeverElo || player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {team2Player1 && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Avatar src={team2Player1.image || undefined} alt={team2Player1.name} fallback={team2Player1.name.charAt(0)} size="sm" />
+                        <span className="text-sm text-text-primary">{team2Player1.name}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
+                    <select
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      value={team2Player2?.id || ''}
+                      onChange={(e) => {
+                        const p = players.find(pl => pl.id === e.target.value);
+                        setTeam2Player2(p || null);
+                      }}
+                    >
+                      <option value="">Select Player</option>
+                      {players.filter(p => 
+                        p.id !== team1Player1?.id && 
+                        p.id !== team1Player2?.id && 
+                        p.id !== team2Player1?.id
+                      ).map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name} ({player.doublesForeverElo || player.foreverElo} ELO)
+                        </option>
+                      ))}
+                    </select>
+                    {team2Player2 && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <Avatar src={team2Player2.image || undefined} alt={team2Player2.name} fallback={team2Player2.name.charAt(0)} size="sm" />
+                        <span className="text-sm text-text-primary">{team2Player2.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+
+              {/* Score Entry */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">
+                      {team1Player1 && team1Player2 
+                        ? `${team1Player1.name.split(' ')[0]} & ${team1Player2.name.split(' ')[0]}` 
+                        : 'Team 1'}
+                    </p>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="21"
+                      placeholder="0"
+                      value={player1Score}
+                      onChange={(e) => setPlayer1Score(e.target.value)}
+                      className="text-center text-2xl font-bold h-16"
+                    />
+                  </div>
+                  <div className="text-center text-text-muted text-2xl">-</div>
+                  <div className="text-center">
+                    <p className="text-sm text-text-secondary mb-2">
+                      {team2Player1 && team2Player2 
+                        ? `${team2Player1.name.split(' ')[0]} & ${team2Player2.name.split(' ')[0]}` 
+                        : 'Team 2'}
                     </p>
                     <Input
                       type="number"

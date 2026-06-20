@@ -167,6 +167,103 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
+      {/* Forever vs Season ELO */}
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-text-primary mb-6">Understanding Your ELO</h2>
+        
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <Card className="p-6 border-2 border-blue-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-semibold">Forever ELO</h3>
+            </div>
+            <p className="text-text-secondary text-sm mb-3">
+              Your career-long rating that never resets. This is what you&apos;re known for—it 
+              grows as you gain experience and win matches over time.
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li>Displayed on your profile and match history</li>
+              <li>Used for tournament seeding</li>
+              <li>Persists forever (hence the name!)</li>
+              <li>Tournament entry fees are based on this</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6 border-2 border-green-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-green-500" />
+              </div>
+              <h3 className="text-lg font-semibold">Season ELO</h3>
+            </div>
+            <p className="text-text-secondary text-sm mb-3">
+              Your rating for the current season. Resets to 1000 at the start of each month, 
+              giving everyone a fresh chance to compete.
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li>Used for the season leaderboard</li>
+              <li>Resets monthly (every 1st of the month)</li>
+              <li>90% of gains count toward season (10% goes to forever)</li>
+              <li>Season winner gets bonus added to their Forever ELO</li>
+            </ul>
+          </Card>
+        </div>
+
+        <Card className="p-4 bg-bg-secondary">
+          <p className="text-sm text-text-secondary">
+            <strong>Quick tip:</strong> The leaderboard lets you filter by &quot;All Time&quot; (Forever ELO) 
+            or &quot;Season&quot; (Season ELO). Your profile shows both so you can track your career 
+            progress and current form!
+          </p>
+        </Card>
+      </section>
+
+      {/* Doubles Section */}
+      <section className="mb-16">
+        <h2 className="text-2xl font-bold text-text-primary mb-6">Doubles Matches</h2>
+        
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Users className="h-6 w-6 text-accent" />
+              <h3 className="text-lg font-semibold">Two Ways to Play</h3>
+            </div>
+            <p className="text-text-secondary text-sm mb-4">
+              Doubles matches can be played in two ways:
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-2">
+              <li><strong>With Teams:</strong> Play with your registered team partners you&apos;ve created</li>
+              <li><strong>Pick Players:</strong> Grab any 4 players for a pickup game</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Zap className="h-6 w-6 text-accent" />
+              <h3 className="text-lg font-semibold">Team Partners</h3>
+            </div>
+            <p className="text-text-secondary text-sm mb-4">
+              Create teams with other players to track your doubles history together:
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-2">
+              <li>Teams accumulate wins and losses together</li>
+              <li>Each player can be on multiple teams</li>
+              <li>Team ELO is based on both players&apos; doubles ELO</li>
+              <li>Visit the Teams page to create and manage partnerships</li>
+            </ul>
+          </Card>
+        </div>
+
+        <Card className="p-4 bg-bg-secondary">
+          <p className="text-sm text-text-secondary">
+            <strong>Tournament Note:</strong> Doubles tournaments require you to join with a team.
+            You can only be on one team per tournament to keep it fair!
+          </p>
+        </Card>
+      </section>
+
       {/* Tournaments Section */}
       <section className="mb-16">
         <h2 className="text-2xl font-bold text-text-primary mb-6">Tournaments</h2>
