@@ -89,6 +89,12 @@ export default function AdminDashboardPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [siteStats, setSiteStats] = useState<SiteStats>({ totalUsers: 0, totalMatches: 0, activeTournaments: 0, avgElo: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingUserName, setEditingUserName] = useState('');
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+  const [editingMatchScore, setEditingMatchScore] = useState({ p1: 0, p2: 0 });
+  const [editingTournamentId, setEditingTournamentId] = useState<string | null>(null);
+  const [editingTournament, setEditingTournament] = useState({ name: '', entryFee: 0, maxParticipants: 0 });
 
   // Check if user is admin
   useEffect(() => {
@@ -335,12 +341,49 @@ export default function AdminDashboardPage() {
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-text-primary">{user.name}</p>
-                          {user.role === 'ADMIN' && (
-                            <Badge variant="primary" size="sm">Admin</Badge>
-                          )}
-                          {user.isBanned && (
-                            <Badge variant="danger" size="sm">Banned</Badge>
+                          {editingUserId === user.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={editingUserName}
+                                onChange={(e) => setEditingUserName(e.target.value)}
+                                className="h-8 w-48"
+                                autoFocus
+                              />
+                              <Button size="sm" onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/users/${user.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ name: editingUserName })
+                                  });
+                                  if (res.ok) {
+                                    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, name: editingUserName } : u));
+                                    setEditingUserId(null);
+                                  } else {
+                                    alert('Failed to update name');
+                                  }
+                                } catch {
+                                  alert('Failed to update name');
+                                }
+                              }}>Save</Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditingUserId(null)}>Cancel</Button>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="font-medium text-text-primary">{user.name}</p>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                setEditingUserId(user.id);
+                                setEditingUserName(user.name);
+                              }}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              {user.role === 'ADMIN' && (
+                                <Badge variant="primary" size="sm">Admin</Badge>
+                              )}
+                              {user.isBanned && (
+                                <Badge variant="danger" size="sm">Banned</Badge>
+                              )}
+                            </>
                           )}
                         </div>
                         <p className="text-sm text-text-secondary">{user.email}</p>
@@ -442,9 +485,53 @@ export default function AdminDashboardPage() {
                         <p className="font-medium">{match.player1.name} vs {match.player2.name}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-bold">{match.player1Score}</span>
-                        <span className="text-text-muted mx-1">-</span>
-                        <span className="font-bold">{match.player2Score}</span>
+                        {editingMatchId === match.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="21"
+                              value={editingMatchScore.p1}
+                              onChange={(e) => setEditingMatchScore(prev => ({ ...prev, p1: parseInt(e.target.value) || 0 }))}
+                              className="w-16 h-8"
+                            />
+                            <span className="text-text-muted">-</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="21"
+                              value={editingMatchScore.p2}
+                              onChange={(e) => setEditingMatchScore(prev => ({ ...prev, p2: parseInt(e.target.value) || 0 }))}
+                              className="w-16 h-8"
+                            />
+                            <Button size="sm" onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/matches/${match.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ player1Score: editingMatchScore.p1, player2Score: editingMatchScore.p2 })
+                                });
+                                if (res.ok) {
+                                  setMatches(prev => prev.map(m => m.id === match.id ? { ...m, player1Score: editingMatchScore.p1, player2Score: editingMatchScore.p2 } : m));
+                                  setEditingMatchId(null);
+                                  alert('Match updated');
+                                } else {
+                                  const data = await res.json();
+                                  alert('Error: ' + data.error);
+                                }
+                              } catch {
+                                alert('Failed to update match');
+                              }
+                            }}>Save</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingMatchId(null)}>Cancel</Button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-bold">{match.player1Score}</span>
+                            <span className="text-text-muted mx-1">-</span>
+                            <span className="font-bold">{match.player2Score}</span>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {match.isTournamentMatch ? (
@@ -461,6 +548,12 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="Edit Match" onClick={() => {
+                            setEditingMatchId(match.id);
+                            setEditingMatchScore({ p1: match.player1Score, p2: match.player2Score });
+                          }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" title="Delete Match" onClick={() => {
                             if (!confirm('Are you sure you want to delete this match?')) return;
                             fetch('/api/admin/delete-match', {
@@ -508,15 +601,85 @@ export default function AdminDashboardPage() {
               {tournaments.map((tournament) => (
                 <Card key={tournament.id} className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h4 className="font-semibold text-text-primary">{tournament.name}</h4>
-                      <p className="text-sm text-text-secondary">{tournament.format.replace('_', ' ')}</p>
+                    <div className="flex-1">
+                      {editingTournamentId === tournament.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingTournament.name}
+                            onChange={(e) => setEditingTournament(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Tournament name"
+                          />
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              value={editingTournament.entryFee}
+                              onChange={(e) => setEditingTournament(prev => ({ ...prev, entryFee: parseInt(e.target.value) || 0 }))}
+                              placeholder="Entry Fee"
+                              className="w-24"
+                            />
+                            <Input
+                              type="number"
+                              value={editingTournament.maxParticipants}
+                              onChange={(e) => setEditingTournament(prev => ({ ...prev, maxParticipants: parseInt(e.target.value) || 0 }))}
+                              placeholder="Max"
+                              className="w-24"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/tournaments/${tournament.id}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    name: editingTournament.name,
+                                    entryFee: editingTournament.entryFee,
+                                    maxParticipants: editingTournament.maxParticipants
+                                  })
+                                });
+                                if (res.ok) {
+                                  setTournaments(prev => prev.map(t => t.id === tournament.id ? {
+                                    ...t,
+                                    name: editingTournament.name,
+                                    entryFee: editingTournament.entryFee,
+                                    maxParticipants: editingTournament.maxParticipants
+                                  } : t));
+                                  setEditingTournamentId(null);
+                                } else {
+                                  const data = await res.json();
+                                  alert('Error: ' + data.error);
+                                }
+                              } catch {
+                                alert('Failed to update tournament');
+                              }
+                            }}>Save</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingTournamentId(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <h4 className="font-semibold text-text-primary">{tournament.name}</h4>
+                          <p className="text-sm text-text-secondary">{tournament.format.replace('_', ' ')}</p>
+                        </>
+                      )}
                     </div>
-                    <Badge 
-                      variant={tournament.status === 'IN_PROGRESS' ? 'primary' : 'success'}
-                    >
-                      {tournament.status === 'IN_PROGRESS' ? 'In Progress' : 'Registration Open'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={tournament.status === 'IN_PROGRESS' ? 'primary' : 'success'}
+                      >
+                        {tournament.status === 'IN_PROGRESS' ? 'In Progress' : 'Registration Open'}
+                      </Badge>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                        setEditingTournamentId(tournament.id);
+                        setEditingTournament({
+                          name: tournament.name,
+                          entryFee: (tournament as any).entryFee || 0,
+                          maxParticipants: tournament.maxParticipants
+                        });
+                      }}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-3 mb-4">
