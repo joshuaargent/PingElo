@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -34,8 +35,7 @@ export default function SeasonResetPage() {
   const [status, setStatus] = useState<'loading' | 'summary' | 'error'>('loading');
   const [userStats, setUserStats] = useState<UserSeasonStats | null>(null);
   const [seasonInfo, setSeasonInfo] = useState<SeasonInfo | null>(null);
-  const [countdown, setCountdown] = useState(8);
-  const [hasSeen, setHasSeen] = useState(false);
+  const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
 
   useEffect(() => {
     async function loadSeasonData() {
@@ -59,9 +59,8 @@ export default function SeasonResetPage() {
         const lastSeenSeason = localStorage.getItem('lastSeenSeason');
         
         if (lastSeenSeason === currentSeasonName) {
-          // User has already seen this season, skip to dashboard
-          router.push('/dashboard');
-          return;
+          // User has already seen this season, mark as seen
+          setHasMarkedSeen(true);
         }
         
         setSeasonInfo({
@@ -69,7 +68,6 @@ export default function SeasonResetPage() {
           previousName: seasonData.season?.previousName || 'Previous Season',
         });
         
-        setHasSeen(false);
         setStatus('summary');
       } catch (error) {
         console.error('Failed to load season data:', error);
@@ -82,22 +80,21 @@ export default function SeasonResetPage() {
     }
   }, [session, router]);
 
-  useEffect(() => {
-    if (status === 'summary' && countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (status === 'summary' && countdown === 0 && !hasSeen) {
-      handleComplete();
-    }
-  }, [status, countdown, hasSeen]);
-
-  const handleComplete = () => {
-    // Mark season as seen
-    if (seasonInfo?.name) {
+  const handleContinue = () => {
+    // Mark season as seen only when user clicks continue
+    if (seasonInfo?.name && !hasMarkedSeen) {
       localStorage.setItem('lastSeenSeason', seasonInfo.name);
+      setHasMarkedSeen(true);
     }
-    setHasSeen(true);
     router.push('/dashboard');
+  };
+
+  const handleDismiss = () => {
+    // Mark season as seen
+    if (seasonInfo?.name && !hasMarkedSeen) {
+      localStorage.setItem('lastSeenSeason', seasonInfo.name);
+      setHasMarkedSeen(true);
+    }
   };
 
   if (status === 'loading') {
@@ -282,18 +279,30 @@ export default function SeasonResetPage() {
         </Card>
 
         {/* Continue Button */}
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <Button 
             size="lg"
-            onClick={handleComplete}
+            onClick={handleContinue}
             rightIcon={<ArrowRight className="h-5 w-5" />}
             className="px-8"
           >
             Start the Season!
           </Button>
-          <p className="text-text-muted mt-4 text-sm">
-            Auto-redirecting in {countdown}...
-          </p>
+          {hasMarkedSeen ? (
+            <p className="text-text-muted text-sm">
+              You've already seen this season!{' '}
+              <Link href="/dashboard" className="text-accent hover:underline">
+                Go to Dashboard
+              </Link>
+            </p>
+          ) : (
+            <p className="text-text-muted text-sm">
+              Take your time to admire your glory!{' '}
+              <button onClick={handleDismiss} className="text-accent hover:underline">
+                Dismiss
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>
