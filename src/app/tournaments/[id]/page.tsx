@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { TournamentBracket } from '@/components/tournaments/Bracket';
+import { calculateEntryFee } from '@/lib/elo';
 import { 
   Trophy, Users, ArrowLeft, Plus, User, Users as UsersIcon, 
   Braces, Play, Target
@@ -99,6 +100,8 @@ interface Tournament {
   prizePool: number;
   maxParticipants: number;
   format: string;
+  creatorId: string;
+  startsAt: string | null;
   creator: {
     id: string;
     name: string;
@@ -117,13 +120,24 @@ export default function TournamentDetailPage() {
   const [isJoining, setIsJoining] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [userTeams, setUserTeams] = useState<any[]>([]);
+  const [userElo, setUserElo] = useState<number | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    maxParticipants: 0,
+    startsAt: '',
+  });
+  const [isEditing, setIsEditing] = useState(false);
   const [showTeamSelect, setShowTeamSelect] = useState(false);
   const [loggingMatch, setLoggingMatch] = useState<{ bracket: Bracket; player1: any; player2: any } | null>(null);
   const [scores, setScores] = useState({ player1: '', player2: '' });
   const [winner, setWinner] = useState<'player1' | 'player2' | ''>('');
 
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isCreator = tournament?.creatorId === session?.user?.id;
+  const canEdit = isAdmin || isCreator;
 
   useEffect(() => {
     async function fetchTournament() {
@@ -148,6 +162,12 @@ export default function TournamentDetailPage() {
         .then(res => res.ok ? res.json() : { teams: [] })
         .then(data => setUserTeams(data.teams || []))
         .catch(() => setUserTeams([]));
+      fetch(`/api/users/${session.user.id}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.user) setUserElo(data.user.foreverElo);
+        })
+        .catch(() => setUserElo(null));
     }
   }, [params.id, session]);
 
@@ -239,6 +259,61 @@ export default function TournamentDetailPage() {
       alert('Failed to start tournament');
     } finally {
       setIsStarting(false);
+    }
+  };
+
+  const openEditModal = () => {
+    if (tournament) {
+      setEditForm({
+        name: tournament.name,
+        description: tournament.description || '',
+        maxParticipants: tournament.maxParticipants,
+        startsAt: tournament.startsAt ? new Date(tournament.startsAt).toISOString().slice(0, 16) : '',
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const handleEditTournament = async () => {
+    setIsEditing(true);
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (res.ok) {
+        await refreshTournament();
+        setShowEditModal(false);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update tournament');
+      }
+    } catch (error) {
+      console.error('Failed to update tournament:', error);
+      alert('Failed to update tournament');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleRemoveParticipant = async (participantId: string) => {
+    if (!confirm('Remove this participant? Their entry fee will be refunded.')) return;
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/remove-participant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ participantId }),
+      });
+      if (res.ok) {
+        await refreshTournament();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to remove participant');
+      }
+    } catch (error) {
+      console.error('Failed to remove participant:', error);
+      alert('Failed to remove participant');
     }
   };
 
@@ -591,8 +666,16 @@ export default function TournamentDetailPage() {
                   <p className="text-sm text-text-secondary mt-1">Players</p>
                 </div>
                 <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                  <div className="text-accent text-lg font-bold">Dynamic</div>
-                  <p className="text-sm text-text-secondary mt-1">Entry: Based on ELO</p>
+                  <div className="text-accent text-lg font-bold">
+                    {userElo !== null
+                      ? tournament.matchType === 'DOUBLES'
+                        ? userTeams.length > 0
+                          ? `${calculateEntryFee(userTeams[0].foreverElo)} ELO`
+                          : 'Create a team first'
+                        : `${calculateEntryFee(userElo)} ELO`
+                      : '—'}
+                  </div>
+                  <p className="text-sm text-text-secondary mt-1">Your Entry Fee</p>
                 </div>
               </div>
 
@@ -620,11 +703,21 @@ export default function TournamentDetailPage() {
                   <Badge variant="success">Registered</Badge>
                 )}
 
-                {isAdmin && tournament.status === 'REGISTRATION_OPEN' && tournament.participants.length >= 2 && (
-                  <Button onClick={handleStartTournament} isLoading={isStarting} className="bg-green-600 hover:bg-green-700">
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Tournament
-                  </Button>
+                {tournament.status === 'REGISTRATION_OPEN' && (
+                  <>
+                    {canEdit && (
+                      <Button variant="outline" onClick={openEditModal}>
+                        <Braces className="h-4 w-4 mr-2" />
+                        Edit Tournament
+                      </Button>
+                    )}
+                    {tournament.participants.length >= 2 && (
+                      <Button onClick={handleStartTournament} isLoading={isStarting} className="bg-green-600 hover:bg-green-700">
+                        <Play className="h-4 w-4 mr-2" />
+                        Start Tournament
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </Card>
@@ -692,7 +785,16 @@ export default function TournamentDetailPage() {
             {tournament.participants.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {tournament.participants.map((participant, index) => (
-                  <div key={participant.id} className="p-4 bg-bg-secondary rounded-xl">
+                  <div key={participant.id} className="p-4 bg-bg-secondary rounded-xl relative group">
+                    {canEdit && tournament.status === 'REGISTRATION_OPEN' && (
+                      <button
+                        onClick={() => handleRemoveParticipant(participant.id)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-lg font-bold"
+                        title="Remove participant"
+                      >
+                        ×
+                      </button>
+                    )}
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent font-bold text-sm">
                         {index + 1}
@@ -776,6 +878,56 @@ export default function TournamentDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Tournament Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-text-primary mb-4">Edit Tournament</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Description</label>
+                <Input
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Max Participants</label>
+                <Input
+                  type="number"
+                  min={2}
+                  value={editForm.maxParticipants}
+                  onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Start Date/Time</label>
+                <Input
+                  type="datetime-local"
+                  value={editForm.startsAt}
+                  onChange={(e) => setEditForm({ ...editForm, startsAt: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowEditModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleEditTournament} isLoading={isEditing} className="flex-1">
+                Save Changes
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }
