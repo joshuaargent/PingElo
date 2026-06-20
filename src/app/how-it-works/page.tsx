@@ -108,8 +108,9 @@ export default function HowItWorksPage() {
       <section className="mb-16">
         <h2 className="text-2xl font-bold text-text-primary mb-6">Score Margin Bonus</h2>
         <p className="text-text-secondary mb-6">
-          In casual matches, dominating wins earn a bonus multiplier. This rewards playing well,
-          not just winning.
+          In all matches (casual and tournament), dominating wins earn a bonus multiplier. 
+          This rewards playing well, not just winning. Both winner AND loser are affected— 
+          big wins mean bigger changes for everyone!
         </p>
 
         <div className="grid md:grid-cols-3 gap-4">
@@ -122,18 +123,18 @@ export default function HowItWorksPage() {
           <Card className="p-6 text-center">
             <div className="text-4xl font-bold text-accent mb-2">1.25x</div>
             <p className="text-sm text-text-secondary mb-2">Clear wins (5-9 points)</p>
-            <p className="text-xs text-text-secondary">25% bonus to ELO gain</p>
+            <p className="text-xs text-text-secondary">25% bonus to ELO change</p>
           </Card>
 
           <Card className="p-6 text-center">
             <div className="text-4xl font-bold text-accent mb-2">1.5x</div>
             <p className="text-sm text-text-secondary mb-2">Dominance (10+ points)</p>
-            <p className="text-xs text-text-secondary">50% bonus to ELO gain</p>
+            <p className="text-xs text-text-secondary">50% bonus to ELO change</p>
           </Card>
         </div>
 
         <p className="mt-4 text-sm text-text-secondary">
-          <strong>Note:</strong> Tournament matches always use 1.0x multiplier (win/loss only).
+          <strong>Example:</strong> K=32, blowout win (10+ pts): Winner gets +24 ELO, Loser loses 24 ELO
         </p>
       </section>
 
@@ -160,8 +161,8 @@ export default function HowItWorksPage() {
             </div>
             <p className="text-text-secondary text-sm">
               The season winner receives a <strong>10% bonus</strong> of their season gains
-              added to their forever ELO. This makes season championships meaningful for
-              your lifetime ranking!
+              added to their forever ELO. This applies to singles, doubles (individual), AND 
+              teams! Season championships matter for everyone.
             </p>
           </Card>
         </div>
@@ -287,18 +288,43 @@ export default function HowItWorksPage() {
             </ul>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-2 border-accent/50">
             <div className="flex items-center gap-3 mb-4">
               <Zap className="h-6 w-6 text-accent" />
-              <h3 className="text-lg font-semibold">Team ELO</h3>
+              <h3 className="text-lg font-semibold">Team ELO - Your Team Has Its Own Identity!</h3>
             </div>
             <p className="text-text-secondary text-sm mb-4">
-              When you form a team, its ELO is based on both players&apos; doubles ELO:
+              When you form a team, your team becomes its own entity with its own ELO. 
+              This means your team&apos;s reputation is yours to build and defend!
             </p>
-            <ul className="list-disc list-inside text-sm text-text-secondary space-y-2">
-              <li>Team ELO = average of both players&apos; doubles forever ELO</li>
-              <li>Teams accumulate wins and losses together</li>
-              <li>Team stats appear on both players&apos; profiles</li>
+            <div className="space-y-3">
+              <div className="p-3 bg-bg-secondary rounded-lg">
+                <h4 className="font-semibold text-sm mb-1">Team&apos;s Own ELO</h4>
+                <p className="text-xs text-text-secondary">
+                  Your team starts at <strong>1000 ELO</strong> and goes up or down based on team performance. 
+                  This is separate from individual player ELOs!
+                </p>
+              </div>
+              <div className="p-3 bg-bg-secondary rounded-lg">
+                <h4 className="font-semibold text-sm mb-1">Your Team&apos;s K-Factor</h4>
+                <p className="text-xs text-text-secondary">
+                  Your team has its own K-factor based on <strong>how many matches your team has played</strong>. 
+                  A new team adjusts quickly, a veteran team changes slowly.
+                </p>
+              </div>
+              <div className="p-3 bg-bg-secondary rounded-lg">
+                <h4 className="font-semibold text-sm mb-1">How You Affect Team ELO</h4>
+                <p className="text-xs text-text-secondary">
+                  When you play doubles, your <strong>individual ELO changes</strong> use YOUR K-factor 
+                  (based on your personal doubles games), while your <strong>TEAM&apos;S ELO changes</strong> 
+                  use your TEAM&apos;S K-factor.
+                </p>
+              </div>
+            </div>
+            <ul className="mt-4 list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li>Teams persist across seasons</li>
+              <li>Teams become inactive at season end but can be reactivated</li>
+              <li>Your team&apos;s ELO is yours to fight for!</li>
               <li>Visit the <a href="/teams" className="text-accent hover:underline">Teams page</a> to manage</li>
             </ul>
           </Card>
@@ -343,14 +369,14 @@ export default function HowItWorksPage() {
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Trophy className="h-6 w-6 text-accent" />
-            <h3 className="text-lg font-semibold">Paid Entry with Prize Pool</h3>
+            <h3 className="text-lg font-semibold">Entry Fees & Prize Pool</h3>
           </div>
           <p className="text-text-secondary text-sm mb-4">
-            Tournaments use a tiered entry system based on your current ELO. The platform
-            adds 500 ELO to each tournament prize pool to ensure everyone can win.
+            Tournaments use a tiered entry system. The platform adds <strong>50 ELO</strong> to 
+            each tournament prize pool. <strong>Prize Pool = Entry Fees + 50 ELO</strong>
           </p>
 
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-lg border border-border mb-4">
             <table className="w-full">
               <thead className="bg-bg-secondary">
                 <tr>
@@ -378,31 +404,53 @@ export default function HowItWorksPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="p-3 bg-accent/10 rounded-lg">
+            <h4 className="font-semibold text-sm mb-2">Doubles Entry Fee (Average Method)</h4>
+            <p className="text-xs text-text-secondary">
+              In doubles, <strong>both players pay the same fee</strong> based on team average ELO: 
+              <br/>(Player1 ELO + Player2 ELO) / 2 = Team Average → Each pays that fee
+            </p>
+            <p className="text-xs text-text-secondary mt-2">
+              <strong>Examples:</strong> 1200+800=1000avg→20+20=40 total | 750+1200=975avg→10+10=20
+            </p>
+          </div>
         </Card>
 
         <h3 className="text-lg font-semibold mb-4">Prize Distribution</h3>
-        <div className="grid md:grid-cols-4 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-yellow-500 mb-1">1st</div>
-            <p className="text-2xl font-bold text-text-primary">60%</p>
+            <p className="text-2xl font-bold text-text-primary">50%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-gray-400 mb-1">2nd</div>
-            <p className="text-2xl font-bold text-text-primary">25%</p>
+            <p className="text-2xl font-bold text-text-primary">35%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
           <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-orange-400 mb-1">3rd</div>
-            <p className="text-2xl font-bold text-text-primary">7.5%</p>
-            <p className="text-xs text-text-secondary">of prize pool</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-400 mb-1">4th</div>
-            <p className="text-2xl font-bold text-text-primary">7.5%</p>
+            <p className="text-2xl font-bold text-text-primary">15%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
         </div>
+
+        <Card className="p-4 mt-4 bg-accent/10">
+          <h4 className="font-semibold text-sm mb-2">Doubles Prize Distribution</h4>
+          <p className="text-xs text-text-secondary">
+            When a doubles team places, <strong>players</strong> get individual rewards to their 
+            <strong> doublesForeverElo</strong>, and the <strong>TEAM</strong> gets the total:
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+            <div><strong>1st:</strong> Each +25%, Team +50%</div>
+            <div><strong>2nd:</strong> Each +17.5%, Team +35%</div>
+            <div><strong>3rd:</strong> Each +7.5%, Team +15%</div>
+          </div>
+          <p className="text-xs text-text-secondary mt-2">
+            <strong>Example:</strong> 1st place = 250 ELO → Each player gets 125, Team gets 250
+          </p>
+        </Card>
       </section>
 
       {/* Activity Section */}
