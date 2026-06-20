@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatNumber } from '@/lib/utils';
-import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus } from 'lucide-react';
+import { calculateEntryFee } from '@/lib/elo';
+import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus, Check } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
@@ -39,13 +41,28 @@ interface Tournament {
   format: string;
   startsAt: string | Date | null;
   createdAt: string | Date;
+  participants?: { userId?: string; teamId?: string }[];
+}
+
+interface UserTeams {
+  id: string;
+  name: string;
+  foreverElo: number;
+  player1: { id: string; name: string };
+  player2: { id: string; name: string };
+}
+
+interface ExtendedTournament extends Tournament {
+  userEntryFee?: number;
+  userIsRegistered?: boolean;
+  userTeams?: UserTeams[];
 }
 
 // ============================================
 // Tournament Card Component
 // ============================================
 
-function TournamentCard({ tournament }: { tournament: Tournament }) {
+function TournamentCard({ tournament }: { tournament: ExtendedTournament }) {
   const statusColor = statusColors[tournament.status] || statusColors.DRAFT;
   const statusLabel = statusLabels[tournament.status] || tournament.status;
 
@@ -59,7 +76,15 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
               {tournament.description || 'No description provided'}
             </p>
           </div>
-          <Badge className={statusColor}>{statusLabel}</Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge className={statusColor}>{statusLabel}</Badge>
+            {tournament.userIsRegistered && (
+              <Badge variant="success" size="sm">
+                <Check className="h-3 w-3 mr-1" />
+                Registered
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3 mb-4">
@@ -80,9 +105,13 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
               <Users className="h-4 w-4" />
               {tournament.participantCount}/{tournament.maxParticipants}
             </span>
-            <span className="text-text-muted">
-              Entry: {tournament.entryFee} ELO
-            </span>
+            {tournament.userIsRegistered ? (
+              <span className="text-green-600 font-medium">Paid</span>
+            ) : (
+              <span className="text-text-muted">
+                Entry: {tournament.userEntryFee ?? tournament.entryFee} ELO
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-sm">
@@ -120,30 +149,78 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
 // ============================================
 
 export default function TournamentsPage() {
+  const { data: session } = useSession();
   const [filter, setFilter] = useState<'all' | 'open' | 'in_progress'>('all');
   const [matchTypeFilter, setMatchTypeFilter] = useState<'all' | 'singles' | 'doubles'>('all');
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<ExtendedTournament[]>([]);
+  const [userElo, setUserElo] = useState<number | null>(null);
+  const [userTeams, setUserTeams] = useState<UserTeams[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchTournaments() {
+    async function fetchData() {
       setIsLoading(true);
       try {
+        // Fetch tournaments
         const res = await fetch('/api/tournaments');
         if (res.ok) {
           const data = await res.json();
           setTournaments(data.tournaments || []);
         }
+
+        // Fetch user data if logged in
+        if (session?.user?.id) {
+          // Fetch user ELO
+          const userRes = await fetch(`/api/users/${session.user.id}`);
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            setUserElo(userData.user?.foreverElo ?? null);
+          }
+
+          // Fetch user's teams for doubles tournaments
+          const teamsRes = await fetch('/api/teams');
+          if (teamsRes.ok) {
+            const teamsData = await teamsRes.json();
+            const activeTeams = (teamsData.teams || []).filter(
+              (team: any) => team.isActive && 
+              (team.player1Id === session.user.id || team.player2Id === session.user.id)
+            );
+            setUserTeams(activeTeams);
+          }
+        }
       } catch (error) {
-        console.error('Failed to fetch tournaments:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchTournaments();
-  }, []);
+    fetchData();
+  }, [session]);
 
-  const filteredTournaments = tournaments.filter((t) => {
+  // Calculate entry fees for each tournament
+  const tournamentsWithFees = tournaments.map((tournament) => {
+    const userId = session?.user?.id;
+    const isRegistered = userId && tournament.participants?.some(
+      (p) => p.userId === userId
+    );
+
+    if (isRegistered) {
+      return { ...tournament, userIsRegistered: true, userEntryFee: 0 };
+    }
+
+    let entryFee = tournament.entryFee;
+    
+    if (userElo !== null && tournament.matchType === 'SINGLES') {
+      entryFee = calculateEntryFee(userElo);
+    } else if (tournament.matchType === 'DOUBLES' && userTeams.length > 0) {
+      // Use lowest team fee (best deal for user)
+      entryFee = Math.min(...userTeams.map(t => calculateEntryFee(t.foreverElo)));
+    }
+
+    return { ...tournament, userIsRegistered: false, userEntryFee: entryFee, userTeams };
+  });
+
+  const filteredTournaments = tournamentsWithFees.filter((t) => {
     if (filter === 'open') return t.status === 'REGISTRATION_OPEN';
     if (filter === 'in_progress') return t.status === 'IN_PROGRESS';
     return true;
