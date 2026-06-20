@@ -72,21 +72,21 @@ export default function HowItWorksPage() {
             </thead>
             <tbody className="divide-y divide-border">
               <tr>
-                <td className="px-4 py-3 text-sm">0-10 games</td>
+                <td className="px-4 py-3 text-sm">0-9 games</td>
                 <td className="px-4 py-3">
                   <Badge variant="primary" size="sm">64</Badge>
                 </td>
                 <td className="px-4 py-3 text-sm text-text-secondary">Rapid adjustment for new players</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm">11-30 games</td>
+                <td className="px-4 py-3 text-sm">10-29 games</td>
                 <td className="px-4 py-3">
                   <Badge variant="default" size="sm">48</Badge>
                 </td>
                 <td className="px-4 py-3 text-sm text-text-secondary">Still adjusting quickly</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm">31-100 games</td>
+                <td className="px-4 py-3 text-sm">30-99 games</td>
                 <td className="px-4 py-3">
                   <Badge variant="default" size="sm">32</Badge>
                 </td>
@@ -324,6 +324,8 @@ export default function HowItWorksPage() {
             <ul className="mt-4 list-disc list-inside text-sm text-text-secondary space-y-1">
               <li>Teams persist across seasons</li>
               <li>Teams become inactive at season end but can be reactivated</li>
+              <li>If you haven&apos;t played any matches yet, you can delete the team</li>
+              <li>Teams that have played are preserved in history (can&apos;t be deleted)</li>
               <li>Your team&apos;s ELO is yours to fight for!</li>
               <li>Visit the <a href="/teams" className="text-accent hover:underline">Teams page</a> to manage</li>
             </ul>
