@@ -1,6 +1,7 @@
 /**
  * Season Reset API Route
  * Resets season ELO for all users (on-demand version)
+ * Also deletes all teams from the previous season
  * This can be called manually or triggered on first request of a new season
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
           data: { isActive: false },
         });
 
-        // Award bonus to season winner
+        // Award bonus to season winner (singles)
         const winner = await tx.user.findFirst({
           where: { seasonElo: { gt: 0 } },
           orderBy: { seasonElo: "desc" },
@@ -71,11 +72,32 @@ export async function POST(request: NextRequest) {
             data: { foreverElo: { increment: bonus } },
           });
         }
+        
+        // Award bonus to doubles season winner
+        const doublesWinner = await tx.user.findFirst({
+          where: { doublesSeasonElo: { gt: 0 } },
+          orderBy: { doublesSeasonElo: "desc" },
+        });
+
+        if (doublesWinner) {
+          const bonus = Math.round(doublesWinner.doublesSeasonElo * 0.1); // 10% bonus
+          await tx.user.update({
+            where: { id: doublesWinner.id },
+            data: { doublesForeverElo: { increment: bonus } },
+          });
+        }
+        
+        // 1b. Delete all teams from the previous season (teams are seasonal)
+        const teamsDeleted = await tx.team.deleteMany({
+          where: { seasonId: currentSeason.id },
+        });
+        
+        console.log(`Deleted ${teamsDeleted.count} teams from previous season`);
       }
 
       // 2. Reset all users' season ELO to 1000
       await tx.user.updateMany({
-        data: { seasonElo: 1000 },
+        data: { seasonElo: 1000, doublesSeasonElo: 1000 },
       });
 
       // 3. Create new season (1 month duration)
@@ -98,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Season reset complete. ${result.previousSeason?.name || "Previous season"} has ended.`,
+      message: `Season reset complete. ${result.previousSeason?.name || "Previous season"} has ended. All teams from previous season have been cleared.`,
       newSeason: result.newSeason,
     });
   } catch (error) {

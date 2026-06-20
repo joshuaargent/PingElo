@@ -8,17 +8,31 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, Info, Calendar } from "lucide-react";
 
 interface Team {
   id: string;
   name: string | null;
   foreverElo: number;
+  seasonElo: number;
   matchesPlayed: number;
   wins: number;
   losses: number;
   player1: { id: string; name: string; image: string | null; doublesForeverElo: number };
   player2: { id: string; name: string; image: string | null; doublesForeverElo: number };
+  season: { id: string; name: string };
+}
+
+interface TeamLimits {
+  maxTeamsYouCanBeIn: number;
+  maxTeamsYouCanCreate: number;
+  teamsCreatedByYou: number;
+  teamsYouAreIn: number;
+}
+
+interface CurrentSeason {
+  id: string;
+  name: string;
 }
 
 interface Player {
@@ -31,12 +45,15 @@ interface Player {
 export default function TeamsPage() {
   const { data: session, status } = useSession();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [limits, setLimits] = useState<TeamLimits | null>(null);
+  const [currentSeason, setCurrentSeason] = useState<CurrentSeason | null>(null);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState("");
   const [teamName, setTeamName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -51,7 +68,12 @@ export default function TeamsPage() {
         fetch("/api/teams"),
         fetch("/api/users?includeStats=true"),
       ]);
-      if (teamsRes.ok) setTeams((await teamsRes.json()).teams || []);
+      if (teamsRes.ok) {
+        const data = await teamsRes.json();
+        setTeams(data.teams || []);
+        setLimits(data.limits);
+        setCurrentSeason(data.currentSeason);
+      }
       if (playersRes.ok) setAllPlayers((await playersRes.json()).users || []);
     } catch (error) {
       console.error("Failed to fetch:", error);
@@ -63,31 +85,49 @@ export default function TeamsPage() {
   async function createTeam() {
     if (!selectedPartner) return;
     setIsCreating(true);
+    setCreateError("");
     try {
       const res = await fetch("/api/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ partnerId: selectedPartner, name: teamName || null }),
       });
+      const data = await res.json();
       if (res.ok) {
         setShowModal(false);
         setSelectedPartner("");
         setTeamName("");
         fetchData();
       } else {
-        alert((await res.json()).error || "Failed");
+        setCreateError(data.error || "Failed to create team");
       }
-    } catch { alert("Failed"); }
+    } catch { 
+      setCreateError("Failed to create team"); 
+    }
     finally { setIsCreating(false); }
   }
 
   async function deleteTeam(teamId: string) {
-    if (!confirm("Delete this team?")) return;
+    if (!confirm("Delete this team? This cannot be undone.")) return;
     const res = await fetch(`/api/teams/${teamId}`, { method: "DELETE" });
-    if (res.ok) setTeams(teams.filter(t => t.id !== teamId));
+    if (res.ok) {
+      fetchData();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to delete team");
+    }
   }
 
-  const available = allPlayers.filter(p => p.id !== session?.user?.id && !teams.some(t => t.player1.id === p.id || t.player2.id === p.id));
+  const canCreateTeam = limits && limits.teamsCreatedByYou < limits.maxTeamsYouCanCreate;
+  const canBeInMoreTeams = limits && limits.teamsYouAreIn < limits.maxTeamsYouCanBeIn;
+  
+  // Filter out players who are already your teammate OR who are already in 2 teams
+  const available = allPlayers.filter(p => {
+    if (p.id === session?.user?.id) return false;
+    // Can't team with someone already on your team this season
+    if (teams.some(t => t.player1.id === p.id || t.player2.id === p.id)) return false;
+    return true;
+  });
 
   if (status === "loading" || isLoading) {
     return <div className="flex justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"/></div>;
@@ -95,25 +135,65 @@ export default function TeamsPage() {
 
   return (
     <>
-      <PageHero title="My Teams" description="Manage your doubles partnerships" />
+      <PageHero title="My Teams" description="Manage your doubles partnerships for this season" />
       <div className="container mx-auto px-4 pb-16">
         <div className="mx-auto max-w-4xl">
+          
+          {/* Season & Limits Info */}
+          {currentSeason && limits && (
+            <div className="mb-6 p-4 bg-bg-secondary rounded-lg border border-border">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-accent" />
+                  <span className="text-sm text-text-secondary">Current Season:</span>
+                  <Badge variant="accent">{currentSeason.name}</Badge>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-text-muted" />
+                    <span className="text-text-secondary">Teams you created:</span>
+                    <span className="font-semibold">{limits.teamsCreatedByYou}/{limits.maxTeamsYouCanCreate}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-text-muted" />
+                    <span className="text-text-secondary">Teams you're in:</span>
+                    <span className="font-semibold">{limits.teamsYouAreIn}/{limits.maxTeamsYouCanBeIn}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Create Team Button */}
           <div className="flex justify-between items-center mb-8">
-            <p className="text-text-secondary">Form teams with others for doubles tournaments</p>
-            <Button onClick={() => setShowModal(true)}><Plus className="h-4 w-4 mr-2"/>Create Team</Button>
+            <p className="text-text-secondary">Form teams with others for doubles tournaments. Teams reset each season!</p>
+            <Button 
+              onClick={() => setShowModal(true)} 
+              disabled={!canCreateTeam || !canBeInMoreTeams}
+            >
+              <Plus className="h-4 w-4 mr-2"/>
+              {canCreateTeam ? "Create Team" : "Already Created Max Teams"}
+            </Button>
           </div>
 
           {teams.length === 0 ? (
             <Card className="p-12 text-center">
               <Users className="h-16 w-16 mx-auto text-text-muted mb-4"/>
-              <h3 className="text-lg font-semibold text-text-primary mb-2">No Teams Yet</h3>
-              <p className="text-text-secondary mb-6">Create a team to join doubles tournaments</p>
-              <Button onClick={() => setShowModal(true)}><Plus className="h-4 w-4 mr-2"/>Create Team</Button>
+              <h3 className="text-lg font-semibold text-text-primary mb-2">No Teams This Season</h3>
+              <p className="text-text-secondary mb-6">
+                {canCreateTeam 
+                  ? "Create a team with another player to compete in doubles tournaments"
+                  : "You've reached the limit of teams you can create this season"}
+              </p>
+              {canCreateTeam && (
+                <Button onClick={() => setShowModal(true)}><Plus className="h-4 w-4 mr-2"/>Create Team</Button>
+              )}
             </Card>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {teams.map(team => {
                 const w = team.wins || 0, l = team.losses || 0, total = w + l;
+                const isCreator = team.player1.id === session?.user?.id;
                 return (
                   <Card key={team.id} className="p-6 hover:shadow-lg">
                     <div className="flex justify-between items-start mb-4">
@@ -121,17 +201,28 @@ export default function TeamsPage() {
                         <h3 className="font-semibold text-text-primary text-lg">
                           {team.name || team.player1.name.split(" ")[0] + " & " + team.player2.name.split(" ")[0]}
                         </h3>
-                        <Badge className="mt-1">{team.foreverElo} Team ELO</Badge>
+                        <div className="flex gap-2 mt-1">
+                          <Badge>{team.foreverElo} Team ELO</Badge>
+                          {team.seasonElo !== team.foreverElo && (
+                            <Badge variant="secondary">{team.seasonElo} Season</Badge>
+                          )}
+                        </div>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => deleteTeam(team.id)} className="text-red-500">
-                        <Trash2 className="h-4 w-4"/>
-                      </Button>
+                      {isCreator && (
+                        <Button variant="ghost" size="sm" onClick={() => deleteTeam(team.id)} className="text-red-500">
+                          <Trash2 className="h-4 w-4"/>
+                        </Button>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 mb-4">
                       <div className="flex items-center gap-2">
                         <Avatar src={team.player1.image || undefined} alt={team.player1.name} fallback={team.player1.name.charAt(0)} size="sm"/>
                         <div>
-                          <p className="text-sm font-medium">{team.player1.name}{team.player1.id === session?.user?.id && <span className="text-accent ml-1">(You)</span>}</p>
+                          <p className="text-sm font-medium">
+                            {team.player1.name}
+                            {team.player1.id === session?.user?.id && <span className="text-accent ml-1">(You)</span>}
+                            {isCreator && <Badge variant="accent" className="ml-2 text-xs">Creator</Badge>}
+                          </p>
                           <p className="text-xs text-text-muted">{team.player1.doublesForeverElo} Doubles ELO</p>
                         </div>
                       </div>
@@ -139,7 +230,10 @@ export default function TeamsPage() {
                       <div className="flex items-center gap-2">
                         <Avatar src={team.player2.image || undefined} alt={team.player2.name} fallback={team.player2.name.charAt(0)} size="sm"/>
                         <div>
-                          <p className="text-sm font-medium">{team.player2.name}{team.player2.id === session?.user?.id && <span className="text-accent ml-1">(You)</span>}</p>
+                          <p className="text-sm font-medium">
+                            {team.player2.name}
+                            {team.player2.id === session?.user?.id && <span className="text-accent ml-1">(You)</span>}
+                          </p>
                           <p className="text-xs text-text-muted">{team.player2.doublesForeverElo} Doubles ELO</p>
                         </div>
                       </div>
@@ -157,28 +251,56 @@ export default function TeamsPage() {
         </div>
       </div>
 
+      {/* Create Team Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4">Create a Team</h2>
+            <h2 className="text-xl font-bold mb-2">Create a Team</h2>
+            <p className="text-sm text-text-secondary mb-4">
+              You can create {limits?.maxTeamsYouCanCreate} team(s) per season and be in up to {limits?.maxTeamsYouCanBeIn} teams.
+              {limits && limits.teamsCreatedByYou > 0 && (
+                <span className="block mt-1">You've created {limits.teamsCreatedByYou} team(s) this season.</span>
+              )}
+            </p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-text-secondary mb-2">Team Name (Optional)</label>
-                <input type="text" placeholder="The Dynamic Duo" value={teamName} onChange={e => setTeamName(e.target.value)}
-                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent"/>
+                <input 
+                  type="text" 
+                  placeholder="The Dynamic Duo" 
+                  value={teamName} 
+                  onChange={e => setTeamName(e.target.value)}
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent"
+                />
               </div>
               <div>
                 <label className="block text-sm text-text-secondary mb-2">Select Partner *</label>
-                <select value={selectedPartner} onChange={e => setSelectedPartner(e.target.value)}
-                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent">
-                  <option value="">Choose...</option>
-                  {available.map(p => <option key={p.id} value={p.id}>{p.name} ({p.doublesForeverElo} ELO)</option>)}
+                <select 
+                  value={selectedPartner} 
+                  onChange={e => { setSelectedPartner(e.target.value); setCreateError(""); }}
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent"
+                >
+                  <option value="">Choose a partner...</option>
+                  {available.length === 0 ? (
+                    <option value="" disabled>No available players</option>
+                  ) : (
+                    available.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.doublesForeverElo} ELO)
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
+              {createError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+                  {createError}
+                </div>
+              )}
             </div>
             <div className="flex gap-3 mt-6">
-              <Button variant="outline" onClick={() => { setShowModal(false); setSelectedPartner(""); setTeamName(""); }} className="flex-1">Cancel</Button>
-              <Button onClick={createTeam} isLoading={isCreating} disabled={!selectedPartner} className="flex-1">Create</Button>
+              <Button variant="outline" onClick={() => { setShowModal(false); setSelectedPartner(""); setTeamName(""); setCreateError(""); }} className="flex-1">Cancel</Button>
+              <Button onClick={createTeam} isLoading={isCreating} disabled={!selectedPartner} className="flex-1">Create Team</Button>
             </div>
           </Card>
         </div>

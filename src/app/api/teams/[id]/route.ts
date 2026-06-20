@@ -1,6 +1,6 @@
 /**
  * Team by ID API Route
- * Get team details or delete team
+ * Get team details or delete team (seasonal)
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -23,6 +23,9 @@ export async function GET(
         player2: {
           select: { id: true, name: true, image: true, doublesForeverElo: true },
         },
+        season: {
+          select: { id: true, name: true, isActive: true },
+        },
       },
     });
     
@@ -37,7 +40,7 @@ export async function GET(
   }
 }
 
-// DELETE /api/teams/[id] - Delete a team
+// DELETE /api/teams/[id] - Delete a team (only if in current season)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -51,15 +54,25 @@ export async function DELETE(
     
     const team = await prisma.team.findUnique({
       where: { id },
+      include: { season: true },
     });
     
     if (!team) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
     
-    // Only team members can delete
-    if (team.player1Id !== userId && team.player2Id !== userId) {
-      return NextResponse.json({ error: "Not authorized to delete this team" }, { status: 403 });
+    // Only allow deletion of current season teams
+    if (!team.season.isActive) {
+      return NextResponse.json({ 
+        error: "Cannot delete teams from past seasons" 
+      }, { status: 400 });
+    }
+    
+    // Only team creator (player1) can delete
+    if (team.player1Id !== userId) {
+      return NextResponse.json({ 
+        error: "Only the team creator can delete this team" 
+      }, { status: 403 });
     }
     
     await prisma.team.delete({ where: { id } });

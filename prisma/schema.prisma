@@ -151,14 +151,19 @@ model Season {
   doublesWinner User?    @relation("SeasonDoublesWinner", fields: [doublesWinnerId], references: [id])
   users         User[]
   matches       Match[]
+  teams         Team[]   // Seasonal teams
 }
 
-// Team model for doubles partnerships
+// Team model for doubles partnerships (seasonal - resets each season)
 model Team {
   id            String    @id @default(cuid())
   name          String?   // Optional custom name (e.g., "The Dynamic Duo")
   player1Id     String
   player2Id     String
+  
+  // Season context - teams are tied to a season
+  seasonId      String
+  season        Season    @relation(fields: [seasonId], references: [id])
   
   // ELO tracking (average of both players' doubles ELO at team formation)
   foreverElo    Int       @default(1000)
@@ -167,7 +172,7 @@ model Team {
   wins          Int       @default(0)
   losses        Int       @default(0)
 
-  // Track unique partnerships to prevent duplicates
+  // Track unique partnerships within a season (prevent duplicates per season)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -176,9 +181,11 @@ model Team {
   player2      User      @relation("TeamPlayer2", fields: [player2Id], references: [id])
   tournamentParticipants TournamentParticipant[]
 
-  @@unique([player1Id, player2Id])
+  // Unique constraint is per season now
+  @@unique([player1Id, player2Id, seasonId])
   @@index([player1Id])
   @@index([player2Id])
+  @@index([seasonId])
 }
 
 model Match {

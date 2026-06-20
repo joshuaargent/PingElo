@@ -192,30 +192,85 @@ export async function POST(request: NextRequest) {
       let t1p2Id = team1Player2Id;
       let t2p1Id = team2Player1Id;
       let t2p2Id = team2Player2Id;
+      let usedTeam1Id = team1Id;
+      let usedTeam2Id = team2Id;
 
-      // If team IDs are provided, resolve them to player IDs
-      if (team1Id && !team1Player1Id) {
-        const team1 = await prisma.team.findUnique({
-          where: { id: team1Id },
-          include: { player1: true, player2: true }
-        });
-        if (!team1) {
-          return NextResponse.json({ error: "Team 1 not found" }, { status: 404 });
+      // FOR TOURNAMENTS: Require registered teams only (no ad-hoc)
+      if (isTournamentMatch) {
+        // Both teams must be registered teams in the current season
+        if (!usedTeam1Id && !usedTeam2Id) {
+          return NextResponse.json(
+            { error: "Tournament doubles matches require registered teams. Please select your team." },
+            { status: 400 }
+          );
         }
-        t1p1Id = team1.player1Id;
-        t1p2Id = team1.player2Id;
-      }
+        
+        // Validate team1
+        if (usedTeam1Id) {
+          const team1 = await prisma.team.findUnique({
+            where: { id: usedTeam1Id },
+            include: { player1: true, player2: true, season: true }
+          });
+          if (!team1) {
+            return NextResponse.json({ error: "Team 1 not found" }, { status: 404 });
+          }
+          if (!team1.season.isActive) {
+            return NextResponse.json({ error: "Team 1 is from a previous season. Teams expire each season." }, { status: 400 });
+          }
+          // Check if user is actually on this team
+          const allTeam1Players = [team1.player1Id, team1.player2Id];
+          if (!allTeam1Players.includes(userId)) {
+            return NextResponse.json({ error: "You can only use teams you're a member of" }, { status: 403 });
+          }
+          t1p1Id = team1.player1Id;
+          t1p2Id = team1.player2Id;
+        } else {
+          return NextResponse.json({ error: "Tournament matches require registered teams for Team 1" }, { status: 400 });
+        }
+        
+        // Validate team2
+        if (usedTeam2Id) {
+          const team2 = await prisma.team.findUnique({
+            where: { id: usedTeam2Id },
+            include: { player1: true, player2: true, season: true }
+          });
+          if (!team2) {
+            return NextResponse.json({ error: "Team 2 not found" }, { status: 404 });
+          }
+          if (!team2.season.isActive) {
+            return NextResponse.json({ error: "Team 2 is from a previous season. Teams expire each season." }, { status: 400 });
+          }
+          t2p1Id = team2.player1Id;
+          t2p2Id = team2.player2Id;
+        } else {
+          return NextResponse.json({ error: "Tournament matches require registered teams for Team 2" }, { status: 400 });
+        }
+      } else {
+        // FOR NON-TOURNAMENT (CASUAL): Allow ad-hoc teams with individual player IDs
+        // If team IDs are provided, resolve them to player IDs
+        if (usedTeam1Id && !t1p1Id) {
+          const team1 = await prisma.team.findUnique({
+            where: { id: usedTeam1Id },
+            include: { player1: true, player2: true }
+          });
+          if (!team1) {
+            return NextResponse.json({ error: "Team 1 not found" }, { status: 404 });
+          }
+          t1p1Id = team1.player1Id;
+          t1p2Id = team1.player2Id;
+        }
 
-      if (team2Id && !team2Player1Id) {
-        const team2 = await prisma.team.findUnique({
-          where: { id: team2Id },
-          include: { player1: true, player2: true }
-        });
-        if (!team2) {
-          return NextResponse.json({ error: "Team 2 not found" }, { status: 404 });
+        if (usedTeam2Id && !t2p1Id) {
+          const team2 = await prisma.team.findUnique({
+            where: { id: usedTeam2Id },
+            include: { player1: true, player2: true }
+          });
+          if (!team2) {
+            return NextResponse.json({ error: "Team 2 not found" }, { status: 404 });
+          }
+          t2p1Id = team2.player1Id;
+          t2p2Id = team2.player2Id;
         }
-        t2p1Id = team2.player1Id;
-        t2p2Id = team2.player2Id;
       }
 
       if (!t1p1Id || !t1p2Id || !t2p1Id || !t2p2Id) {
@@ -282,9 +337,9 @@ export async function POST(request: NextRequest) {
       eloChangeResult = eloResult;
 
       // Update team stats if team IDs were provided
-      if (team1Id) {
+      if (usedTeam1Id) {
         await prisma.team.update({
-          where: { id: team1Id },
+          where: { id: usedTeam1Id },
           data: {
             wins: team1Won ? { increment: 1 } : undefined,
             losses: team1Won ? undefined : { increment: 1 },
@@ -293,9 +348,9 @@ export async function POST(request: NextRequest) {
         }).catch(() => {});
       }
 
-      if (team2Id) {
+      if (usedTeam2Id) {
         await prisma.team.update({
-          where: { id: team2Id },
+          where: { id: usedTeam2Id },
           data: {
             wins: !team1Won ? { increment: 1 } : undefined,
             losses: !team1Won ? undefined : { increment: 1 },
