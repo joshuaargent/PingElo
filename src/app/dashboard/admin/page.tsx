@@ -1,6 +1,6 @@
 'use client';
 import { PageHero } from '@/components/layout/PageHero';
-import { TOURNAMENT_HOUSE_INJECTION } from '@/lib/elo';
+import { TOURNAMENT_HOUSE_INJECTION, TOURNAMENT_PRIZE_DISTRIBUTION } from '@/lib/elo';
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -546,14 +546,21 @@ export default function AdminDashboardPage() {
                     <p className="font-medium">1st Place Prize</p>
                     <p className="text-sm text-text-secondary">Percentage of prize pool</p>
                   </div>
-                  <Badge variant="accent">60%</Badge>
+                  <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.first * 100)}%</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">2nd Place Prize</p>
                     <p className="text-sm text-text-secondary">Percentage of prize pool</p>
                   </div>
-                  <Badge variant="accent">40%</Badge>
+                  <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.second * 100)}%</Badge>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
+                  <div>
+                    <p className="font-medium">3rd/4th Place Prize</p>
+                    <p className="text-sm text-text-secondary">Each place gets</p>
+                  </div>
+                  <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.thirdFourth * 100)}%</Badge>
                 </div>
               </div>
               <div className="mt-4 p-4 bg-accent/10 border border-accent/30 rounded-lg">

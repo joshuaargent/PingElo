@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
+import { TOURNAMENT_PRIZE_DISTRIBUTION } from "@/lib/elo";
 
 export async function POST(
   request: NextRequest,
@@ -303,20 +304,90 @@ export async function POST(
       .every(b => b.matchId);
 
     if (allMatchesComplete || hasFinalMatch) {
-      // Tournament complete!
+      // Tournament complete! Distribute prizes based on placement
       await prisma.tournament.update({
         where: { id: tournamentId },
         data: { status: 'COMPLETED' },
       });
 
-      // Give winner bonus ELO from prize pool
       if (tournament.prizePool) {
-        await prisma.user.update({
-          where: { id: winnerId },
-          data: { 
-            foreverElo: { increment: tournament.prizePool },
-          },
-        });
+        const prizePool = tournament.prizePool;
+        const { first, second, thirdFourth } = TOURNAMENT_PRIZE_DISTRIBUTION;
+        
+        // Find the final bracket (last round)
+        const maxRound = Math.max(...tournament.brackets.map(b => b.round));
+        const finalBracket = tournament.brackets.filter(
+          b => b.round === maxRound && (!b.bracketType || b.bracketType === 'winner')
+        );
+        
+        // Final match is the last one in the final bracket that has a matchId
+        const finalMatch = finalBracket.find(b => b.matchId);
+        
+        if (finalMatch) {
+          // Get the match to find 1st and 2nd place
+          const finalMatchRecord = await prisma.match.findUnique({
+            where: { id: finalMatch.matchId! },
+          });
+          
+          if (finalMatchRecord) {
+            const firstPlaceId = finalMatchRecord.winnerId;
+            const secondPlaceId = firstPlaceId === finalMatchRecord.player1Id 
+              ? finalMatchRecord.player2Id 
+              : finalMatchRecord.player1Id;
+            
+            // Distribute prizes for singles
+            if (!isDoubles) {
+              await prisma.user.update({
+                where: { id: firstPlaceId },
+                data: { foreverElo: { increment: Math.floor(prizePool * first) } },
+              });
+              if (secondPlaceId) {
+                await prisma.user.update({
+                  where: { id: secondPlaceId },
+                  data: { foreverElo: { increment: Math.floor(prizePool * second) } },
+                });
+              }
+            } else {
+              // For doubles, update team ELOs
+              await prisma.team.update({
+                where: { id: firstPlaceId },
+                data: { foreverElo: { increment: Math.floor(prizePool * first) } },
+              });
+              if (secondPlaceId) {
+                await prisma.team.update({
+                  where: { id: secondPlaceId },
+                  data: { foreverElo: { increment: Math.floor(prizePool * second) } },
+                });
+              }
+            }
+            
+            // Find and distribute to 3rd/4th (losers of semi-finals)
+            const semiFinalRound = maxRound - 1;
+            const semiFinalBrackets = tournament.brackets.filter(
+              b => b.round === semiFinalRound && (!b.bracketType || b.bracketType === 'winner') && b.matchId
+            );
+            
+            for (const semiBracket of semiFinalBrackets) {
+              const semiMatch = await prisma.match.findUnique({
+                where: { id: semiBracket.matchId! },
+              });
+              if (semiMatch) {
+                const thirdPlaceId = semiMatch.winnerId;
+                if (!isDoubles) {
+                  await prisma.user.update({
+                    where: { id: thirdPlaceId },
+                    data: { foreverElo: { increment: Math.floor(prizePool * thirdFourth) } },
+                  });
+                } else {
+                  await prisma.team.update({
+                    where: { id: thirdPlaceId },
+                    data: { foreverElo: { increment: Math.floor(prizePool * thirdFourth) } },
+                  });
+                }
+              }
+            }
+          }
+        }
       }
     }
 
