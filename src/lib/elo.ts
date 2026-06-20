@@ -9,6 +9,7 @@
  * - Score margin multiplier for casual matches
  * - Activity bonus to prevent ELO economy stagnation
  * - Inactivity indicators (informational only)
+ * - Doubles support with team-based ELO calculations
  */
 
 // ============================================
@@ -75,6 +76,8 @@ export const SEASON_CHAMPION_BONUS = 0.10; // 10% of season gains
 // Types
 // ============================================
 
+export type MatchType = 'SINGLES' | 'DOUBLES';
+
 export interface EloRating {
   elo: number;
   gamesPlayed: number;
@@ -89,6 +92,19 @@ export interface EloChangeResult {
   player2Expected: number;
   marginMultiplier: number;
   explanation: EloExplanation;
+}
+
+export interface DoublesEloResult {
+  team1Change: number;
+  team2Change: number;
+  team1NewElo: number;
+  team2NewElo: number;
+  individualChanges: {
+    team1Player1: number;
+    team1Player2: number;
+    team2Player1: number;
+    team2Player2: number;
+  };
 }
 
 export interface EloExplanation {
@@ -131,6 +147,15 @@ export function getKFactor(gamesPlayed: number): number {
 }
 
 /**
+ * Gets the K-factor for doubles based on total doubles games played
+ * Both teammates use their combined average games played
+ */
+export function getDoublesKFactor(player1Games: number, player2Games: number): number {
+  const averageGames = Math.floor((player1Games + player2Games) / 2);
+  return getKFactor(averageGames);
+}
+
+/**
  * Gets a human-readable label for the K-factor tier
  */
 export function getKFactorLabel(gamesPlayed: number): string {
@@ -156,6 +181,13 @@ export function getKFactorLabel(gamesPlayed: number): string {
  */
 export function getExpectedScore(playerElo: number, opponentElo: number): number {
   return 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
+}
+
+/**
+ * Calculates team ELO for doubles as the average of both players' doubles ELO
+ */
+export function getTeamElo(player1Elo: number, player2Elo: number): number {
+  return Math.round((player1Elo + player2Elo) / 2);
 }
 
 // ============================================
@@ -201,7 +233,7 @@ export function getMarginLabel(margin: number): string {
 }
 
 // ============================================
-// Main ELO Calculation
+// Singles ELO Calculation
 // ============================================
 
 /**
@@ -309,6 +341,134 @@ export function getEloChange(
   return {
     winnerChange: result.player1Change,
     loserChange: result.player2Change,
+  };
+}
+
+// ============================================
+// Doubles ELO Calculation
+// ============================================
+
+/**
+ * Calculates ELO changes for a doubles match
+ * 
+ * In doubles, each player has individual ELO but we calculate
+ * the team ELO as the average of both players' doubles ELO.
+ * Both teammates share the same team ELO change.
+ * 
+ * @param team1Player1Elo - Doubles ELO of Team 1 Player 1
+ * @param team1Player2Elo - Doubles ELO of Team 1 Player 2
+ * @param team2Player1Elo - Doubles ELO of Team 2 Player 1
+ * @param team2Player2Elo - Doubles ELO of Team 2 Player 2
+ * @param team1GamesPlayed - Total doubles games played by Team 1 (avg of both)
+ * @param team2GamesPlayed - Total doubles games played by Team 2 (avg of both)
+ * @param team1Won - Whether Team 1 won the match
+ * @param winnerScore - Score of the winning team
+ * @param loserScore - Score of the losing team
+ * @param isTournament - Whether this is a tournament match
+ * @returns Doubles ELO change results including individual changes
+ */
+export function calculateDoublesEloChange(
+  team1Player1Elo: number,
+  team1Player2Elo: number,
+  team2Player1Elo: number,
+  team2Player2Elo: number,
+  team1Player1Games: number,
+  team1Player2Games: number,
+  team2Player1Games: number,
+  team2Player2Games: number,
+  team1Won: boolean,
+  winnerScore: number,
+  loserScore: number,
+  isTournament: boolean = false
+): DoublesEloResult {
+  // Calculate team ELOs (average of both players)
+  const team1Elo = getTeamElo(team1Player1Elo, team1Player2Elo);
+  const team2Elo = getTeamElo(team2Player1Elo, team2Player2Elo);
+
+  // Get K-factors based on average games played for each team
+  const team1KFactor = getDoublesKFactor(team1Player1Games, team1Player2Games);
+  const team2KFactor = getDoublesKFactor(team2Player1Games, team2Player2Games);
+
+  // Calculate expected scores
+  const expected1 = getExpectedScore(team1Elo, team2Elo);
+  const expected2 = 1 - expected1;
+
+  // Determine actual result
+  const actual1 = team1Won ? 1 : 0;
+  const actual2 = 1 - actual1;
+
+  // Calculate margin multiplier
+  const marginMultiplier = getMarginMultiplier(winnerScore, loserScore, isTournament);
+
+  // Calculate raw ELO changes using team K-factors
+  const rawChange1 = team1KFactor * (actual1 - expected1);
+  const rawChange2 = team2KFactor * (actual2 - expected2);
+
+  // Apply margin multiplier
+  const team1Change = Math.round(rawChange1 * marginMultiplier);
+  const team2Change = Math.round(rawChange2 * marginMultiplier);
+
+  // Calculate new team ELOs
+  const team1NewElo = team1Elo + team1Change;
+  const team2NewElo = team2Elo + team2Change;
+
+  // Calculate individual ELO changes
+  // Each player's change is based on their own K-factor but uses team result
+  // This allows individuals to gain/lose slightly different amounts
+  // based on their experience level while maintaining team integrity
+  
+  const k1 = getKFactor(team1Player1Games);
+  const k2 = getKFactor(team1Player2Games);
+  const k3 = getKFactor(team2Player1Games);
+  const k4 = getKFactor(team2Player2Games);
+
+  // Use weighted average for individual changes
+  // More experienced players have slightly less change
+  const totalTeam1Games = team1Player1Games + team1Player2Games;
+  const totalTeam2Games = team2Player1Games + team2Player2Games;
+
+  let team1Player1Change: number;
+  let team1Player2Change: number;
+  let team2Player1Change: number;
+  let team2Player2Change: number;
+
+  if (team1Won) {
+    // Team 1 won - they gain, Team 2 loses
+    // Weight changes by inverse of games played (less experienced = more change)
+    const team1Weight1 = totalTeam1Games > 0 ? (totalTeam1Games - team1Player1Games) / totalTeam1Games : 0.5;
+    const team1Weight2 = totalTeam1Games > 0 ? (totalTeam1Games - team1Player2Games) / totalTeam1Games : 0.5;
+    const team2Weight1 = totalTeam2Games > 0 ? (totalTeam2Games - team2Player1Games) / totalTeam2Games : 0.5;
+    const team2Weight2 = totalTeam2Games > 0 ? (totalTeam2Games - team2Player2Games) / totalTeam2Games : 0.5;
+
+    // Apply same team change with minor individual adjustments
+    team1Player1Change = Math.round(team1Change * (1 + (team1Weight1 - 0.5) * 0.1));
+    team1Player2Change = Math.round(team1Change * (1 + (team1Weight2 - 0.5) * 0.1));
+    team2Player1Change = Math.round(team2Change * (1 + (team2Weight1 - 0.5) * 0.1));
+    team2Player2Change = Math.round(team2Change * (1 + (team2Weight2 - 0.5) * 0.1));
+  } else {
+    // Team 2 won - they gain, Team 1 loses
+    const team1Weight1 = totalTeam1Games > 0 ? team1Player1Games / totalTeam1Games : 0.5;
+    const team1Weight2 = totalTeam1Games > 0 ? team1Player2Games / totalTeam1Games : 0.5;
+    const team2Weight1 = totalTeam2Games > 0 ? team2Player1Games / totalTeam2Games : 0.5;
+    const team2Weight2 = totalTeam2Games > 0 ? team2Player2Games / totalTeam2Games : 0.5;
+
+    team1Player1Change = Math.round(team1Change * (1 + (team1Weight1 - 0.5) * 0.1));
+    team1Player2Change = Math.round(team1Change * (1 + (team1Weight2 - 0.5) * 0.1));
+    team2Player1Change = Math.round(team2Change * (1 + (team2Weight1 - 0.5) * 0.1));
+    team2Player2Change = Math.round(team2Change * (1 + (team2Weight2 - 0.5) * 0.1));
+  }
+
+  return {
+    team1Change,
+    team2Change,
+    team1NewElo,
+    team2NewElo,
+    individualChanges: {
+      team1Player1: team1Player1Change,
+      team1Player2: team1Player2Change,
+      team2Player1: team2Player1Change,
+      team2Player2: team2Player2Change,
+    },
   };
 }
 

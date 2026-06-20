@@ -7,24 +7,32 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { 
+  User,
   Users, 
   Plus, 
   Minus, 
   Trophy,
   ArrowRight,
-  Loader2,
-  CheckCircle
+  CheckCircle,
+  UserPlus
 } from 'lucide-react';
 
 // ============================================
-// Match Logging Page
+// Match Logging Page - Singles & Doubles
 // ============================================
 
+type MatchType = 'SINGLES' | 'DOUBLES';
+
+interface Player {
+  id: string;
+  name: string;
+  elo: number;
+}
+
 // Mock players for demo - in production would fetch from API
-const mockPlayers = [
+const mockPlayers: Player[] = [
   { id: '1', name: 'You', elo: 1042 },
   { id: '2', name: 'Alex Chen', elo: 1285 },
   { id: '3', name: 'Sarah Miller', elo: 1240 },
@@ -39,11 +47,25 @@ export default function NewMatchPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   
-  const [step, setStep] = useState<'select' | 'score' | 'confirm' | 'success'>('select');
-  const [player1, setPlayer1] = useState<typeof mockPlayers[0] | null>(null);
-  const [player2, setPlayer2] = useState<typeof mockPlayers[0] | null>(null);
-  const [player1Score, setPlayer1Score] = useState<number>(0);
-  const [player2Score, setPlayer2Score] = useState<number>(0);
+  // Match type selection
+  const [matchType, setMatchType] = useState<MatchType>('SINGLES');
+  
+  // Singles state
+  const [player1, setPlayer1] = useState<Player | null>(null);
+  const [player2, setPlayer2] = useState<Player | null>(null);
+  
+  // Doubles state
+  const [team1Player1, setTeam1Player1] = useState<Player | null>(null);
+  const [team1Player2, setTeam1Player2] = useState<Player | null>(null);
+  const [team2Player1, setTeam2Player1] = useState<Player | null>(null);
+  const [team2Player2, setTeam2Player2] = useState<Player | null>(null);
+  
+  // Score state
+  const [team1Score, setTeam1Score] = useState<number>(0);
+  const [team2Score, setTeam2Score] = useState<number>(0);
+  
+  // UI state
+  const [step, setStep] = useState<'type' | 'select' | 'score' | 'confirm' | 'success'>('type');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -53,56 +75,74 @@ export default function NewMatchPage() {
     return null;
   }
 
-  // Auto-select current user as player 1
-  if (!player1 && session?.user && step === 'select') {
-    const currentUser = mockPlayers.find(p => p.name === 'You');
-    if (currentUser) {
-      setPlayer1(currentUser);
-    }
-  }
-
-  const handleSelectPlayer1 = (player: typeof mockPlayers[0]) => {
-    setPlayer1(player);
+  const resetState = () => {
+    setPlayer1(null);
+    setPlayer2(null);
+    setTeam1Player1(null);
+    setTeam1Player2(null);
+    setTeam2Player1(null);
+    setTeam2Player2(null);
+    setTeam1Score(0);
+    setTeam2Score(0);
+    setStep('type');
     setError('');
   };
 
-  const handleSelectPlayer2 = (player: typeof mockPlayers[0]) => {
-    setPlayer2(player);
-    setError('');
+  const handleSelectMatchType = (type: MatchType) => {
+    setMatchType(type);
+    setStep('select');
   };
 
   const handleNextToScore = () => {
-    if (!player1 || !player2) {
-      setError('Please select both players');
-      return;
-    }
-    if (player1.id === player2.id) {
-      setError('Please select two different players');
-      return;
-    }
     setError('');
+    
+    if (matchType === 'SINGLES') {
+      if (!player1 || !player2) {
+        setError('Please select both players');
+        return;
+      }
+      if (player1.id === player2.id) {
+        setError('Please select two different players');
+        return;
+      }
+    } else {
+      // Doubles validation
+      if (!team1Player1 || !team1Player2 || !team2Player1 || !team2Player2) {
+        setError('Please select all 4 players');
+        return;
+      }
+      const allIds = [team1Player1.id, team1Player2.id, team2Player1.id, team2Player2.id];
+      const uniqueIds = new Set(allIds);
+      if (uniqueIds.size !== 4) {
+        setError('Each player must be unique');
+        return;
+      }
+    }
+    
     setStep('score');
   };
 
   const handleNextToConfirm = () => {
+    setError('');
+    
     // Validate scores
-    if (player1Score < 3 || player2Score < 3) {
-      setError('Both players must have at least 3 points');
+    if (team1Score < 3 || team2Score < 3) {
+      setError('Both teams must have at least 3 points');
       return;
     }
-    if (player1Score > 21 || player2Score > 21) {
-      setError('Scores cannot exceed 21 points');
+    if (team1Score > 30 || team2Score > 30) {
+      setError('Scores cannot exceed 30 points');
       return;
     }
-    if (Math.abs(player1Score - player2Score) < 2 && Math.max(player1Score, player2Score) === 21) {
+    if (Math.abs(team1Score - team2Score) < 2 && Math.max(team1Score, team2Score) === 21) {
       setError('Winner must win by at least 2 points');
       return;
     }
-    if (player1Score < 11 && player2Score < 11) {
+    if (team1Score < 11 && team2Score < 11) {
       setError('Winner must have at least 11 points');
       return;
     }
-    setError('');
+    
     setStep('confirm');
   };
 
@@ -111,15 +151,28 @@ export default function NewMatchPage() {
     setError('');
 
     try {
+      const payload = matchType === 'SINGLES' 
+        ? {
+            matchType: 'SINGLES',
+            player1Id: player1?.id,
+            player2Id: player2?.id,
+            player1Score: team1Score,
+            player2Score: team2Score,
+          }
+        : {
+            matchType: 'DOUBLES',
+            team1Player1Id: team1Player1?.id,
+            team1Player2Id: team1Player2?.id,
+            team2Player1Id: team2Player1?.id,
+            team2Player2Id: team2Player2?.id,
+            player1Score: team1Score,
+            player2Score: team2Score,
+          };
+
       const res = await fetch('/api/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          player1Id: player1?.id,
-          player2Id: player2?.id,
-          player1Score,
-          player2Score,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -135,47 +188,119 @@ export default function NewMatchPage() {
     }
   };
 
-  const winner = player1Score > player2Score ? player1 : player2;
-  const scoreMargin = Math.abs(player1Score - player2Score);
+  const team1Won = team1Score > team2Score;
+  const winner: string = matchType === 'SINGLES' 
+    ? (team1Won ? player1?.name : player2?.name) || ''
+    : (team1Won ? `${team1Player1?.name} & ${team1Player2?.name}` : `${team2Player1?.name} & ${team2Player2?.name}`) || '';
+  
+  const scoreMargin = Math.abs(team1Score - team2Score);
   const marginMultiplier = scoreMargin >= 10 ? 1.5 : scoreMargin >= 5 ? 1.25 : 1.0;
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center mb-8">
-        <div className="flex items-center gap-2">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-            step === 'select' || step === 'score' || step === 'confirm' || step === 'success'
-              ? 'bg-accent text-white' 
-              : 'bg-bg-secondary text-text-secondary'
-          }`}>
-            {step !== 'select' ? <CheckCircle className="h-5 w-5" /> : '1'}
-          </div>
-          <div className={`w-12 h-1 ${step !== 'select' ? 'bg-accent' : 'bg-bg-secondary'}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-            step === 'score' || step === 'confirm' || step === 'success'
-              ? 'bg-accent text-white' 
-              : 'bg-bg-secondary text-text-secondary'
-          }`}>
-            {step === 'confirm' || step === 'success' ? <CheckCircle className="h-5 w-5" /> : '2'}
-          </div>
-          <div className={`w-12 h-1 ${step === 'confirm' || step === 'success' ? 'bg-accent' : 'bg-bg-secondary'}`} />
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-            step === 'confirm' || step === 'success'
-              ? 'bg-accent text-white' 
-              : 'bg-bg-secondary text-text-secondary'
-          }`}>
-            {step === 'success' ? <CheckCircle className="h-5 w-5" /> : '3'}
-          </div>
-        </div>
-      </div>
+  const availablePlayers = (selectedIds: string[]) => 
+    mockPlayers.filter(p => !selectedIds.includes(p.id));
 
-      {/* Step 1: Select Players */}
-      {step === 'select' && (
+  // Player Selection Component
+  const PlayerSelector = ({ 
+    label, 
+    selected, 
+    onSelect, 
+    teamLabel,
+    excludeIds = [],
+    disabled = false
+  }: { 
+    label: string; 
+    selected: Player | null; 
+    onSelect: (p: Player) => void;
+    teamLabel: string;
+    excludeIds?: string[];
+    disabled?: boolean;
+  }) => (
+    <div>
+      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+          selected ? 'bg-accent text-white' : 'bg-bg-secondary text-text-secondary'
+        }`}>
+          {selected ? <CheckCircle className="h-5 w-5" /> : teamLabel}
+        </span>
+        {label}
+      </h3>
+      <div className="space-y-2">
+        {mockPlayers.filter(p => !excludeIds.includes(p.id) || p.id === selected?.id).map((player) => (
+          <button
+            key={player.id}
+            onClick={() => !disabled && onSelect(player)}
+            disabled={disabled || excludeIds.includes(player.id)}
+            className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+              selected?.id === player.id
+                ? 'border-accent bg-accent/5'
+                : disabled || excludeIds.includes(player.id)
+                  ? 'border-border opacity-50 cursor-not-allowed'
+                  : 'border-border hover:border-accent/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{player.name}</span>
+              <Badge variant="outline">{player.elo} ELO</Badge>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Step 1: Select Match Type */}
+      {step === 'type' && (
         <>
           <PageHeader
             title="Log a Match"
-            description="Select the two players who competed"
+            description="Choose the type of match you want to record"
+          />
+          
+          <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <Card 
+              className={`p-8 text-center cursor-pointer transition-all ${
+                matchType === 'SINGLES' ? 'ring-2 ring-accent' : 'hover:border-accent'
+              }`}
+              onClick={() => handleSelectMatchType('SINGLES')}
+            >
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <User className="h-8 w-8 text-accent" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Singles</h3>
+              <p className="text-text-secondary text-sm">
+                1 vs 1 match between two players
+              </p>
+            </Card>
+            
+            <Card 
+              className={`p-8 text-center cursor-pointer transition-all ${
+                matchType === 'DOUBLES' ? 'ring-2 ring-accent' : 'hover:border-accent'
+              }`}
+              onClick={() => handleSelectMatchType('DOUBLES')}
+            >
+              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-purple-500" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Doubles</h3>
+              <p className="text-text-secondary text-sm">
+                2 vs 2 team match with partners
+              </p>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {/* Step 2: Select Players */}
+      {step === 'select' && (
+        <>
+          <PageHeader
+            title={`Log a ${matchType === 'SINGLES' ? 'Singles' : 'Doubles'} Match`}
+            description={matchType === 'SINGLES' 
+              ? "Select the two players who competed"
+              : "Select the four players (two teams)"
+            }
           />
 
           {error && (
@@ -184,73 +309,109 @@ export default function NewMatchPage() {
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Player 1 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center text-sm">1</span>
-                Player 1 (Winner)
-              </h3>
-              <div className="space-y-2">
-                {mockPlayers.map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => handleSelectPlayer1(player)}
-                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                      player1?.id === player.id
-                        ? 'border-accent bg-accent/5'
-                        : 'border-border hover:border-accent/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{player.name}</span>
-                      <Badge variant="outline">{player.elo} ELO</Badge>
-                    </div>
-                  </button>
-                ))}
-              </div>
+          {matchType === 'SINGLES' ? (
+            /* Singles Player Selection */
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <PlayerSelector
+                label="Player 1 (Winner)"
+                selected={player1}
+                onSelect={setPlayer1}
+                teamLabel="1"
+                excludeIds={player2 ? [player2.id] : []}
+              />
+              <PlayerSelector
+                label="Player 2 (Loser)"
+                selected={player2}
+                onSelect={setPlayer2}
+                teamLabel="2"
+                excludeIds={player1 ? [player1.id] : []}
+              />
             </div>
-
-            {/* Player 2 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <span className="w-8 h-8 bg-bg-secondary text-text-secondary rounded-full flex items-center justify-center text-sm">2</span>
-                Player 2 (Loser)
-              </h3>
-              <div className="space-y-2">
-                {mockPlayers.map((player) => (
-                  <button
-                    key={player.id}
-                    onClick={() => handleSelectPlayer2(player)}
-                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                      player2?.id === player.id
-                        ? 'border-accent bg-accent/5'
-                        : 'border-border hover:border-accent/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{player.name}</span>
-                      <Badge variant="outline">{player.elo} ELO</Badge>
-                    </div>
-                  </button>
-                ))}
+          ) : (
+            /* Doubles Player Selection */
+            <>
+              {/* Team 1 */}
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center font-bold">
+                    T1
+                  </div>
+                  <h2 className="text-xl font-bold">Team 1 (Winner)</h2>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <PlayerSelector
+                    label="Player 1"
+                    selected={team1Player1}
+                    onSelect={setTeam1Player1}
+                    teamLabel="1"
+                    excludeIds={[
+                      team1Player2?.id, 
+                      team2Player1?.id, 
+                      team2Player2?.id
+                    ].filter(Boolean) as string[]}
+                  />
+                  <PlayerSelector
+                    label="Player 2"
+                    selected={team1Player2}
+                    onSelect={setTeam1Player2}
+                    teamLabel="2"
+                    excludeIds={[
+                      team1Player1?.id, 
+                      team2Player1?.id, 
+                      team2Player2?.id
+                    ].filter(Boolean) as string[]}
+                  />
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleNextToScore}
-              rightIcon={<ArrowRight className="h-4 w-4" />}
-              disabled={!player1 || !player2 || player1.id === player2.id}
-            >
+              {/* Team 2 */}
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-red-500/10 text-red-600 rounded-full flex items-center justify-center font-bold">
+                    T2
+                  </div>
+                  <h2 className="text-xl font-bold">Team 2 (Loser)</h2>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <PlayerSelector
+                    label="Player 1"
+                    selected={team2Player1}
+                    onSelect={setTeam2Player1}
+                    teamLabel="1"
+                    excludeIds={[
+                      team1Player1?.id, 
+                      team1Player2?.id, 
+                      team2Player2?.id
+                    ].filter(Boolean) as string[]}
+                  />
+                  <PlayerSelector
+                    label="Player 2"
+                    selected={team2Player2}
+                    onSelect={setTeam2Player2}
+                    teamLabel="2"
+                    excludeIds={[
+                      team1Player1?.id, 
+                      team1Player2?.id, 
+                      team2Player1?.id
+                    ].filter(Boolean) as string[]}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={resetState}>
+              Back
+            </Button>
+            <Button onClick={handleNextToScore}>
               Continue to Score
             </Button>
           </div>
         </>
       )}
 
-      {/* Step 2: Enter Score */}
+      {/* Step 3: Enter Score */}
       {step === 'score' && (
         <>
           <PageHeader
@@ -266,27 +427,42 @@ export default function NewMatchPage() {
 
           <Card className="p-8 mb-8">
             <div className="grid md:grid-cols-3 gap-8 items-center">
-              {/* Player 1 */}
+              {/* Team 1 */}
               <div className="text-center">
-                <p className="font-medium text-text-secondary mb-4">{player1?.name}</p>
+                <div className="mb-2">
+                  {matchType === 'DOUBLES' ? (
+                    <Badge variant="success">Team 1</Badge>
+                  ) : null}
+                </div>
+                <p className="font-medium text-text-secondary mb-4">
+                  {matchType === 'SINGLES' 
+                    ? player1?.name
+                    : `${team1Player1?.name} & ${team1Player2?.name}`
+                  }
+                </p>
                 <div className="flex items-center justify-center gap-4">
                   <button
-                    onClick={() => setPlayer1Score(Math.max(0, player1Score - 1))}
+                    onClick={() => setTeam1Score(Math.max(0, team1Score - 1))}
                     className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
                   >
                     <Minus className="h-6 w-6" />
                   </button>
                   <span className="text-6xl font-bold text-text-primary w-20">
-                    {player1Score}
+                    {team1Score}
                   </span>
                   <button
-                    onClick={() => setPlayer1Score(Math.min(30, player1Score + 1))}
+                    onClick={() => setTeam1Score(Math.min(30, team1Score + 1))}
                     className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
                   >
                     <Plus className="h-6 w-6" />
                   </button>
                 </div>
-                <Badge variant="outline" className="mt-2">{player1?.elo} ELO</Badge>
+                <Badge variant="outline" className="mt-2">
+                  {matchType === 'SINGLES' 
+                    ? `${player1?.elo} ELO`
+                    : `Avg: ${Math.round(((team1Player1?.elo || 0) + (team1Player2?.elo || 0)) / 2)} ELO`
+                  }
+                </Badge>
               </div>
 
               {/* VS Divider */}
@@ -296,27 +472,42 @@ export default function NewMatchPage() {
                 </div>
               </div>
 
-              {/* Player 2 */}
+              {/* Team 2 */}
               <div className="text-center">
-                <p className="font-medium text-text-secondary mb-4">{player2?.name}</p>
+                <div className="mb-2">
+                  {matchType === 'DOUBLES' ? (
+                    <Badge variant="danger">Team 2</Badge>
+                  ) : null}
+                </div>
+                <p className="font-medium text-text-secondary mb-4">
+                  {matchType === 'SINGLES' 
+                    ? player2?.name
+                    : `${team2Player1?.name} & ${team2Player2?.name}`
+                  }
+                </p>
                 <div className="flex items-center justify-center gap-4">
                   <button
-                    onClick={() => setPlayer2Score(Math.max(0, player2Score - 1))}
+                    onClick={() => setTeam2Score(Math.max(0, team2Score - 1))}
                     className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
                   >
                     <Minus className="h-6 w-6" />
                   </button>
                   <span className="text-6xl font-bold text-text-primary w-20">
-                    {player2Score}
+                    {team2Score}
                   </span>
                   <button
-                    onClick={() => setPlayer2Score(Math.min(30, player2Score + 1))}
+                    onClick={() => setTeam2Score(Math.min(30, team2Score + 1))}
                     className="w-12 h-12 bg-bg-secondary rounded-full flex items-center justify-center hover:bg-bg-primary transition-colors"
                   >
                     <Plus className="h-6 w-6" />
                   </button>
                 </div>
-                <Badge variant="outline" className="mt-2">{player2?.elo} ELO</Badge>
+                <Badge variant="outline" className="mt-2">
+                  {matchType === 'SINGLES' 
+                    ? `${player2?.elo} ELO`
+                    : `Avg: ${Math.round(((team2Player1?.elo || 0) + (team2Player2?.elo || 0)) / 2)} ELO`
+                  }
+                </Badge>
               </div>
             </div>
           </Card>
@@ -332,7 +523,7 @@ export default function NewMatchPage() {
         </>
       )}
 
-      {/* Step 3: Confirm */}
+      {/* Step 4: Confirm */}
       {step === 'confirm' && (
         <>
           <PageHeader
@@ -351,15 +542,15 @@ export default function NewMatchPage() {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 rounded-full mb-4">
                 <Trophy className="h-5 w-5" />
-                <span className="font-semibold">{winner?.name} wins!</span>
+                <span className="font-semibold">{winner} wins!</span>
               </div>
               <div className="flex items-center justify-center gap-8 text-5xl font-bold">
-                <span className={player1Score > player2Score ? 'text-accent' : 'text-text-secondary'}>
-                  {player1Score}
+                <span className={team1Won ? 'text-accent' : 'text-text-secondary'}>
+                  {team1Score}
                 </span>
                 <span className="text-text-muted">-</span>
-                <span className={player2Score > player1Score ? 'text-accent' : 'text-text-secondary'}>
-                  {player2Score}
+                <span className={!team1Won ? 'text-accent' : 'text-text-secondary'}>
+                  {team2Score}
                 </span>
               </div>
             </div>
@@ -367,17 +558,28 @@ export default function NewMatchPage() {
             {/* Match Details */}
             <div className="grid md:grid-cols-2 gap-6 mb-6">
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <p className="text-sm text-text-secondary mb-1">{player1?.name}</p>
-                <p className="font-semibold">{player1?.elo} ELO</p>
+                <Badge variant="success" className="mb-2">Team 1</Badge>
+                <p className="font-medium">
+                  {matchType === 'SINGLES' 
+                    ? player1?.name
+                    : `${team1Player1?.name} & ${team1Player2?.name}`
+                  }
+                </p>
               </div>
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <p className="text-sm text-text-secondary mb-1">{player2?.name}</p>
-                <p className="font-semibold">{player2?.elo} ELO</p>
+                <Badge variant="danger" className="mb-2">Team 2</Badge>
+                <p className="font-medium">
+                  {matchType === 'SINGLES' 
+                    ? player2?.name
+                    : `${team2Player1?.name} & ${team2Player2?.name}`
+                  }
+                </p>
               </div>
             </div>
 
             {/* Match Info */}
             <div className="text-center text-sm text-text-secondary space-y-1">
+              <p>Match type: <strong>{matchType}</strong></p>
               <p>Score margin: <strong>{scoreMargin} points</strong></p>
               <p>Margin multiplier: <strong>{marginMultiplier}x</strong> (casual match)</p>
             </div>
@@ -408,8 +610,8 @@ export default function NewMatchPage() {
             Match Logged!
           </h1>
           <p className="text-text-secondary mb-8 max-w-md mx-auto">
-            Great job! {winner?.name} won {player1Score > player2Score ? player1Score : player2Score}-{player1Score > player2Score ? player2Score : player1Score}. 
-            The ELO ratings have been updated.
+            {winner} won {Math.max(team1Score, team2Score)}-{Math.min(team1Score, team2Score)}. 
+            The {matchType === 'SINGLES' ? 'ELO ratings' : 'doubles ELO ratings'} have been updated.
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/dashboard">
@@ -417,15 +619,9 @@ export default function NewMatchPage() {
                 Back to Dashboard
               </Button>
             </Link>
-            <Link href="/matches/new">
-              <Button onClick={() => {
-                setStep('select');
-                setPlayer1Score(0);
-                setPlayer2Score(0);
-              }}>
-                Log Another Match
-              </Button>
-            </Link>
+            <Button onClick={resetState}>
+              Log Another Match
+            </Button>
           </div>
         </div>
       )}

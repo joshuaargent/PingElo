@@ -6,10 +6,11 @@
 ![Tailwind_CSS](https://img.shields.io/badge/Tailwind_CSS-4.2-38bdf8)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-> A full-stack ping pong ELO rating tracker with OAuth authentication, match logging, tournaments, and seasonal rankings.
+> A full-stack ping pong ELO rating tracker with OAuth authentication, singles & doubles match logging, tournaments, and seasonal rankings.
 
 ## Features
 
+- **Singles & Doubles** - Track both 1v1 and 2v2 matches
 - **ELO Rating System** - Dynamic K-factor based on experience level
 - **Score Margin Bonus** - Get extra ELO for dominating wins
 - **OAuth + Email Auth** - Google OAuth and email/password login
@@ -28,7 +29,6 @@
 | Styling | Tailwind CSS 4.2 |
 | Database | PostgreSQL with Prisma ORM |
 | Auth | NextAuth.js |
-| State Management | Zustand |
 
 ## Quick Start
 
@@ -78,12 +78,12 @@ npm run db:push
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000)
+Visit http://localhost:3000
 
 ## ELO System
 
 ### Starting ELO
-Every player starts at **1000 ELO**.
+Every player starts at **1000 ELO** for both singles and doubles.
 
 ### Dynamic K-Factor
 | Games Played | K-Factor | Description |
@@ -100,6 +100,12 @@ Every player starts at **1000 ELO**.
 | 5-9 points | 1.25x |
 | 10+ points | 1.5x |
 
+### Doubles ELO
+- Each player has separate **singles ELO** and **doubles ELO**
+- Team ELO is calculated as the **average** of both teammates' doubles ELO
+- Both teammates gain/lose the same amount per match
+- Individual adjustments based on experience level
+
 ### Tournament Entry Fees
 | Your ELO | Entry Fee |
 |----------|-----------|
@@ -108,35 +114,26 @@ Every player starts at **1000 ELO**.
 | 1000-1199 | 20 ELO |
 | 1200+ | 50 ELO |
 
-## Project Structure
+## Pages
 
-```
-PingElo/
-в”œв”€в”¬в”€в”€в”€в”€в”€в”€ prisma/
-в”‚   в””в”€в”¬в”€в”€в”€в”€в”€в”€ schema.prisma    # Database schema
-в”œв”€в”¬в”€в”€в”€в”€в”€в”€ src/
-в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ app/              # Pages
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ api/         # API routes
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ leaderboard/ # Leaderboard page
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ tournaments/ # Tournaments page
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ help/        # Help page
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ how-it-works/ # ELO explanation
-в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ components/
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ elo/         # ELO components
-в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ lib/
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ elo.ts       # ELO calculations
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ auth.ts     # NextAuth config
-в”‚   в”‚   в”œв”€в”¬в”€в”€в”€в”€в”€в”€ prisma.ts   # DB client
-в”œв”€в”¬в”€в”€в”€в”€в”€в”€в”€ .env.example
-в”œв”€в”¬в”€в”€в”€в”€в”€в”€ package.json
-```
+| Route | Description |
+|-------|-------------|
+| `/` | Homepage with leaderboard preview |
+| `/leaderboard` | Full singles & doubles leaderboards |
+| `/dashboard` | Your personal stats and recent matches |
+| `/matches/new` | Log a new singles or doubles match |
+| `/matches/history` | View your match history |
+| `/tournaments` | Browse and join tournaments |
+| `/profile/[id]` | View player profiles |
+| `/auth/signin` | Sign in to your account |
+| `/auth/signup` | Create a new account |
 
 ## Available Scripts
 
 | Script | Description |
 |--------|-------------|
 | `npm run dev` | Start development server |
-| `npm run build` | Build for production (includes Prisma generate) |
+| `npm run build` | Build for production |
 | `npm run start` | Start production server |
 | `npm run db:push` | Push schema changes to database |
 | `npm run db:studio` | Open Prisma Studio |
@@ -148,7 +145,7 @@ PingElo/
 ### Vercel (Recommended)
 
 1. Fork this repository
-2. Create a new project on [Vercel](https://vercel.com)
+2. Create a new project on Vercel
 3. Import your forked repository
 4. Add environment variables in Vercel dashboard:
    - `DATABASE_URL` - PostgreSQL connection string
@@ -162,9 +159,9 @@ PingElo/
 
 | Provider | Free Tier |
 |----------|-----------|
-| [Neon](https://neon.tech) | 0.5GB storage, 1 project |
-| [Supabase](https://supabase.com) | 500MB database |
-| [Railway](https://railway.app) | $5 credit/month |
+| Neon | 0.5GB storage, 1 project |
+| Supabase | 500MB database |
+| Railway | $5 credit/month |
 
 ## License
 

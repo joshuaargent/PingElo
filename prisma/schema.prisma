@@ -19,6 +19,11 @@ enum Role {
   ADMIN
 }
 
+enum MatchType {
+  SINGLES
+  DOUBLES
+}
+
 enum TournamentFormat {
   SINGLE_ELIMINATION
   DOUBLE_ELIMINATION
@@ -49,10 +54,15 @@ model User {
   isBanned      Boolean   @default(false)
   banReason     String?
 
-  // ELO tracking
+  // Singles ELO tracking
   foreverElo     Int       @default(1000)
   seasonElo      Int       @default(1000)
   matchesPlayed  Int       @default(0)
+
+  // Doubles ELO tracking
+  doublesForeverElo     Int       @default(1000)
+  doublesSeasonElo      Int       @default(1000)
+  doublesMatchesPlayed  Int       @default(0)
 
   // Season tracking
   seasonId       String?
@@ -67,10 +77,21 @@ model User {
   sessions       Session[]
   matchesAsP1    Match[]   @relation("Player1")
   matchesAsP2    Match[]   @relation("Player2")
+  // Doubles relationships (all 4 positions)
+  matchesAsT1P1 Match[]   @relation("Team1Player1")
+  matchesAsT1P2 Match[]   @relation("Team1Player2")
+  matchesAsT2P1 Match[]   @relation("Team2Player1")
+  matchesAsT2P2 Match[]   @relation("Team2Player2")
+  // Teams (as either player 1 or player 2)
+  teamsAsP1      Team[]    @relation("TeamPlayer1")
+  teamsAsP2      Team[]    @relation("TeamPlayer2")
+  // Match creation
   createdMatches Match[]   @relation("MatchCreator")
+  // Tournaments
   tournaments    TournamentParticipant[]
   createdTournaments Tournament[]
   seasonWins     Season[]  @relation("SeasonWinner")
+  doublesSeasonWins Season[] @relation("SeasonDoublesWinner")
 }
 
 model Account {
@@ -117,27 +138,70 @@ model Season {
   isActive    Boolean  @default(true)
   winnerId    String?  @unique
   winnerElo   Int?
+  doublesWinnerId String? @unique
+  doublesWinnerElo Int?
   createdAt   DateTime @default(now())
 
   // Relationships
-  winner      User?    @relation("SeasonWinner", fields: [winnerId], references: [id])
-  users       User[]
-  matches     Match[]
+  winner        User?    @relation("SeasonWinner", fields: [winnerId], references: [id])
+  doublesWinner User?    @relation("SeasonDoublesWinner", fields: [doublesWinnerId], references: [id])
+  users         User[]
+  matches       Match[]
+}
+
+// Team model for doubles partnerships
+model Team {
+  id            String    @id @default(cuid())
+  name          String?   // Optional custom name (e.g., "The Dynamic Duo")
+  player1Id     String
+  player2Id     String
+  
+  // ELO tracking (average of both players' doubles ELO at team formation)
+  foreverElo    Int       @default(1000)
+  seasonElo     Int       @default(1000)
+  matchesPlayed Int       @default(0)
+  wins          Int       @default(0)
+  losses        Int       @default(0)
+
+  // Track unique partnerships to prevent duplicates
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  player1      User      @relation("TeamPlayer1", fields: [player1Id], references: [id])
+  player2      User      @relation("TeamPlayer2", fields: [player2Id], references: [id])
+
+  @@unique([player1Id, player2Id])
+  @@index([player1Id])
+  @@index([player2Id])
 }
 
 model Match {
   id            String    @id @default(cuid())
-  player1Id     String
-  player2Id     String
-  player1Score  Int       // Must be >= 3 and <= 21
-  player2Score  Int       // Must be >= 3 and <= 21
-  winnerId      String
+  matchType     MatchType @default(SINGLES)
+  
+  // For Singles matches
+  player1Id     String?
+  player2Id     String?
+  
+  // For Doubles matches - Team 1
+  team1Player1Id String?
+  team1Player2Id String?
+  
+  // For Doubles matches - Team 2  
+  team2Player1Id String?
+  team2Player2Id String?
+  
+  // Scores
+  player1Score  Int       // Team 1 / Player 1 score
+  player2Score  Int       // Team 2 / Player 2 score
+  winnerId      String    // User ID of winner (for singles) or winning team's first player
 
-  // ELO changes at time of match
-  player1EloBefore Int
-  player2EloBefore Int
-  player1EloChange Int
-  player2EloChange Int
+  // ELO changes at time of match (applies to all relevant users/teams)
+  player1EloBefore Int    // Player 1 or Team 1's ELO before
+  player2EloBefore Int    // Player 2 or Team 2's ELO before
+  player1EloChange Int    // Change for Player1/Team1 all members
+  player2EloChange Int    // Change for Player2/Team2 all members
 
   // Season context
   seasonId      String?
@@ -155,14 +219,25 @@ model Match {
   updatedAt     DateTime @updatedAt
   deletedAt     DateTime? // Soft delete for admin
 
-  // Relationships
-  player1       User     @relation("Player1", fields: [player1Id], references: [id])
-  player2       User     @relation("Player2", fields: [player2Id], references: [id])
+  // Relationships (Singles)
+  player1       User?     @relation("Player1", fields: [player1Id], references: [id])
+  player2       User?     @relation("Player2", fields: [player2Id], references: [id])
+  
+  // Relationships (Doubles)
+  team1Player1  User?     @relation("Team1Player1", fields: [team1Player1Id], references: [id])
+  team1Player2  User?     @relation("Team1Player2", fields: [team1Player2Id], references: [id])
+  team2Player1  User?     @relation("Team2Player1", fields: [team2Player1Id], references: [id])
+  team2Player2  User?     @relation("Team2Player2", fields: [team2Player2Id], references: [id])
 
   @@index([player1Id])
   @@index([player2Id])
+  @@index([team1Player1Id])
+  @@index([team1Player2Id])
+  @@index([team2Player1Id])
+  @@index([team2Player2Id])
   @@index([winnerId])
   @@index([seasonId])
+  @@index([matchType])
 }
 
 model Tournament {
@@ -172,6 +247,7 @@ model Tournament {
   creatorId       String
 
   // Tournament settings
+  matchType       MatchType @default(SINGLES)
   entryFee        Int       @default(0)      // ELO cost to enter
   prizePool       Int       @default(0)      // House ELO added
   maxScore        Int       @default(21)     // Win condition (3-21)
