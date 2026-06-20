@@ -468,20 +468,72 @@ export default function TournamentDetailPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Winner</label>
+                <label className="block text-sm font-medium text-text-secondary mb-2">Select Winner</label>
                 <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    variant={winner === 'player1' ? 'primary' : 'outline'}
+                  <button
+                    type="button"
                     onClick={() => setWinner('player1')}
+                    className={`p-4 rounded-lg border-2 transition-colors ${
+                      winner === 'player1'
+                        ? 'border-accent bg-accent/20'
+                        : 'border-border hover:border-accent/50'
+                    }`}
                   >
-                    {loggingMatch.player1.name}
-                  </Button>
-                  <Button
-                    variant={winner === 'player2' ? 'primary' : 'outline'}
+                    {tournament.matchType === 'DOUBLES' ? (
+                      <div className="text-center">
+                        <div className="flex justify-center gap-1 mb-2">
+                          <Avatar
+                            src={loggingMatch.player1.team?.player1?.image || undefined}
+                            alt=""
+                            fallback={loggingMatch.player1.team?.player1?.name?.charAt(0) || '?'}
+                            size="sm"
+                          />
+                          <span className="text-text-muted">&</span>
+                          <Avatar
+                            src={loggingMatch.player1.team?.player2?.image || undefined}
+                            alt=""
+                            fallback={loggingMatch.player1.team?.player2?.name?.charAt(0) || '?'}
+                            size="sm"
+                          />
+                        </div>
+                        <p className="font-medium text-text-primary">{loggingMatch.player1.name}</p>
+                      </div>
+                    ) : (
+                      <p className="font-medium text-text-primary">{loggingMatch.player1.name}</p>
+                    )}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setWinner('player2')}
+                    className={`p-4 rounded-lg border-2 transition-colors ${
+                      winner === 'player2'
+                        ? 'border-accent bg-accent/20'
+                        : 'border-border hover:border-accent/50'
+                    }`}
                   >
-                    {loggingMatch.player2.name}
-                  </Button>
+                    {tournament.matchType === 'DOUBLES' ? (
+                      <div className="text-center">
+                        <div className="flex justify-center gap-1 mb-2">
+                          <Avatar
+                            src={loggingMatch.player2.team?.player1?.image || undefined}
+                            alt=""
+                            fallback={loggingMatch.player2.team?.player1?.name?.charAt(0) || '?'}
+                            size="sm"
+                          />
+                          <span className="text-text-muted">&</span>
+                          <Avatar
+                            src={loggingMatch.player2.team?.player2?.image || undefined}
+                            alt=""
+                            fallback={loggingMatch.player2.team?.player2?.name?.charAt(0) || '?'}
+                            size="sm"
+                          />
+                        </div>
+                        <p className="font-medium text-text-primary">{loggingMatch.player2.name}</p>
+                      </div>
+                    ) : (
+                      <p className="font-medium text-text-primary">{loggingMatch.player2.name}</p>
+                    )}
+                  </button>
                 </div>
               </div>
 

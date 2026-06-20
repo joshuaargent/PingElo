@@ -34,6 +34,43 @@ export async function POST(
       );
     }
 
+    // Get tournament to check match type
+    const tournament = await prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: {
+        brackets: {
+          orderBy: { round: 'asc' },
+        },
+        participants: {
+          include: {
+            user: { select: { id: true, foreverElo: true, seasonElo: true } },
+            team: { 
+              include: { 
+                player1: { select: { id: true, foreverElo: true, seasonElo: true } },
+                player2: { select: { id: true, foreverElo: true, seasonElo: true } },
+              }
+            },
+          },
+        },
+      },
+    });
+
+    if (!tournament) {
+      return NextResponse.json(
+        { error: "Tournament not found" },
+        { status: 404 }
+      );
+    }
+
+    if (tournament.status !== 'IN_PROGRESS') {
+      return NextResponse.json(
+        { error: "Tournament is not in progress" },
+        { status: 400 }
+      );
+    }
+
+    const isDoubles = tournament.matchType === 'DOUBLES';
+
     // Validate winner
     if (winnerId !== player1Id && winnerId !== player2Id) {
       return NextResponse.json(
@@ -62,35 +99,43 @@ export async function POST(
       );
     }
 
-    // Get tournament with brackets
-    const tournament = await prisma.tournament.findUnique({
-      where: { id: tournamentId },
-      include: {
-        brackets: {
-          orderBy: { round: 'asc' },
-        },
-      },
-    });
-
-    if (!tournament) {
-      return NextResponse.json(
-        { error: "Tournament not found" },
-        { status: 404 }
-      );
+    // Get player data based on match type
+    let player1: any, player2: any, winner: any, loser: any;
+    
+    if (isDoubles) {
+      // For doubles, IDs are team IDs
+      const team1 = tournament.participants.find(p => p.teamId === player1Id)?.team;
+      const team2 = tournament.participants.find(p => p.teamId === player2Id)?.team;
+      const winningTeam = tournament.participants.find(p => p.teamId === winnerId)?.team;
+      
+      if (!team1 || !team2 || !winningTeam) {
+        return NextResponse.json(
+          { error: "Team not found in tournament" },
+          { status: 400 }
+        );
+      }
+      
+      player1 = team1;
+      player2 = team2;
+      winner = winningTeam;
+      loser = winnerId === player1Id ? team2 : team1;
+    } else {
+      // For singles, IDs are user IDs
+      const user1 = tournament.participants.find(p => p.userId === player1Id)?.user;
+      const user2 = tournament.participants.find(p => p.userId === player2Id)?.user;
+      
+      if (!user1 || !user2) {
+        return NextResponse.json(
+          { error: "Player not found in tournament" },
+          { status: 400 }
+        );
+      }
+      
+      player1 = user1;
+      player2 = user2;
+      winner = winnerId === player1Id ? user1 : user2;
+      loser = winnerId === player1Id ? user2 : user1;
     }
-
-    if (tournament.status !== 'IN_PROGRESS') {
-      return NextResponse.json(
-        { error: "Tournament is not in progress" },
-        { status: 400 }
-      );
-    }
-
-    // Get player data
-    const [player1, player2] = await Promise.all([
-      prisma.user.findUnique({ where: { id: player1Id } }),
-      prisma.user.findUnique({ where: { id: player2Id } }),
-    ]);
 
     if (!player1 || !player2) {
       return NextResponse.json(
@@ -100,49 +145,70 @@ export async function POST(
     }
 
     // Simple ELO calculation
-    const winner = winnerId === player1Id ? player1 : player2;
-    const loser = winnerId === player1Id ? player2 : player1;
-    
     // K-factor
     const k = 32;
     const winnerChange = Math.round(k * 0.5); // Simplified: always +16
     const loserChange = Math.round(k * -0.5); // Simplified: always -16
 
     // Create match record
+    const matchData: any = {
+      player1Score,
+      player2Score,
+      winnerId,
+      createdById: winnerId,
+      isTournamentMatch: true,
+    };
+
+    if (isDoubles) {
+      matchData.team1Id = player1Id;
+      matchData.team2Id = player2Id;
+      matchData.team1EloBefore = player1.foreverElo;
+      matchData.team2EloBefore = player2.foreverElo;
+      matchData.team1EloChange = winnerId === player1Id ? winnerChange : loserChange;
+      matchData.team2EloChange = winnerId === player2Id ? winnerChange : loserChange;
+    } else {
+      matchData.player1Id = player1Id;
+      matchData.player2Id = player2Id;
+      matchData.player1EloBefore = player1.foreverElo;
+      matchData.player2EloBefore = player2.foreverElo;
+      matchData.player1EloChange = winnerId === player1Id ? winnerChange : loserChange;
+      matchData.player2EloChange = winnerId === player2Id ? winnerChange : loserChange;
+    }
+
     const match = await prisma.match.create({
-      data: {
-        player1Id,
-        player2Id,
-        player1Score,
-        player2Score,
-        winnerId,
-        player1EloBefore: player1.foreverElo,
-        player2EloBefore: player2.foreverElo,
-        player1EloChange: winnerId === player1Id ? winnerChange : loserChange,
-        player2EloChange: winnerId === player2Id ? winnerChange : loserChange,
-        createdById: winnerId,
-        isTournamentMatch: true,
-      },
+      data: matchData,
     });
 
-    // Update player ELOs
-    await prisma.user.update({
-      where: { id: winnerId },
-      data: { 
-        foreverElo: { increment: winnerChange },
-        seasonElo: { increment: winnerChange },
-        matchesPlayed: { increment: 1 },
-      },
-    });
-
-    await prisma.user.update({
-      where: { id: (winnerId === player1Id ? player2Id : player1Id) },
-      data: { 
-        foreverElo: { increment: loserChange },
-        seasonElo: { increment: loserChange },
-        matchesPlayed: { increment: 1 },
-      },
-    });
+    // Update ELOs based on match type
+    if (isDoubles) {
+      // Update team ELOs
+      await prisma.team.update({
+        where: { id: winnerId },
+        data: { foreverElo: { increment: winnerChange } },
+      });
+      await prisma.team.update({
+        where: { id: loser.id },
+        data: { foreverElo: { increment: loserChange } },
+      });
+    } else {
+      // Update user ELOs
+      await prisma.user.update({
+        where: { id: winnerId },
+        data: { 
+          foreverElo: { increment: winnerChange },
+          seasonElo: { increment: winnerChange },
+          matchesPlayed: { increment: 1 },
+        },
+      });
+      await prisma.user.update({
+        where: { id: loser.id },
+        data: { 
+          foreverElo: { increment: loserChange },
+          seasonElo: { increment: loserChange },
+          matchesPlayed: { increment: 1 },
+        },
+      });
+    }
 
     // Find and update the bracket slot
     const bracketSlot = tournament.brackets.find(
@@ -261,6 +327,7 @@ export async function POST(
         winner: { id: winnerId, newElo: winner.foreverElo + winnerChange, change: winnerChange },
         loser: { id: loser.id, newElo: loser.foreverElo + loserChange, change: loserChange },
       },
+      isDoubles,
     });
   } catch (error) {
     console.error("Error logging match:", error);

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="paddleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="2" width="16" height="24" rx="5" ry="5" fill="url(#paddleGrad)"/>
+  <rect x="18" y="10" width="10" height="8" rx="3" ry="3" fill="#c2410c"/>
+  <circle cx="26" cy="6" r="4" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+</svg>
