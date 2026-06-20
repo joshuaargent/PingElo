@@ -104,12 +104,13 @@ export default function LeaderboardPage() {
 
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">
-        {/* Match Type Selector */}
-        <div className="mb-6 flex items-center justify-between">
+        {/* Filters on One Line */}
+        <div className="flex flex-wrap items-center gap-4 mb-8">
+          {/* Match Type Filter */}
           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
             <button
               onClick={() => setMatchType('singles')}
-              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 matchType === 'singles'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
                   : 'hover:bg-bg-primary/50'
@@ -120,7 +121,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setMatchType('doubles')}
-              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 matchType === 'doubles'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
                   : 'hover:bg-bg-primary/50'
@@ -130,14 +131,12 @@ export default function LeaderboardPage() {
               Doubles
             </button>
           </div>
-        </div>
 
-        {/* ELO Type Selector */}
-        <div className="mb-8 flex items-center justify-between">
+          {/* ELO Type Filter */}
           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
             <button
               onClick={() => setLeaderboardType('forever')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'forever'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
                   : 'hover:bg-bg-primary/50'
@@ -147,7 +146,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setLeaderboardType('season')}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'season'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
                   : 'hover:bg-bg-primary/50'

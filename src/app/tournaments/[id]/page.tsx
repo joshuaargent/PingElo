@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
-import { Trophy, Users, Calendar, ArrowLeft, Plus, User, Users as UsersIcon, Crown } from 'lucide-react';
+import { Trophy, Users, Calendar, ArrowLeft, Plus, User, Users as UsersIcon, Crown, Braces } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   DRAFT: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
@@ -281,6 +281,142 @@ export default function TournamentDetailPage() {
               </div>
             )}
           </Card>
+
+          {/* Bracket Visualization */}
+          {tournament.status === 'IN_PROGRESS' && tournament.matches.length > 0 && (
+            <Card className="p-6">
+              <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                <Braces className="h-5 w-5 text-accent" />
+                Bracket View
+              </h2>
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px]">
+                  {/* Simplified bracket display */}
+                  <div className="flex items-start gap-8">
+                    {/* Quarter Finals / Round 1 */}
+                    <div className="flex flex-col gap-4">
+                      <h3 className="text-sm font-medium text-text-secondary text-center">Quarter Finals</h3>
+                      {tournament.matches.slice(0, 4).map((match, i) => (
+                        <div key={match.id} className="w-48 p-3 bg-bg-secondary rounded-lg border border-border">
+                          <div className="flex items-center justify-between">
+                            <span className={match.winnerId === match.player1?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                              {match.player1?.name || 'TBD'}
+                            </span>
+                            <span className="font-bold">{match.player1Score}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className={match.winnerId === match.player2?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                              {match.player2?.name || 'TBD'}
+                            </span>
+                            <span className="font-bold">{match.player2Score}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Semi Finals / Round 2 */}
+                    <div className="flex flex-col gap-8 justify-center mt-8">
+                      <h3 className="text-sm font-medium text-text-secondary text-center">Semi Finals</h3>
+                      {tournament.matches.slice(4, 6).length > 0 ? (
+                        tournament.matches.slice(4, 6).map((match) => (
+                          <div key={match.id} className="w-48 p-3 bg-bg-secondary rounded-lg border border-border">
+                            <div className="flex items-center justify-between">
+                              <span className={match.winnerId === match.player1?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                                {match.player1?.name || 'TBD'}
+                              </span>
+                              <span className="font-bold">{match.player1Score}</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className={match.winnerId === match.player2?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                                {match.player2?.name || 'TBD'}
+                              </span>
+                              <span className="font-bold">{match.player2Score}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <>
+                          <div className="w-48 p-3 bg-bg-secondary rounded-lg border border-border border-dashed">
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-muted">TBD</span>
+                              <span className="text-text-muted">-</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-text-muted">TBD</span>
+                              <span className="text-text-muted">-</span>
+                            </div>
+                          </div>
+                          <div className="w-48 p-3 bg-bg-secondary rounded-lg border border-border border-dashed">
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-muted">TBD</span>
+                              <span className="text-text-muted">-</span>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-text-muted">TBD</span>
+                              <span className="text-text-muted">-</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Finals */}
+                    <div className="flex flex-col gap-4 justify-center mt-8">
+                      <h3 className="text-sm font-medium text-text-secondary text-center">Finals</h3>
+                      {tournament.matches.slice(-1).map((match) => (
+                        <div key={match.id} className="w-48 p-3 bg-accent/10 rounded-lg border-2 border-accent">
+                          <div className="flex items-center justify-between">
+                            <span className={match.winnerId === match.player1?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                              {match.player1?.name || 'TBD'}
+                            </span>
+                            <span className="font-bold">{match.player1Score}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className={match.winnerId === match.player2?.id ? 'font-bold text-green-600' : 'text-text-muted'}>
+                              {match.player2?.name || 'TBD'}
+                            </span>
+                            <span className="font-bold">{match.player2Score}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {tournament.matches.length < 7 && (
+                        <div className="w-48 p-3 bg-bg-secondary rounded-lg border border-border border-dashed">
+                          <div className="flex items-center justify-between">
+                            <span className="text-text-muted">TBD</span>
+                            <span className="text-text-muted">-</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-text-muted">TBD</span>
+                            <span className="text-text-muted">-</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Champion */}
+                    <div className="flex flex-col justify-center mt-8">
+                      <h3 className="text-sm font-medium text-text-secondary text-center mb-2">Champion</h3>
+                      <div className="w-48 p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border-2 border-yellow-500 text-center">
+                        <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+                        {tournament.matches.length > 0 ? (
+                          <p className="font-bold text-yellow-700 dark:text-yellow-400">
+                            {(() => {
+                              const finalMatch = tournament.matches[tournament.matches.length - 1];
+                              return finalMatch?.winnerId === finalMatch?.player1?.id 
+                                ? finalMatch?.player1?.name 
+                                : finalMatch?.player2?.name || 'TBD';
+                            })()}
+                          </p>
+                        ) : (
+                          <p className="text-text-muted">TBD</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Matches */}
           <Card className="p-6">
