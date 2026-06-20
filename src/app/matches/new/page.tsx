@@ -58,6 +58,7 @@ export default function LogMatchPage() {
   
   const [player1Score, setPlayer1Score] = useState<string>('');
   const [player2Score, setPlayer2Score] = useState<string>('');
+  const [maxScore, setMaxScore] = useState<number>(21);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +140,7 @@ export default function LogMatchPage() {
         matchType,
         player1Score: p1Score,
         player2Score: p2Score,
+        maxScore,
       };
 
       if (matchType === 'SINGLES') {
@@ -362,14 +364,29 @@ export default function LogMatchPage() {
 
               {/* Score Entry */}
               <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-text-primary">Enter Score</h2>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-text-secondary">Play to:</label>
+                    <select
+                      className="h-10 px-3 rounded-lg border border-border bg-bg-primary text-text-primary font-medium"
+                      value={maxScore}
+                      onChange={(e) => setMaxScore(parseInt(e.target.value))}
+                    >
+                      <option value={7}>7 points</option>
+                      <option value={11}>11 points</option>
+                      <option value={15}>15 points</option>
+                      <option value={21}>21 points</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">{player1?.name || 'Player 1'}</p>
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player1Score}
                       onChange={(e) => setPlayer1Score(e.target.value)}
@@ -382,7 +399,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -391,7 +408,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  Winner must have at least 3 points and win by 2
+                  First to {maxScore} points wins (must win by 2)
                 </p>
               </Card>
             </div>
@@ -472,7 +489,22 @@ export default function LogMatchPage() {
 
               {/* Score Entry */}
               <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-text-primary">Enter Score</h2>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-text-secondary">Play to:</label>
+                    <select
+                      className="h-10 px-3 rounded-lg border border-border bg-bg-primary text-text-primary font-medium"
+                      value={maxScore}
+                      onChange={(e) => setMaxScore(parseInt(e.target.value))}
+                    >
+                      <option value={7}>7 points</option>
+                      <option value={11}>11 points</option>
+                      <option value={15}>15 points</option>
+                      <option value={21}>21 points</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">
@@ -481,7 +513,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player1Score}
                       onChange={(e) => setPlayer1Score(e.target.value)}
@@ -496,7 +528,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -504,6 +536,9 @@ export default function LogMatchPage() {
                     />
                   </div>
                 </div>
+                <p className="text-center text-sm text-text-muted mt-4">
+                  First to {maxScore} points wins (must win by 2)
+                </p>
               </Card>
             </div>
           )}
@@ -647,7 +682,22 @@ export default function LogMatchPage() {
 
               {/* Score Entry */}
               <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4 text-text-primary">Enter Score</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-text-primary">Enter Score</h2>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-text-secondary">Play to:</label>
+                    <select
+                      className="h-10 px-3 rounded-lg border border-border bg-bg-primary text-text-primary font-medium"
+                      value={maxScore}
+                      onChange={(e) => setMaxScore(parseInt(e.target.value))}
+                    >
+                      <option value={7}>7 points</option>
+                      <option value={11}>11 points</option>
+                      <option value={15}>15 points</option>
+                      <option value={21}>21 points</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">
@@ -658,7 +708,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player1Score}
                       onChange={(e) => setPlayer1Score(e.target.value)}
@@ -675,7 +725,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max="21"
+                      max={maxScore}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -683,6 +733,9 @@ export default function LogMatchPage() {
                     />
                   </div>
                 </div>
+                <p className="text-center text-sm text-text-muted mt-4">
+                  First to {maxScore} points wins (must win by 2)
+                </p>
               </Card>
             </div>
           )}
