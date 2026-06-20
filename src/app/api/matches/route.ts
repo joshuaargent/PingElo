@@ -344,9 +344,24 @@ export async function POST(request: NextRequest) {
         where: {
           matchType: "DOUBLES",
           OR: [
-            // Same team1 vs same team2 (order doesn't matter)
-            { team1Id: usedTeam1Id, team2Id: usedTeam2Id },
-            { team1Id: usedTeam2Id, team2Id: usedTeam1Id },
+            // Same 4 players in same positions (order matters for teams, so exact match)
+            {
+              AND: [
+                { team1Player1Id: t1p1Id },
+                { team1Player2Id: t1p2Id },
+                { team2Player1Id: t2p1Id },
+                { team2Player2Id: t2p2Id },
+              ]
+            },
+            // Same 4 players but teams swapped
+            {
+              AND: [
+                { team1Player1Id: t2p1Id },
+                { team1Player2Id: t2p2Id },
+                { team2Player1Id: t1p1Id },
+                { team2Player2Id: t1p2Id },
+              ]
+            },
           ],
           createdAt: {
             gte: new Date(Date.now() - MATCH_COOLDOWN_MS),

@@ -128,7 +128,7 @@ export async function POST(
           });
           
           // Refund player 2 if exists
-          if (participant.team.player2Id) {
+          if (participant.team.player2Id && participant.team.player2) {
             await tx.user.update({
               where: { id: participant.team.player2Id },
               data: { foreverElo: { increment: feePerPlayer } },
