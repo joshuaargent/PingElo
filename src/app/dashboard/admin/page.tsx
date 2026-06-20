@@ -669,7 +669,7 @@ export default function AdminDashboardPage() {
                       >
                         {tournament.status === 'IN_PROGRESS' ? 'In Progress' : 'Registration Open'}
                       </Badge>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                      <Button variant="outline" size="sm" onClick={() => {
                         setEditingTournamentId(tournament.id);
                         setEditingTournament({
                           name: tournament.name,
@@ -677,7 +677,7 @@ export default function AdminDashboardPage() {
                           maxParticipants: tournament.maxParticipants
                         });
                       }}>
-                        <Edit className="h-3 w-3" />
+                        <Edit className="h-4 w-4 mr-1" /> Edit
                       </Button>
                     </div>
                   </div>
@@ -686,6 +686,10 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-text-secondary">Match Type</span>
                       <span className="font-medium">{tournament.matchType}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Entry Fee</span>
+                      <span className="font-medium">{(tournament as any).entryFee || 0} ELO</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-text-secondary">Participants</span>
