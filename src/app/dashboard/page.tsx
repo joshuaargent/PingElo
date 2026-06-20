@@ -50,7 +50,8 @@ export default function DashboardPage() {
           
           // Show season intro if user hasn't seen this season yet
           if (lastSeenSeason !== currentSeasonName) {
-            redirect('/season-reset');
+            // Use window.location for client-side redirect
+            window.location.href = '/season-reset';
           }
         }
       } catch (error) {

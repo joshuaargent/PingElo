@@ -600,7 +600,7 @@ export function calculateSeasonChampionBonus(seasonGains: number): number {
  * Calculates house ELO injection for tournaments
  * Platform adds 500 ELO to each tournament prize pool
  */
-export const TOURNAMENT_HOUSE_INJECTION = 500;
+export const TOURNAMENT_HOUSE_INJECTION = 50; // Default house ELO injection for tournaments
 
 /**
  * Gets the total prize pool for a tournament

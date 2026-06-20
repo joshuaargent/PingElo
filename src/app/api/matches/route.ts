@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
-    const playerId = searchParams.get("playerId");
+    const playerId = searchParams.get("playerId") || searchParams.get("userId"); // Accept both
     const seasonId = searchParams.get("seasonId");
     const tournamentId = searchParams.get("tournamentId");
     const matchType = searchParams.get("matchType");
