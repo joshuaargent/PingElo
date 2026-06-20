@@ -165,6 +165,9 @@ model Team {
   seasonId      String
   season        Season    @relation(fields: [seasonId], references: [id])
   
+  // Whether this team is active for the current season
+  isActive      Boolean   @default(true)
+  
   // ELO tracking (average of both players' doubles ELO at team formation)
   foreverElo    Int       @default(1000)
   seasonElo     Int       @default(1000)
@@ -186,6 +189,7 @@ model Team {
   @@index([player1Id])
   @@index([player2Id])
   @@index([seasonId])
+  @@index([isActive])
 }
 
 model Match {

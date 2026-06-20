@@ -87,12 +87,11 @@ export async function POST(request: NextRequest) {
           });
         }
         
-        // 1b. Delete all teams from the previous season (teams are seasonal)
-        const teamsDeleted = await tx.team.deleteMany({
+        // 1b. Mark all teams from previous season as inactive (preserved for history)
+        await tx.team.updateMany({
           where: { seasonId: currentSeason.id },
+          data: { isActive: false },
         });
-        
-        console.log(`Deleted ${teamsDeleted.count} teams from previous season`);
       }
 
       // 2. Reset all users' season ELO to 1000
@@ -120,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Season reset complete. ${result.previousSeason?.name || "Previous season"} has ended. All teams from previous season have been cleared.`,
+      message: `Season reset complete. ${result.previousSeason?.name || "Previous season"} has ended. Your past teams are saved in history!`,
       newSeason: result.newSeason,
     });
   } catch (error) {

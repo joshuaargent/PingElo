@@ -15,41 +15,60 @@ import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 const MAX_TEAMS_PER_PERSON = 2;
 const MAX_TEAMS_CREATED_PER_PERSON = 1;
 
-// GET /api/teams - List user's teams for current season
+// GET /api/teams - List user's teams
+// ?history=true - all teams including inactive past teams
+// ?seasonId=xxx - teams from specific season
+// default - only active current season teams
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await getSessionOrUnauthorized();
     if (response) return response;
     
     const userId = session!.user.id;
+    const searchParams = request.nextUrl.searchParams;
+    const includeHistory = searchParams.get('history') === 'true';
+    const seasonId = searchParams.get('seasonId');
     
     // Get current season
     const currentSeason = await prisma.season.findFirst({
       where: { isActive: true },
     });
     
-    // If no active season, return empty state
-    if (!currentSeason) {
-      return NextResponse.json({ 
-        teams: [],
-        currentSeason: null,
-        limits: {
-          maxTeamsYouCanBeIn: MAX_TEAMS_PER_PERSON,
-          maxTeamsYouCanCreate: MAX_TEAMS_CREATED_PER_PERSON,
-          teamsCreatedByYou: 0,
-          teamsYouAreIn: 0,
-        }
-      });
+    // Build where clause
+    const whereClause: Record<string, unknown> = {
+      OR: [
+        { player1Id: userId },
+        { player2Id: userId },
+      ],
+    };
+    
+    // Filter by season if specified
+    if (seasonId) {
+      whereClause.seasonId = seasonId;
+      // Don't filter by isActive when viewing specific season
+    } else if (!includeHistory) {
+      // Default: only current active season teams
+      if (currentSeason) {
+        whereClause.seasonId = currentSeason.id;
+        whereClause.isActive = true;
+      } else {
+        // No active season and not requesting history
+        return NextResponse.json({ 
+          teams: [],
+          currentSeason: null,
+          limits: {
+            maxTeamsYouCanBeIn: MAX_TEAMS_PER_PERSON,
+            maxTeamsYouCanCreate: MAX_TEAMS_CREATED_PER_PERSON,
+            teamsCreatedByYou: 0,
+            teamsYouAreIn: 0,
+          }
+        });
+      }
     }
+    // includeHistory: no season filter, no isActive filter - get all teams
     
     const teams = await prisma.team.findMany({
-      where: {
-        seasonId: currentSeason.id,
-        OR: [
-          { player1Id: userId },
-          { player2Id: userId },
-        ],
-      },
+      where: whereClause,
       include: {
         player1: {
           select: { id: true, name: true, image: true, doublesForeverElo: true },
@@ -58,23 +77,47 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true, image: true, doublesForeverElo: true },
         },
         season: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, isActive: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { season: { startDate: 'desc' } },
+        { createdAt: 'desc' },
+      ],
     });
     
-    // Count teams created by user (as player1)
-    const teamsCreated = teams.filter(t => t.player1Id === userId).length;
+    // Calculate stats
+    const totalWins = teams.reduce((sum, t) => sum + t.wins, 0);
+    const totalLosses = teams.reduce((sum, t) => sum + t.losses, 0);
+    const totalMatches = teams.reduce((sum, t) => sum + t.matchesPlayed, 0);
+    const bestWinRate = teams.length > 0 
+      ? Math.max(...teams.map(t => {
+          const total = t.wins + t.losses;
+          return total > 0 ? Math.round((t.wins / total) * 100) : 0;
+        }))
+      : 0;
+    
+    // Count teams created by user (as player1) for current active season
+    const activeTeams = teams.filter(t => t.season.isActive && t.isActive);
+    const teamsCreated = activeTeams.filter(t => t.player1Id === userId).length;
     
     return NextResponse.json({ 
       teams,
-      currentSeason: { id: currentSeason.id, name: currentSeason.name },
+      currentSeason: currentSeason ? { id: currentSeason.id, name: currentSeason.name } : null,
       limits: {
         maxTeamsYouCanBeIn: MAX_TEAMS_PER_PERSON,
         maxTeamsYouCanCreate: MAX_TEAMS_CREATED_PER_PERSON,
         teamsCreatedByYou: teamsCreated,
-        teamsYouAreIn: teams.length,
+        teamsYouAreIn: activeTeams.length,
+      },
+      stats: {
+        totalTeams: teams.length,
+        totalWins,
+        totalLosses,
+        totalMatches,
+        overallWinRate: totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0,
+        bestWinRate,
+        seasonsParticipated: new Set(teams.map(t => t.season.id)).size,
       }
     });
   } catch (error) {
