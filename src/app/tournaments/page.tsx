@@ -81,7 +81,7 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
               {tournament.participantCount}/{tournament.maxParticipants}
             </span>
             <span className="text-text-muted">
-              Entry: {tournament.entryFee > 0 ? `${tournament.entryFee} ELO` : 'Free'}
+              Entry: {tournament.entryFee} ELO
             </span>
           </div>
 
