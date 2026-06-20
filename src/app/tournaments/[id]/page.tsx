@@ -432,42 +432,48 @@ export default function TournamentDetailPage() {
             <h3 className="text-xl font-bold text-text-primary mb-4">Select Your Team</h3>
             <p className="text-text-secondary mb-4">Choose which team to register for this doubles tournament:</p>
             <div className="space-y-3 mb-6">
-              {userTeams.map((team) => (
-                <div
-                  key={team.id}
-                  onClick={() => setSelectedTeamId(team.id)}
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedTeamId === team.id
-                      ? 'border-accent bg-accent/10'
-                      : 'border-border hover:border-accent/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      src={team.player1.image || undefined}
-                      alt={team.player1.name}
-                      fallback={team.player1.name.charAt(0)}
-                      size="sm"
-                    />
-                    <span className="text-text-muted">&</span>
-                    <Avatar
-                      src={team.player2.image || undefined}
-                      alt={team.player2.name}
-                      fallback={team.player2.name.charAt(0)}
-                      size="sm"
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-text-primary">
-                        {team.name || `${team.player1.name.split(' ')[0]} & ${team.player2.name.split(' ')[0]}`}
-                      </p>
-                      <p className="text-sm text-text-muted">
-                        {team.player1.name} & {team.player2.name}
-                      </p>
+              {userTeams.map((team) => {
+                const entryFee = calculateEntryFee(team.foreverElo);
+                return (
+                  <div
+                    key={team.id}
+                    onClick={() => setSelectedTeamId(team.id)}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                      selectedTeamId === team.id
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border hover:border-accent/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        src={team.player1.image || undefined}
+                        alt={team.player1.name}
+                        fallback={team.player1.name.charAt(0)}
+                        size="sm"
+                      />
+                      <span className="text-text-muted">&</span>
+                      <Avatar
+                        src={team.player2.image || undefined}
+                        alt={team.player2.name}
+                        fallback={team.player2.name.charAt(0)}
+                        size="sm"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-text-primary">
+                          {team.name || `${team.player1.name.split(' ')[0]} & ${team.player2.name.split(' ')[0]}`}
+                        </p>
+                        <p className="text-sm text-text-muted">
+                          {team.player1.name} & {team.player2.name}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge>{team.foreverElo} ELO</Badge>
+                        <p className="text-xs text-accent mt-1">Entry: {entryFee} ELO</p>
+                      </div>
                     </div>
-                    <Badge>{team.foreverElo} ELO</Badge>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setShowTeamSelect(false)} className="flex-1">
@@ -670,7 +676,9 @@ export default function TournamentDetailPage() {
                     {userElo !== null
                       ? tournament.matchType === 'DOUBLES'
                         ? userTeams.length > 0
-                          ? `${calculateEntryFee(userTeams[0].foreverElo)} ELO`
+                          ? userTeams.length === 1
+                            ? `${calculateEntryFee(userTeams[0].foreverElo)} ELO`
+                            : `${calculateEntryFee(userTeams[0].foreverElo)} | ${calculateEntryFee(userTeams[1].foreverElo)} ELO`
                           : 'Create a team first'
                         : `${calculateEntryFee(userElo)} ELO`
                       : '—'}
