@@ -352,19 +352,57 @@ export default function AdminDashboardPage() {
                         <p className="text-sm text-text-secondary">{user.matchesPlayed} matches</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" title="Edit User">
-                          <Edit className="h-4 w-4" />
-                        </Button>
                         {user.isBanned ? (
-                          <Button variant="ghost" size="icon" title="Unban User">
+                          <Button variant="ghost" size="icon" title="Unban User" onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/users/${user.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ isBanned: false, banReason: '' })
+                              });
+                              if (res.ok) {
+                                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isBanned: false, banReason: null } : u));
+                              }
+                            } catch (err) {
+                              alert('Failed to unban user');
+                            }
+                          }}>
                             <CheckCircle className="h-4 w-4 text-green-500" />
                           </Button>
                         ) : (
-                          <Button variant="ghost" size="icon" title="Ban User">
+                          <Button variant="ghost" size="icon" title="Ban User" onClick={async () => {
+                            const reason = prompt('Enter ban reason:');
+                            if (reason === null) return;
+                            try {
+                              const res = await fetch(`/api/users/${user.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ isBanned: true, banReason: reason || 'No reason provided' })
+                              });
+                              if (res.ok) {
+                                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isBanned: true, banReason: reason || 'No reason provided' } : u));
+                              }
+                            } catch (err) {
+                              alert('Failed to ban user');
+                            }
+                          }}>
                             <Ban className="h-4 w-4 text-red-500" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" title="Delete User">
+                        <Button variant="ghost" size="icon" title="Delete User" onClick={async () => {
+                          if (!confirm(`Are you sure you want to delete ${user.name}? This cannot be undone.`)) return;
+                          try {
+                            const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+                            if (res.ok) {
+                              setUsers(prev => prev.filter(u => u.id !== user.id));
+                            } else {
+                              const data = await res.json();
+                              alert('Error: ' + data.error);
+                            }
+                          } catch (err) {
+                            alert('Failed to delete user');
+                          }
+                        }}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
@@ -423,10 +461,24 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="Edit Match">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Delete Match">
+                          <Button variant="ghost" size="icon" title="Delete Match" onClick={() => {
+                            if (!confirm('Are you sure you want to delete this match?')) return;
+                            fetch('/api/admin/delete-match', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ matchId: match.id, revertElo: true })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                              if (data.success) {
+                                alert('Match deleted');
+                                setMatches(prev => prev.filter(m => m.id !== match.id));
+                              } else {
+                                alert('Error: ' + data.error);
+                              }
+                            })
+                            .catch(err => alert('Failed to delete match'));
+                          }}>
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
@@ -479,11 +531,36 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => router.push(`/tournaments/${tournament.id}`)}
+                    >
                       View Bracket
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Settings
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => {
+                        const confirmDelete = confirm('Are you sure you want to delete this tournament? This cannot be undone.');
+                        if (!confirmDelete) return;
+                        
+                        fetch(`/api/tournaments/${tournament.id}`, { method: 'DELETE' })
+                          .then(res => res.json())
+                          .then(data => {
+                            if (data.success) {
+                              alert('Tournament deleted');
+                              setTournaments(prev => prev.filter(t => t.id !== tournament.id));
+                            } else {
+                              alert('Error: ' + data.error);
+                            }
+                          })
+                          .catch(err => alert('Failed to delete tournament'));
+                      }}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </Card>
