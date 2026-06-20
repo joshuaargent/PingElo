@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
       format,
       maxParticipants,
       startsAt,
+      status,
     } = body;
 
     // Validate required fields
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
         format: format || "SINGLE_ELIMINATION",
         maxParticipants: finalMaxParticipants,
         startsAt: startsAt ? new Date(startsAt) : null,
-        status: "DRAFT",
+        status: status || "DRAFT",
       },
       include: {
         creator: {
