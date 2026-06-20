@@ -383,6 +383,16 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Store ELO values before changes
+      const team1Players = [
+        { id: t1p1Id, name: p1.name, eloBefore: p1.doublesForeverElo, change: eloResult.individualChanges.team1Player1, seasonEloBefore: p1.doublesSeasonElo },
+        { id: t1p2Id, name: p2.name, eloBefore: p2.doublesForeverElo, change: eloResult.individualChanges.team1Player2, seasonEloBefore: p2.doublesSeasonElo },
+      ];
+      const team2Players = [
+        { id: t2p1Id, name: p3.name, eloBefore: p3.doublesForeverElo, change: eloResult.individualChanges.team2Player1, seasonEloBefore: p3.doublesSeasonElo },
+        { id: t2p2Id, name: p4.name, eloBefore: p4.doublesForeverElo, change: eloResult.individualChanges.team2Player2, seasonEloBefore: p4.doublesSeasonElo },
+      ];
+
       match = await prisma.$transaction(async (tx) => {
         const newMatch = await tx.match.create({
           data: {
@@ -411,18 +421,12 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const updates = [
-          { id: t1p1Id, change: eloResult.individualChanges.team1Player1, currentElo: p1.doublesForeverElo, currentSeasonElo: p1.doublesSeasonElo },
-          { id: t1p2Id, change: eloResult.individualChanges.team1Player2, currentElo: p2.doublesForeverElo, currentSeasonElo: p2.doublesSeasonElo },
-          { id: t2p1Id, change: eloResult.individualChanges.team2Player1, currentElo: p3.doublesForeverElo, currentSeasonElo: p3.doublesSeasonElo },
-          { id: t2p2Id, change: eloResult.individualChanges.team2Player2, currentElo: p4.doublesForeverElo, currentSeasonElo: p4.doublesSeasonElo },
-        ];
-
-        for (const update of updates) {
+        const allUpdates = [...team1Players, ...team2Players];
+        for (const update of allUpdates) {
           await tx.user.update({
             where: { id: update.id },
             data: {
-              doublesForeverElo: update.currentElo + update.change,
+              doublesForeverElo: update.eloBefore + update.change,
               doublesMatchesPlayed: { increment: 1 },
             },
           });
@@ -431,9 +435,34 @@ export async function POST(request: NextRequest) {
             const seasonChange = isTournamentMatch ? update.change : Math.round(update.change * 0.9);
             await tx.user.update({
               where: { id: update.id },
-              data: { doublesSeasonElo: update.currentSeasonElo + seasonChange },
+              data: { doublesSeasonElo: update.seasonEloBefore + seasonChange },
             });
           }
+        }
+
+        // Create ELO history entries for all 4 players
+        for (const player of team1Players) {
+          await tx.eloHistory.create({
+            data: {
+              userId: player.id,
+              matchId: newMatch.id,
+              changeType: 'MATCH',
+              eloBefore: player.eloBefore,
+              eloAfter: player.eloBefore + player.change,
+              change: player.change,
+              description: isTournamentMatch ? `Doubles match (Tournament)` : 'Doubles match',
+              metadata: {
+                matchType: 'DOUBLES',
+                team1Players: team1Players.map(p => ({ id: p.id, name: p.name })),
+                team2Players: team2Players.map(p => ({ id: p.id, name: p.name })),
+                player1Score,
+                player2Score,
+                winnerId,
+                isTournamentMatch,
+                tournamentId,
+              },
+            },
+          });
         }
 
         return newMatch;
@@ -487,53 +516,102 @@ export async function POST(request: NextRequest) {
 
       eloChangeResult = eloResult;
 
-      match = await prisma.$transaction(async (tx) => {
-        const newMatch = await tx.match.create({
-          data: {
-            matchType: "SINGLES",
-            player1Id,
-            player2Id,
-            player1Score,
-            player2Score,
-            winnerId,
-            player1EloBefore: player1.foreverElo,
-            player2EloBefore: player2.foreverElo,
-            player1EloChange: eloResult.player1Change,
-            player2EloChange: eloResult.player2Change,
-            isTournamentMatch: isTournamentMatch || false,
-            tournamentId: tournamentId || null,
-            seasonId: currentSeason?.id || null,
-            createdById: userId,
-          },
-          include: {
-            player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
-            player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
-          },
-        });
+      const p1EloBefore = player1.foreverElo;
+        const p2EloBefore = player2.foreverElo;
+        
+        match = await prisma.$transaction(async (tx) => {
+          const newMatch = await tx.match.create({
+            data: {
+              matchType: "SINGLES",
+              player1Id,
+              player2Id,
+              player1Score,
+              player2Score,
+              winnerId,
+              player1EloBefore: p1EloBefore,
+              player2EloBefore: p2EloBefore,
+              player1EloChange: eloResult.player1Change,
+              player2EloChange: eloResult.player2Change,
+              isTournamentMatch: isTournamentMatch || false,
+              tournamentId: tournamentId || null,
+              seasonId: currentSeason?.id || null,
+              createdById: userId,
+            },
+            include: {
+              player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
+              player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true } },
+            },
+          });
 
-        await tx.user.update({
-          where: { id: player1Id },
-          data: { foreverElo: player1.foreverElo + eloResult.player1Change, matchesPlayed: { increment: 1 } },
-        });
-
-        await tx.user.update({
-          where: { id: player2Id },
-          data: { foreverElo: player2.foreverElo + eloResult.player2Change, matchesPlayed: { increment: 1 } },
-        });
-
-        if (currentSeason) {
           await tx.user.update({
             where: { id: player1Id },
-            data: { seasonElo: player1.seasonElo + (isTournamentMatch ? eloResult.player1Change : Math.round(eloResult.player1Change * 0.9)) },
+            data: { foreverElo: player1.foreverElo + eloResult.player1Change, matchesPlayed: { increment: 1 } },
           });
+
           await tx.user.update({
             where: { id: player2Id },
-            data: { seasonElo: player2.seasonElo + (isTournamentMatch ? eloResult.player2Change : Math.round(eloResult.player2Change * 0.9)) },
+            data: { foreverElo: player2.foreverElo + eloResult.player2Change, matchesPlayed: { increment: 1 } },
           });
-        }
 
-        return newMatch;
-      });
+          if (currentSeason) {
+            await tx.user.update({
+              where: { id: player1Id },
+              data: { seasonElo: player1.seasonElo + (isTournamentMatch ? eloResult.player1Change : Math.round(eloResult.player1Change * 0.9)) },
+            });
+            await tx.user.update({
+              where: { id: player2Id },
+              data: { seasonElo: player2.seasonElo + (isTournamentMatch ? eloResult.player2Change : Math.round(eloResult.player2Change * 0.9)) },
+            });
+          }
+
+          // Create ELO history entries for both players
+          const p1EloAfter = p1EloBefore + eloResult.player1Change;
+          const p2EloAfter = p2EloBefore + eloResult.player2Change;
+          
+          await tx.eloHistory.create({
+            data: {
+              userId: player1Id,
+              matchId: newMatch.id,
+              changeType: 'MATCH',
+              eloBefore: p1EloBefore,
+              eloAfter: p1EloAfter,
+              change: eloResult.player1Change,
+              description: isTournamentMatch ? `Match vs ${player2.name} (Tournament)` : `Match vs ${player2.name}`,
+              metadata: {
+                opponentId: player2Id,
+                opponentName: player2.name,
+                player1Score,
+                player2Score,
+                winnerId,
+                isTournamentMatch,
+                tournamentId,
+              },
+            },
+          });
+
+          await tx.eloHistory.create({
+            data: {
+              userId: player2Id,
+              matchId: newMatch.id,
+              changeType: 'MATCH',
+              eloBefore: p2EloBefore,
+              eloAfter: p2EloAfter,
+              change: eloResult.player2Change,
+              description: isTournamentMatch ? `Match vs ${player1.name} (Tournament)` : `Match vs ${player1.name}`,
+              metadata: {
+                opponentId: player1Id,
+                opponentName: player1.name,
+                player1Score,
+                player2Score,
+                winnerId,
+                isTournamentMatch,
+                tournamentId,
+              },
+            },
+          });
+
+          return newMatch;
+        });
     }
 
     return NextResponse.json({ match, eloChange: eloChangeResult, matchType: matchType || "SINGLES" }, { status: 201 });
