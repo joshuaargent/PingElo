@@ -312,7 +312,7 @@ export async function POST(
 
       if (tournament.prizePool) {
         const prizePool = tournament.prizePool;
-        const { first, second, thirdFourth } = TOURNAMENT_PRIZE_DISTRIBUTION;
+        const { first, second, third } = TOURNAMENT_PRIZE_DISTRIBUTION;
         
         // Find the final bracket (last round)
         const maxRound = Math.max(...tournament.brackets.map(b => b.round));
@@ -376,12 +376,12 @@ export async function POST(
                 if (!isDoubles) {
                   await prisma.user.update({
                     where: { id: thirdPlaceId },
-                    data: { foreverElo: { increment: Math.floor(prizePool * thirdFourth) } },
+                    data: { foreverElo: { increment: Math.floor(prizePool * third) } },
                   });
                 } else {
                   await prisma.team.update({
                     where: { id: thirdPlaceId },
-                    data: { foreverElo: { increment: Math.floor(prizePool * thirdFourth) } },
+                    data: { foreverElo: { increment: Math.floor(prizePool * third) } },
                   });
                 }
               }

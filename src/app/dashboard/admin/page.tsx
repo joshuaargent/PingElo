@@ -560,7 +560,7 @@ export default function AdminDashboardPage() {
                     <p className="font-medium">3rd/4th Place Prize</p>
                     <p className="text-sm text-text-secondary">Each place gets</p>
                   </div>
-                  <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.thirdFourth * 100)}%</Badge>
+                  <Badge variant="accent">{Math.round(TOURNAMENT_PRIZE_DISTRIBUTION.third * 100)}%</Badge>
                 </div>
               </div>
               <div className="mt-4 p-4 bg-accent/10 border border-accent/30 rounded-lg">

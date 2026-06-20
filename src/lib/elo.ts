@@ -64,9 +64,9 @@ export const ACTIVITY = {
 
 /** Tournament payout percentages */
 export const TOURNAMENT_PAYOUT = {
-  FIRST: 0.60,        // 60% to 1st place
-  SECOND: 0.25,       // 25% to 2nd place
-  THIRD_FOURTH: 0.075, // 7.5% each to 3rd/4th place
+  FIRST: 0.50,        // 50% to 1st place
+  SECOND: 0.35,       // 35% to 2nd place
+  THIRD: 0.15,        // 15% to 3rd place
 } as const;
 
 /** Season champion bonus percentage */
@@ -203,11 +203,7 @@ export function getMarginMultiplier(
   loserScore: number,
   isTournament: boolean = false
 ): number {
-  // Tournament matches don't use margin multiplier
-  if (isTournament) {
-    return 1.0;
-  }
-
+  // Margin multiplier applies to ALL matches including tournaments
   const margin = Math.abs(winnerScore - loserScore);
 
   if (margin <= MARGIN_THRESHOLDS.CLOSE) {
@@ -544,8 +540,7 @@ export function calculateTournamentPayout(
         payout = Math.floor(totalPrizePool * TOURNAMENT_PAYOUT.SECOND);
         break;
       case 3:
-      case 4:
-        payout = Math.floor(totalPrizePool * TOURNAMENT_PAYOUT.THIRD_FOURTH);
+        payout = Math.floor(totalPrizePool * TOURNAMENT_PAYOUT.THIRD);
         break;
       default:
         payout = 0;
@@ -589,6 +584,18 @@ export function calculateEntryFee(playerElo: number): number {
 
 /**
  * Gets the ELO tier label for a player
+
+/**
+ * Calculates the doubles entry fee for a team
+ * Both players pay the same fee based on the team average ELO
+ */
+export function calculateDoublesEntryFee(player1Elo: number, player2Elo: number): number {
+  const teamAverage = Math.floor((player1Elo + player2Elo) / 2);
+  return calculateEntryFee(teamAverage);
+}
+
+/**
+ * Gets the ELO tier label for a player
  */
 export function getEloTierLabel(elo: number): string {
   if (elo < 800) return "Beginner (Free Entry)";
@@ -617,12 +624,12 @@ export const TOURNAMENT_HOUSE_INJECTION = 50; // Default house ELO injection for
 
 /**
  * Prize distribution percentages for tournament completion
- * 1st: 60%, 2nd: 25%, 3rd/4th: 7.5% each
+ * 1st: 50%, 2nd: 35%, 3rd: 15%
  */
 export const TOURNAMENT_PRIZE_DISTRIBUTION = {
-  first: 0.60,
-  second: 0.25,
-  thirdFourth: 0.075, // Each of 3rd and 4th
+  first: 0.50,
+  second: 0.35,
+  third: 0.15,
 } as const;
 
 /**

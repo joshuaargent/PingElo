@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { calculateEntryFee } from "@/lib/elo";
+import { calculateEntryFee, calculateDoublesEntryFee } from "@/lib/elo";
 
 // POST /api/tournaments/[id]/join - Join a tournament
 export async function POST(
@@ -96,15 +96,14 @@ export async function POST(
         }, { status: 400 });
       }
 
-      // Each player pays based on their individual ELO
-      const player1Fee = calculateEntryFee(team.player1.foreverElo);
-      const player2Fee = calculateEntryFee(team.player2.foreverElo);
-      const totalEntryFee = player1Fee + player2Fee;
+      // Both players pay the same fee based on team average ELO
+      const feePerPlayer = calculateDoublesEntryFee(team.player1.foreverElo, team.player2.foreverElo);
+      const totalEntryFee = feePerPlayer * 2;
 
       // Check if each player has enough ELO
-      if (team.player1.foreverElo < player1Fee || team.player2.foreverElo < player2Fee) {
+      if (team.player1.foreverElo < feePerPlayer || team.player2.foreverElo < feePerPlayer) {
         return NextResponse.json({ 
-          error: `Insufficient ELO. Player 1 needs ${player1Fee}, Player 2 needs ${player2Fee}` 
+          error: `Insufficient ELO. Both players need ${feePerPlayer} ELO each` 
         }, { status: 400 });
       }
 
@@ -118,38 +117,35 @@ export async function POST(
         }
 
         // Deduct each player's fee from their individual ELO
-        if (player1Fee > 0) {
+        if (feePerPlayer > 0) {
           await tx.user.update({
             where: { id: team.player1Id },
-            data: { foreverElo: team.player1.foreverElo - player1Fee },
+            data: { foreverElo: team.player1.foreverElo - feePerPlayer },
           });
           await tx.eloHistory.create({
             data: {
               userId: team.player1Id,
               changeType: 'TOURNAMENT_ENTRY',
               eloBefore: team.player1.foreverElo,
-              eloAfter: team.player1.foreverElo - player1Fee,
-              change: -player1Fee,
+              eloAfter: team.player1.foreverElo - feePerPlayer,
+              change: -feePerPlayer,
               description: `Entry fee for tournament: ${tournament.name}`,
-              metadata: { tournamentId, teamId, playerFee: player1Fee },
+              metadata: { tournamentId, teamId, playerFee: feePerPlayer },
             },
           });
-        }
-
-        if (player2Fee > 0) {
           await tx.user.update({
             where: { id: team.player2Id },
-            data: { foreverElo: team.player2.foreverElo - player2Fee },
+            data: { foreverElo: team.player2.foreverElo - feePerPlayer },
           });
           await tx.eloHistory.create({
             data: {
               userId: team.player2Id,
               changeType: 'TOURNAMENT_ENTRY',
               eloBefore: team.player2.foreverElo,
-              eloAfter: team.player2.foreverElo - player2Fee,
-              change: -player2Fee,
+              eloAfter: team.player2.foreverElo - feePerPlayer,
+              change: -feePerPlayer,
               description: `Entry fee for tournament: ${tournament.name}`,
-              metadata: { tournamentId, teamId, playerFee: player2Fee },
+              metadata: { tournamentId, teamId, playerFee: feePerPlayer },
             },
           });
         }
@@ -177,8 +173,8 @@ export async function POST(
       return NextResponse.json({
         participant,
         entryFee: totalEntryFee,
-        playerFees: { player1: player1Fee, player2: player2Fee },
-        message: totalEntryFee > 0 ? `Team paid ${totalEntryFee} ELO to join (P1: ${player1Fee}, P2: ${player2Fee})` : "Team joined for free",
+        feePerPlayer,
+        message: totalEntryFee > 0 ? `Team paid ${totalEntryFee} ELO to join (${feePerPlayer} each)` : "Team joined for free",
       }, { status: 201 });
     }
 
@@ -304,10 +300,11 @@ export async function DELETE(
       }
 
       const team = participant.team;
-      // Calculate each player's fee based on their ELO at entry
-      const player1Fee = calculateEntryFee(participant.player1EloAtEntry || team.player1.foreverElo);
-      const player2Fee = calculateEntryFee(participant.player2EloAtEntry || team.player2.foreverElo);
-      const totalEntryFee = player1Fee + player2Fee;
+      // Calculate fee based on team average ELO at entry
+      const p1Elo = participant.player1EloAtEntry || team.player1.foreverElo;
+      const p2Elo = participant.player2EloAtEntry || team.player2.foreverElo;
+      const feePerPlayer = calculateDoublesEntryFee(p1Elo, p2Elo);
+      const totalEntryFee = feePerPlayer * 2;
 
       await prisma.$transaction(async (tx) => {
         // Deduct from prize pool
@@ -318,37 +315,34 @@ export async function DELETE(
           });
         }
 
-        // Refund each player their individual fee
-        if (player1Fee > 0) {
+        // Refund each player their fee
+        if (feePerPlayer > 0) {
           await tx.user.update({
             where: { id: team.player1Id },
-            data: { foreverElo: team.player1.foreverElo + player1Fee },
+            data: { foreverElo: team.player1.foreverElo + feePerPlayer },
           });
           await tx.eloHistory.create({
             data: {
               userId: team.player1Id,
               changeType: 'TOURNAMENT_ENTRY',
               eloBefore: team.player1.foreverElo,
-              eloAfter: team.player1.foreverElo + player1Fee,
-              change: player1Fee,
+              eloAfter: team.player1.foreverElo + feePerPlayer,
+              change: feePerPlayer,
               description: `Refund for leaving tournament: ${tournament.name}`,
               metadata: { tournamentId, teamId: team.id, isRefund: true },
             },
           });
-        }
-
-        if (player2Fee > 0) {
           await tx.user.update({
             where: { id: team.player2Id },
-            data: { foreverElo: team.player2.foreverElo + player2Fee },
+            data: { foreverElo: team.player2.foreverElo + feePerPlayer },
           });
           await tx.eloHistory.create({
             data: {
               userId: team.player2Id,
               changeType: 'TOURNAMENT_ENTRY',
               eloBefore: team.player2.foreverElo,
-              eloAfter: team.player2.foreverElo + player2Fee,
-              change: player2Fee,
+              eloAfter: team.player2.foreverElo + feePerPlayer,
+              change: feePerPlayer,
               description: `Refund for leaving tournament: ${tournament.name}`,
               metadata: { tournamentId, teamId: team.id, isRefund: true },
             },
