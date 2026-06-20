@@ -37,6 +37,16 @@ export async function GET(
                 doublesForeverElo: true,
               },
             },
+            team: {
+              include: {
+                player1: {
+                  select: { id: true, name: true, image: true },
+                },
+                player2: {
+                  select: { id: true, name: true, image: true },
+                },
+              },
+            },
           },
           orderBy: {
             createdAt: "asc",

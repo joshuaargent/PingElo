@@ -185,6 +185,9 @@ export async function POST(
             user: {
               select: { id: true, foreverElo: true },
             },
+            team: {
+              select: { id: true, foreverElo: true },
+            },
           },
           orderBy: { eloAtEntry: 'desc' },
         },
@@ -261,8 +264,9 @@ export async function POST(
     }
 
     // Generate bracket slots (handle both singles and doubles)
+    const isDoubles = tournament.matchType === 'DOUBLES';
     const participants = tournament.participants.map(p => ({
-      id: p.userId || p.teamId || '', // Use userId for singles, teamId for doubles
+      id: isDoubles ? (p.teamId || '') : (p.userId || ''), // Use userId for singles, teamId for doubles
       eloAtEntry: p.eloAtEntry,
     }));
 
@@ -300,6 +304,12 @@ export async function POST(
           include: {
             user: {
               select: { id: true, name: true, image: true, foreverElo: true },
+            },
+            team: {
+              include: {
+                player1: { select: { id: true, name: true, image: true } },
+                player2: { select: { id: true, name: true, image: true } },
+              },
             },
           },
         },
