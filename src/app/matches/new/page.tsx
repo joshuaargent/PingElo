@@ -1,7 +1,6 @@
 'use client';
 
 import { PageHero } from '@/components/layout/PageHero';
-
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
@@ -12,7 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EloBadge } from '@/components/elo/EloBadge';
-import { Trophy, Users, User, ArrowRight, Check, X, Zap } from 'lucide-react';
+import { Trophy, Users, User, Check, Zap } from 'lucide-react';
 
 type MatchType = 'SINGLES' | 'DOUBLES';
 
@@ -23,21 +22,26 @@ interface Player {
   foreverElo: number;
 }
 
-// ============================================
-// Log Match Page
-// ============================================
+interface Team {
+  id: string;
+  name: string | null;
+  foreverElo: number;
+  wins: number;
+  losses: number;
+  player1: Player;
+  player2: Player;
+}
 
 export default function LogMatchPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [matchType, setMatchType] = useState<MatchType>('SINGLES');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [player1, setPlayer1] = useState<Player | null>(null);
   const [player2, setPlayer2] = useState<Player | null>(null);
-  const [team1Player1, setTeam1Player1] = useState<Player | null>(null);
-  const [team1Player2, setTeam1Player2] = useState<Player | null>(null);
-  const [team2Player1, setTeam2Player1] = useState<Player | null>(null);
-  const [team2Player2, setTeam2Player2] = useState<Player | null>(null);
+  const [team1, setTeam1] = useState<Team | null>(null);
+  const [team2, setTeam2] = useState<Team | null>(null);
   const [player1Score, setPlayer1Score] = useState<string>('');
   const [player2Score, setPlayer2Score] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -52,21 +56,28 @@ export default function LogMatchPage() {
   }, [session, status]);
 
   useEffect(() => {
-    async function fetchPlayers() {
+    async function fetchData() {
       setIsLoading(true);
       try {
-        const res = await fetch('/api/users?includeStats=true');
-        if (res.ok) {
-          const data = await res.json();
+        const [usersRes, teamsRes] = await Promise.all([
+          fetch('/api/users?includeStats=true'),
+          fetch('/api/teams'),
+        ]);
+        if (usersRes.ok) {
+          const data = await usersRes.json();
           setPlayers(data.users || []);
         }
+        if (teamsRes.ok) {
+          const data = await teamsRes.json();
+          setTeams(data.teams || []);
+        }
       } catch (error) {
-        console.error('Failed to fetch players:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setIsLoading(false);
       }
     }
-    fetchPlayers();
+    fetchData();
   }, []);
 
   const handleSubmit = async () => {
@@ -86,8 +97,8 @@ export default function LogMatchPage() {
         return;
       }
     } else {
-      if (!team1Player1 || !team1Player2 || !team2Player1 || !team2Player2) {
-        setError('Please select all team members');
+      if (!team1 || !team2) {
+        setError('Please select both teams');
         return;
       }
     }
@@ -106,10 +117,9 @@ export default function LogMatchPage() {
         body.player1Id = player1!.id;
         body.player2Id = player2!.id;
       } else {
-        body.team1Player1Id = team1Player1!.id;
-        body.team1Player2Id = team1Player2!.id;
-        body.team2Player1Id = team2Player1!.id;
-        body.team2Player2Id = team2Player2!.id;
+        // For doubles, pass team IDs and let API resolve to player IDs
+        body.team1Id = team1!.id;
+        body.team2Id = team2!.id;
       }
 
       const res = await fetch('/api/matches', {
@@ -131,13 +141,14 @@ export default function LogMatchPage() {
     }
   };
 
-  const excludeIds = matchType === 'SINGLES' 
-    ? (player1 ? [player1.id] : [])
-    : (team1Player1 && team1Player2 ? [team1Player1.id, team1Player2.id] : []);
-
-  const excludeIds2 = matchType === 'SINGLES'
-    ? (player2 ? [player2.id] : [])
-    : (team2Player1 && team2Player2 ? [team2Player1.id, team2Player2.id] : []);
+  const clearSelections = () => {
+    setPlayer1(null);
+    setPlayer2(null);
+    setTeam1(null);
+    setTeam2(null);
+    setPlayer1Score('');
+    setPlayer2Score('');
+  };
 
   if (status === 'loading' || isLoading) {
     return (
@@ -165,15 +176,7 @@ export default function LogMatchPage() {
           <div className="flex justify-center mb-8">
             <div className="inline-flex h-12 items-center justify-center rounded-lg bg-bg-secondary p-1">
               <button
-                onClick={() => {
-                  setMatchType('SINGLES');
-                  setPlayer1(null);
-                  setPlayer2(null);
-                  setTeam1Player1(null);
-                  setTeam1Player2(null);
-                  setTeam2Player1(null);
-                  setTeam2Player2(null);
-                }}
+                onClick={() => { setMatchType('SINGLES'); clearSelections(); }}
                 className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all ${
                   matchType === 'SINGLES'
                     ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -184,15 +187,7 @@ export default function LogMatchPage() {
                 Singles
               </button>
               <button
-                onClick={() => {
-                  setMatchType('DOUBLES');
-                  setPlayer1(null);
-                  setPlayer2(null);
-                  setTeam1Player1(null);
-                  setTeam1Player2(null);
-                  setTeam2Player1(null);
-                  setTeam2Player2(null);
-                }}
+                onClick={() => { setMatchType('DOUBLES'); clearSelections(); }}
                 className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all ${
                   matchType === 'DOUBLES'
                     ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -330,88 +325,77 @@ export default function LogMatchPage() {
             </div>
           )}
 
-          {/* Doubles Match */}
+          {/* Doubles Match - Team Selection */}
           {matchType === 'DOUBLES' && (
             <div className="space-y-6">
-              {/* Team 1 */}
+              {/* Team 1 Selection */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 text-text-primary flex items-center gap-2">
                   <Zap className="h-5 w-5 text-accent" />
                   Team 1 (Winner)
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
-                    <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
-                      value={team1Player1?.id || ''}
-                      onChange={(e) => {
-                        const p = players.find(pl => pl.id === e.target.value);
-                        setTeam1Player1(p || null);
-                      }}
-                    >
-                      <option value="">Select</option>
-                      {players.filter(p => p.id !== team1Player2?.id && p.id !== team2Player1?.id && p.id !== team2Player2?.id).map((player) => (
-                        <option key={player.id} value={player.id}>{player.name}</option>
-                      ))}
-                    </select>
+                <select
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                  value={team1?.id || ''}
+                  onChange={(e) => {
+                    const t = teams.find(t => t.id === e.target.value);
+                    setTeam1(t || null);
+                  }}
+                >
+                  <option value="">Select Team 1</option>
+                  {teams.filter(t => t.id !== team2?.id).map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name || `${team.player1.name} & ${team.player2.name}`} ({team.foreverElo} ELO)
+                    </option>
+                  ))}
+                </select>
+                {team1 && (
+                  <div className="mt-3 flex items-center gap-3 p-3 bg-bg-secondary rounded-lg">
+                    <Avatar src={team1.player1.image || undefined} alt={team1.player1.name} fallback={team1.player1.name.charAt(0)} size="sm" />
+                    <span className="text-text-muted">&</span>
+                    <Avatar src={team1.player2.image || undefined} alt={team1.player2.name} fallback={team1.player2.name.charAt(0)} size="sm" />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">{team1.player1.name} & {team1.player2.name}</p>
+                      <p className="text-xs text-text-muted">{team1.wins}W - {team1.losses}L</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
-                    <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
-                      value={team1Player2?.id || ''}
-                      onChange={(e) => {
-                        const p = players.find(pl => pl.id === e.target.value);
-                        setTeam1Player2(p || null);
-                      }}
-                    >
-                      <option value="">Select</option>
-                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team2Player1?.id && p.id !== team2Player2?.id).map((player) => (
-                        <option key={player.id} value={player.id}>{player.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                )}
               </Card>
 
-              {/* Team 2 */}
+              {/* VS Divider */}
+              <div className="text-center">
+                <span className="text-2xl font-bold text-text-muted">VS</span>
+              </div>
+
+              {/* Team 2 Selection */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 text-text-primary">Team 2</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
-                    <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
-                      value={team2Player1?.id || ''}
-                      onChange={(e) => {
-                        const p = players.find(pl => pl.id === e.target.value);
-                        setTeam2Player1(p || null);
-                      }}
-                    >
-                      <option value="">Select</option>
-                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team1Player2?.id && p.id !== team2Player2?.id).map((player) => (
-                        <option key={player.id} value={player.id}>{player.name}</option>
-                      ))}
-                    </select>
+                <select
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                  value={team2?.id || ''}
+                  onChange={(e) => {
+                    const t = teams.find(t => t.id === e.target.value);
+                    setTeam2(t || null);
+                  }}
+                >
+                  <option value="">Select Team 2</option>
+                  {teams.filter(t => t.id !== team1?.id).map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name || `${team.player1.name} & ${team.player2.name}`} ({team.foreverElo} ELO)
+                    </option>
+                  ))}
+                </select>
+                {team2 && (
+                  <div className="mt-3 flex items-center gap-3 p-3 bg-bg-secondary rounded-lg">
+                    <Avatar src={team2.player1.image || undefined} alt={team2.player1.name} fallback={team2.player1.name.charAt(0)} size="sm" />
+                    <span className="text-text-muted">&</span>
+                    <Avatar src={team2.player2.image || undefined} alt={team2.player2.name} fallback={team2.player2.name.charAt(0)} size="sm" />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">{team2.player1.name} & {team2.player2.name}</p>
+                      <p className="text-xs text-text-muted">{team2.wins}W - {team2.losses}L</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
-                    <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
-                      value={team2Player2?.id || ''}
-                      onChange={(e) => {
-                        const p = players.find(pl => pl.id === e.target.value);
-                        setTeam2Player2(p || null);
-                      }}
-                    >
-                      <option value="">Select</option>
-                      {players.filter(p => p.id !== team1Player1?.id && p.id !== team1Player2?.id && p.id !== team2Player1?.id).map((player) => (
-                        <option key={player.id} value={player.id}>{player.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                )}
               </Card>
 
               {/* Score Entry */}
@@ -420,7 +404,7 @@ export default function LogMatchPage() {
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">
-                      {team1Player1 && team1Player2 ? `${team1Player1.name} & ${team1Player2.name}` : 'Team 1'}
+                      {team1 ? (team1.name || `${team1.player1.name.split(' ')[0]} & ${team1.player2.name.split(' ')[0]}`) : 'Team 1'}
                     </p>
                     <Input
                       type="number"
@@ -435,7 +419,7 @@ export default function LogMatchPage() {
                   <div className="text-center text-text-muted text-2xl">-</div>
                   <div className="text-center">
                     <p className="text-sm text-text-secondary mb-2">
-                      {team2Player1 && team2Player2 ? `${team2Player1.name} & ${team2Player2.name}` : 'Team 2'}
+                      {team2 ? (team2.name || `${team2.player1.name.split(' ')[0]} & ${team2.player2.name.split(' ')[0]}`) : 'Team 2'}
                     </p>
                     <Input
                       type="number"

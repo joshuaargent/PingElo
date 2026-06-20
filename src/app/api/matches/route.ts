@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
-    const playerId = searchParams.get("playerId") || searchParams.get("userId"); // Accept both
+    const playerId = searchParams.get("playerId") || searchParams.get("userId");
     const seasonId = searchParams.get("seasonId");
     const tournamentId = searchParams.get("tournamentId");
     const matchType = searchParams.get("matchType");
@@ -162,6 +162,8 @@ export async function POST(request: NextRequest) {
       team1Player2Id,
       team2Player1Id,
       team2Player2Id,
+      team1Id,
+      team2Id,
       player1Score,
       player2Score,
       isTournamentMatch,
@@ -186,14 +188,44 @@ export async function POST(request: NextRequest) {
 
     if (matchType === "DOUBLES") {
       // DOUBLES MATCH
-      if (!team1Player1Id || !team1Player2Id || !team2Player1Id || !team2Player2Id) {
+      let t1p1Id = team1Player1Id;
+      let t1p2Id = team1Player2Id;
+      let t2p1Id = team2Player1Id;
+      let t2p2Id = team2Player2Id;
+
+      // If team IDs are provided, resolve them to player IDs
+      if (team1Id && !team1Player1Id) {
+        const team1 = await prisma.team.findUnique({
+          where: { id: team1Id },
+          include: { player1: true, player2: true }
+        });
+        if (!team1) {
+          return NextResponse.json({ error: "Team 1 not found" }, { status: 404 });
+        }
+        t1p1Id = team1.player1Id;
+        t1p2Id = team1.player2Id;
+      }
+
+      if (team2Id && !team2Player1Id) {
+        const team2 = await prisma.team.findUnique({
+          where: { id: team2Id },
+          include: { player1: true, player2: true }
+        });
+        if (!team2) {
+          return NextResponse.json({ error: "Team 2 not found" }, { status: 404 });
+        }
+        t2p1Id = team2.player1Id;
+        t2p2Id = team2.player2Id;
+      }
+
+      if (!t1p1Id || !t1p2Id || !t2p1Id || !t2p2Id) {
         return NextResponse.json(
           { error: "Doubles requires all 4 player IDs" },
           { status: 400 }
         );
       }
 
-      const playerIds = [team1Player1Id, team1Player2Id, team2Player1Id, team2Player2Id];
+      const playerIds = [t1p1Id, t1p2Id, t2p1Id, t2p2Id];
       const uniqueIds = new Set(playerIds);
       if (uniqueIds.size !== 4) {
         return NextResponse.json(
@@ -222,15 +254,15 @@ export async function POST(request: NextRequest) {
       }
 
       const playerMap = new Map(players.map(p => [p.id, p]));
-      const p1 = playerMap.get(team1Player1Id)!;
-      const p2 = playerMap.get(team1Player2Id)!;
-      const p3 = playerMap.get(team2Player1Id)!;
-      const p4 = playerMap.get(team2Player2Id)!;
+      const p1 = playerMap.get(t1p1Id)!;
+      const p2 = playerMap.get(t1p2Id)!;
+      const p3 = playerMap.get(t2p1Id)!;
+      const p4 = playerMap.get(t2p2Id)!;
 
       const team1Elo = getTeamElo(p1.doublesForeverElo, p2.doublesForeverElo);
       const team2Elo = getTeamElo(p3.doublesForeverElo, p4.doublesForeverElo);
       const team1Won = player1Score > player2Score;
-      const winnerId = team1Won ? team1Player1Id : team2Player1Id;
+      const winnerId = team1Won ? t1p1Id : t2p1Id;
 
       const eloResult = calculateDoublesEloChange(
         p1.doublesForeverElo,
@@ -249,14 +281,37 @@ export async function POST(request: NextRequest) {
 
       eloChangeResult = eloResult;
 
+      // Update team stats if team IDs were provided
+      if (team1Id) {
+        await prisma.team.update({
+          where: { id: team1Id },
+          data: {
+            wins: team1Won ? { increment: 1 } : undefined,
+            losses: team1Won ? undefined : { increment: 1 },
+            matchesPlayed: { increment: 1 },
+          }
+        }).catch(() => {});
+      }
+
+      if (team2Id) {
+        await prisma.team.update({
+          where: { id: team2Id },
+          data: {
+            wins: !team1Won ? { increment: 1 } : undefined,
+            losses: !team1Won ? undefined : { increment: 1 },
+            matchesPlayed: { increment: 1 },
+          }
+        }).catch(() => {});
+      }
+
       match = await prisma.$transaction(async (tx) => {
         const newMatch = await tx.match.create({
           data: {
             matchType: "DOUBLES",
-            team1Player1Id,
-            team1Player2Id,
-            team2Player1Id,
-            team2Player2Id,
+            team1Player1Id: t1p1Id,
+            team1Player2Id: t1p2Id,
+            team2Player1Id: t2p1Id,
+            team2Player2Id: t2p2Id,
             player1Score,
             player2Score,
             winnerId,
@@ -278,10 +333,10 @@ export async function POST(request: NextRequest) {
         });
 
         const updates = [
-          { id: team1Player1Id, change: eloResult.individualChanges.team1Player1, currentElo: p1.doublesForeverElo, currentSeasonElo: p1.doublesSeasonElo },
-          { id: team1Player2Id, change: eloResult.individualChanges.team1Player2, currentElo: p2.doublesForeverElo, currentSeasonElo: p2.doublesSeasonElo },
-          { id: team2Player1Id, change: eloResult.individualChanges.team2Player1, currentElo: p3.doublesForeverElo, currentSeasonElo: p3.doublesSeasonElo },
-          { id: team2Player2Id, change: eloResult.individualChanges.team2Player2, currentElo: p4.doublesForeverElo, currentSeasonElo: p4.doublesSeasonElo },
+          { id: t1p1Id, change: eloResult.individualChanges.team1Player1, currentElo: p1.doublesForeverElo, currentSeasonElo: p1.doublesSeasonElo },
+          { id: t1p2Id, change: eloResult.individualChanges.team1Player2, currentElo: p2.doublesForeverElo, currentSeasonElo: p2.doublesSeasonElo },
+          { id: t2p1Id, change: eloResult.individualChanges.team2Player1, currentElo: p3.doublesForeverElo, currentSeasonElo: p3.doublesSeasonElo },
+          { id: t2p2Id, change: eloResult.individualChanges.team2Player2, currentElo: p4.doublesForeverElo, currentSeasonElo: p4.doublesSeasonElo },
         ];
 
         for (const update of updates) {

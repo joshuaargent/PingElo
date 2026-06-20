@@ -8,6 +8,14 @@ import { User, Users, Trophy, TrendingUp, Crown } from 'lucide-react';
 type LeaderboardType = 'forever' | 'season';
 type MatchType = 'singles' | 'doubles';
 
+interface Season {
+  id: string;
+  name: string;
+  year: number;
+  month: number;
+  isActive: boolean;
+}
+
 interface LeaderboardEntry {
   rank: number;
   userId: string;
@@ -34,13 +42,42 @@ export default function LeaderboardPage() {
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>('forever');
   const [matchType, setMatchType] = useState<MatchType>('singles');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSeasons() {
+      try {
+        const res = await fetch('/api/seasons');
+        if (res.ok) {
+          const data = await res.json();
+          setSeasons(data.seasons || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch seasons:', error);
+      }
+    }
+    fetchSeasons();
+  }, []);
 
   useEffect(() => {
     async function fetchLeaderboard() {
       setIsLoading(true);
       try {
-        const res = await fetch('/api/users?includeStats=true&sortBy=foreverElo&order=desc');
+        // Build the URL with query params
+        const params = new URLSearchParams({
+          includeStats: 'true',
+          sortBy: matchType === 'singles' ? 'foreverElo' : 'doublesForeverElo',
+          order: 'desc',
+        });
+
+        // Add season filter for season-based queries
+        if (leaderboardType === 'season' && selectedSeasonId !== 'all') {
+          params.set('seasonId', selectedSeasonId);
+        }
+
+        const res = await fetch(`/api/users?${params.toString()}`);
         if (res.ok) {
           const data = await res.json();
           const usersWithRanks = data.users.map((user: any, index: number) => ({
@@ -49,13 +86,21 @@ export default function LeaderboardPage() {
             name: user.name,
             image: user.image,
             foreverElo: user.foreverElo,
-            seasonElo: user.seasonElo,
+            seasonElo: user.seasonElo || 1000,
             doublesForeverElo: user.doublesForeverElo || 1000,
             doublesSeasonElo: user.doublesSeasonElo || 1000,
-            matchesPlayed: user.matchesPlayed,
-            wins: user.wins || 0,
-            losses: user.losses || 0,
-            winRate: user.winRate || 0,
+            matchesPlayed: matchType === 'singles' 
+              ? user.matchesPlayed 
+              : (user.doublesMatchesPlayed || 0),
+            wins: matchType === 'singles' 
+              ? (user.wins || 0) 
+              : (user.doublesWins || 0),
+            losses: matchType === 'singles' 
+              ? (user.losses || 0) 
+              : (user.doublesLosses || 0),
+            winRate: matchType === 'singles' 
+              ? user.winRate || 0 
+              : (user.doublesWinRate || 0),
             lastMatchDate: user.lastMatchDate,
             isRusty: user.isRusty || false,
             isActive: user.isActive || false,
@@ -69,7 +114,7 @@ export default function LeaderboardPage() {
       }
     }
     fetchLeaderboard();
-  }, []);
+  }, [leaderboardType, matchType, selectedSeasonId]);
 
   return (
     <>
@@ -129,14 +174,14 @@ export default function LeaderboardPage() {
           {/* ELO Type Filter */}
           <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
             <button
-              onClick={() => setLeaderboardType('forever')}
+              onClick={() => { setLeaderboardType('forever'); setSelectedSeasonId('all'); }}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'forever'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
                   : 'hover:bg-bg-primary/50'
               }`}
             >
-              Forever ELO
+              All Time
             </button>
             <button
               onClick={() => setLeaderboardType('season')}
@@ -146,9 +191,25 @@ export default function LeaderboardPage() {
                   : 'hover:bg-bg-primary/50'
               }`}
             >
-              Season ELO
+              Season
             </button>
           </div>
+
+          {/* Season Filter (only shown when season ELO is selected) */}
+          {leaderboardType === 'season' && seasons.length > 0 && (
+            <select
+              value={selectedSeasonId}
+              onChange={(e) => setSelectedSeasonId(e.target.value)}
+              className="h-10 px-4 rounded-lg border border-border bg-bg-secondary text-text-primary focus:border-accent focus:outline-none"
+            >
+              <option value="all">All Seasons</option>
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id}>
+                  {season.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Loading or Leaderboard */}

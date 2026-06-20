@@ -65,13 +65,35 @@ export async function POST(
         return NextResponse.json({ error: "A team member is banned" }, { status: 403 });
       }
 
-      // Check if already registered
+      // Check if already registered with this team
       const existing = await prisma.tournamentParticipant.findUnique({
         where: { tournamentId_teamId: { tournamentId, teamId } },
       });
 
       if (existing) {
         return NextResponse.json({ error: "This team is already registered" }, { status: 400 });
+      }
+
+      // Check if either player is already registered with another team in this tournament
+      const playerAlreadyRegistered = await prisma.tournamentParticipant.findFirst({
+        where: {
+          tournamentId,
+          teamId: { not: teamId },
+          team: {
+            OR: [
+              { player1Id: team.player1Id },
+              { player2Id: team.player1Id },
+              { player1Id: team.player2Id },
+              { player2Id: team.player2Id },
+            ],
+          },
+        },
+      });
+
+      if (playerAlreadyRegistered) {
+        return NextResponse.json({ 
+          error: "One of the team members is already registered with another team in this tournament" 
+        }, { status: 400 });
       }
 
       const entryFee = calculateEntryFee(team.foreverElo);

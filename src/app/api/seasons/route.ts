@@ -11,39 +11,23 @@ import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
  */
 export async function GET() {
   try {
-    const [activeSeasons, pastSeasons] = await Promise.all([
-      prisma.season.findMany({
-        where: { isActive: true },
-        include: {
-          winner: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
+    const seasons = await prisma.season.findMany({
+      include: {
+        winner: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
           },
         },
-        orderBy: { startDate: "desc" },
-      }),
-      prisma.season.findMany({
-        where: { isActive: false },
-        include: {
-          winner: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-        orderBy: { endDate: "desc" },
-        take: 12,
-      }),
-    ]);
+      },
+      orderBy: { startDate: "desc" },
+    });
 
     return NextResponse.json({
-      activeSeasons,
-      pastSeasons,
+      seasons,
+      activeSeasons: seasons.filter(s => s.isActive),
+      pastSeasons: seasons.filter(s => !s.isActive),
     });
   } catch (error) {
     console.error("Error fetching seasons:", error);
