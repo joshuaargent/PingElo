@@ -87,9 +87,10 @@ export async function POST(request: NextRequest) {
           });
         }
         
-        // 1b. Mark all teams from previous season as inactive (preserved for history)
+        // 1b. Mark all active teams as inactive (preserved for history)
+        // Teams persist but become inactive when season ends
         await tx.team.updateMany({
-          where: { seasonId: currentSeason.id },
+          where: { isActive: true },
           data: { isActive: false },
         });
       }

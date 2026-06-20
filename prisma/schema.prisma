@@ -151,45 +151,67 @@ model Season {
   doublesWinner User?    @relation("SeasonDoublesWinner", fields: [doublesWinnerId], references: [id])
   users         User[]
   matches       Match[]
-  teams         Team[]   // Seasonal teams
+  teamSeasonStats TeamSeasonStats[]
 }
 
-// Team model for doubles partnerships (seasonal - resets each season)
+// Team model for doubles partnerships (persists across seasons)
 model Team {
   id            String    @id @default(cuid())
   name          String?   // Optional custom name (e.g., "The Dynamic Duo")
   player1Id     String
   player2Id     String
   
-  // Season context - teams are tied to a season
-  seasonId      String
-  season        Season    @relation(fields: [seasonId], references: [id])
-  
-  // Whether this team is active for the current season
+  // Whether this team is currently active in the season
   isActive      Boolean   @default(true)
   
-  // ELO tracking (average of both players' doubles ELO at team formation)
+  // ELO tracking (average of both players' doubles ELO - persisted across seasons)
   foreverElo    Int       @default(1000)
-  seasonElo     Int       @default(1000)
-  matchesPlayed Int       @default(0)
-  wins          Int       @default(0)
-  losses        Int       @default(0)
+  
+  // Total stats across all seasons
+  totalMatchesPlayed Int   @default(0)
+  totalWins          Int   @default(0)
+  totalLosses        Int   @default(0)
 
-  // Track unique partnerships within a season (prevent duplicates per season)
+  // Timestamps
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relationships
   player1      User      @relation("TeamPlayer1", fields: [player1Id], references: [id])
   player2      User      @relation("TeamPlayer2", fields: [player2Id], references: [id])
+  seasonStats  TeamSeasonStats[]
   tournamentParticipants TournamentParticipant[]
 
-  // Unique constraint is per season now
-  @@unique([player1Id, player2Id, seasonId])
+  // One team per partnership (regardless of season)
+  @@unique([player1Id, player2Id])
   @@index([player1Id])
   @@index([player2Id])
-  @@index([seasonId])
   @@index([isActive])
+}
+
+// Per-season stats for a team
+model TeamSeasonStats {
+  id            String    @id @default(cuid())
+  teamId        String
+  team          Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  seasonId      String
+  season        Season    @relation(fields: [seasonId], references: [id])
+  
+  // Season-specific ELO (resets each season)
+  seasonElo     Int       @default(1000)
+  
+  // Season-specific stats
+  matchesPlayed Int       @default(0)
+  wins          Int       @default(0)
+  losses        Int       @default(0)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([teamId, seasonId])
+  @@index([teamId])
+  @@index([seasonId])
 }
 
 model Match {

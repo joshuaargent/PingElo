@@ -1,13 +1,12 @@
 /**
  * Team by ID API Route
- * Get team details, reactivate, or delete team (seasonal)
+ * Get team details, reactivate, or delete team
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 
 const MAX_TEAMS_PER_PERSON = 2;
-const MAX_TEAMS_CREATED_PER_PERSON = 1;
 
 // GET /api/teams/[id] - Get team details
 export async function GET(
@@ -26,8 +25,11 @@ export async function GET(
         player2: {
           select: { id: true, name: true, image: true, doublesForeverElo: true },
         },
-        season: {
-          select: { id: true, name: true, isActive: true },
+        seasonStats: {
+          include: {
+            season: { select: { id: true, name: true, isActive: true } },
+          },
+          orderBy: { season: { startDate: 'desc' } },
         },
       },
     });
@@ -43,7 +45,7 @@ export async function GET(
   }
 }
 
-// POST /api/teams/[id]/reactivate - Reactivate a past team for current season
+// POST /api/teams/[id] - Reactivate a team
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -55,122 +57,124 @@ export async function POST(
     const { id } = await params;
     const userId = session!.user.id;
     
-    // Get current season
-    const currentSeason = await prisma.season.findFirst({
+    // Get current season - auto-create if none exists
+    let currentSeason = await prisma.season.findFirst({
       where: { isActive: true },
     });
     
     if (!currentSeason) {
-      return NextResponse.json({ error: "No active season" }, { status: 400 });
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const seasonName = `Season ${startDate.toLocaleString("default", { month: "long" })} ${startDate.getFullYear()}`;
+      
+      currentSeason = await prisma.season.create({
+        data: {
+          name: seasonName,
+          startDate,
+          endDate,
+          isActive: true,
+        },
+      }).catch(() => null);
+      
+      if (!currentSeason) {
+        return NextResponse.json({ error: "Failed to create season" }, { status: 500 });
+      }
     }
     
-    // Get the past team
-    const pastTeam = await prisma.team.findUnique({
+    // Get the team
+    const team = await prisma.team.findUnique({
       where: { id },
-      include: { season: true },
+      include: {
+        seasonStats: {
+          include: { season: true },
+          orderBy: { season: { startDate: 'desc' } },
+        },
+      },
     });
     
-    if (!pastTeam) {
+    if (!team) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
     
-    // Must be a past team
-    if (pastTeam.season.isActive) {
-      return NextResponse.json({ error: "Team is already active" }, { status: 400 });
-    }
-    
-    // Must be a member of the team
-    if (pastTeam.player1Id !== userId && pastTeam.player2Id !== userId) {
+    // Check if user is part of this team
+    if (team.player1Id !== userId && team.player2Id !== userId) {
       return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 });
     }
     
-    // Check if this partnership already exists in current season
-    const currentSeasonTeams = await prisma.team.findMany({
-      where: {
-        seasonId: currentSeason.id,
-        isActive: true,
-        OR: [
-          { player1Id: pastTeam.player1Id, player2Id: pastTeam.player2Id },
-          { player1Id: pastTeam.player2Id, player2Id: pastTeam.player1Id },
-        ],
-      },
-    });
+    // Check if already active
+    if (team.isActive) {
+      return NextResponse.json({ error: "Team is already active" }, { status: 400 });
+    }
     
-    if (currentSeasonTeams.length > 0) {
-      return NextResponse.json({ error: "You already have this team active this season" }, { status: 400 });
+    // Check if already has stats for current season
+    const hasCurrentSeason = team.seasonStats.some(s => s.seasonId === currentSeason.id);
+    if (hasCurrentSeason) {
+      return NextResponse.json({ error: "Team already has stats for this season" }, { status: 400 });
     }
     
     // Check if either player has reached their team limit
-    const player1CurrentTeams = await prisma.team.count({
+    const player1ActiveTeams = await prisma.team.count({
       where: {
-        seasonId: currentSeason.id,
         isActive: true,
         OR: [
-          { player1Id: pastTeam.player1Id },
-          { player2Id: pastTeam.player1Id },
+          { player1Id: team.player1Id },
+          { player2Id: team.player1Id },
         ],
       },
     });
     
-    const player2CurrentTeams = await prisma.team.count({
+    const player2ActiveTeams = await prisma.team.count({
       where: {
-        seasonId: currentSeason.id,
         isActive: true,
         OR: [
-          { player1Id: pastTeam.player2Id },
-          { player2Id: pastTeam.player2Id },
+          { player1Id: team.player2Id },
+          { player2Id: team.player2Id },
         ],
       },
     });
     
-    if (player1CurrentTeams >= MAX_TEAMS_PER_PERSON) {
-      const player1 = await prisma.user.findUnique({ where: { id: pastTeam.player1Id } });
+    if (player1ActiveTeams >= MAX_TEAMS_PER_PERSON) {
+      const player1 = await prisma.user.findUnique({ where: { id: team.player1Id } });
       return NextResponse.json({ 
-        error: `${player1?.name || 'Player 1'} already has ${MAX_TEAMS_PER_PERSON} teams this season` 
+        error: `${player1?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams` 
       }, { status: 400 });
     }
     
-    if (player2CurrentTeams >= MAX_TEAMS_PER_PERSON) {
-      const player2 = await prisma.user.findUnique({ where: { id: pastTeam.player2Id } });
+    if (player2ActiveTeams >= MAX_TEAMS_PER_PERSON) {
+      const player2 = await prisma.user.findUnique({ where: { id: team.player2Id } });
       return NextResponse.json({ 
-        error: `${player2?.name || 'Player 2'} already has ${MAX_TEAMS_PER_PERSON} teams this season` 
+        error: `${player2?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams` 
       }, { status: 400 });
     }
     
-    // Create a new team for current season, copying the name
-    // The creator (player1) is whoever initiated the reactivation
-    // But we keep the original team structure for stats
-    const newTeam = await prisma.team.create({
+    // Reactivate the team
+    const updatedTeam = await prisma.team.update({
+      where: { id },
+      data: { isActive: true },
+    });
+    
+    // Create season stats for current season
+    await prisma.teamSeasonStats.create({
       data: {
-        name: pastTeam.name,
-        player1Id: pastTeam.player1Id,
-        player2Id: pastTeam.player2Id,
+        teamId: id,
         seasonId: currentSeason.id,
-        isActive: true,
-        foreverElo: pastTeam.foreverElo,
-        seasonElo: 1000, // Reset season ELO
-        matchesPlayed: 0,
-        wins: 0,
-        losses: 0,
-      },
-      include: {
-        player1: { select: { id: true, name: true, image: true, doublesForeverElo: true } },
-        player2: { select: { id: true, name: true, image: true, doublesForeverElo: true } },
-        season: { select: { id: true, name: true, isActive: true } },
+        seasonElo: team.foreverElo,
       },
     });
     
     return NextResponse.json({ 
-      team: newTeam, 
-      message: `Team ${pastTeam.name || 'reactivated'} for ${currentSeason.name}!`
-    }, { status: 201 });
+      team: updatedTeam, 
+      message: `${team.name || 'Team'} reactivated for ${currentSeason.name}!`,
+      reactivated: true,
+    }, { status: 200 });
   } catch (error) {
     console.error("Error reactivating team:", error);
     return NextResponse.json({ error: "Failed to reactivate team" }, { status: 500 });
   }
 }
 
-// DELETE /api/teams/[id] - Delete a team (only if in current season)
+// DELETE /api/teams/[id] - Deactivate a team (don't delete, just make inactive)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -184,32 +188,28 @@ export async function DELETE(
     
     const team = await prisma.team.findUnique({
       where: { id },
-      include: { season: true },
     });
     
     if (!team) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
     
-    // Only allow deletion of current season teams
-    if (!team.season.isActive) {
-      return NextResponse.json({ 
-        error: "Cannot delete teams from past seasons" 
-      }, { status: 400 });
-    }
-    
-    // Only team creator (player1) can delete
+    // Only team creator (player1) can deactivate
     if (team.player1Id !== userId) {
       return NextResponse.json({ 
-        error: "Only the team creator can delete this team" 
+        error: "Only the team creator can deactivate this team" 
       }, { status: 403 });
     }
     
-    await prisma.team.delete({ where: { id } });
+    // Just mark as inactive, don't delete (preserve history)
+    await prisma.team.update({
+      where: { id },
+      data: { isActive: false },
+    });
     
-    return NextResponse.json({ success: true, message: "Team deleted" });
+    return NextResponse.json({ success: true, message: "Team deactivated" });
   } catch (error) {
-    console.error("Error deleting team:", error);
-    return NextResponse.json({ error: "Failed to delete team" }, { status: 500 });
+    console.error("Error deactivating team:", error);
+    return NextResponse.json({ error: "Failed to deactivate team" }, { status: 500 });
   }
 }

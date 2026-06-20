@@ -209,13 +209,13 @@ export async function POST(request: NextRequest) {
         if (usedTeam1Id) {
           const team1 = await prisma.team.findUnique({
             where: { id: usedTeam1Id },
-            include: { player1: true, player2: true, season: true }
+            include: { player1: true, player2: true }
           });
           if (!team1) {
             return NextResponse.json({ error: "Team 1 not found" }, { status: 404 });
           }
-          if (!team1.season.isActive) {
-            return NextResponse.json({ error: "Team 1 is from a previous season. Teams expire each season." }, { status: 400 });
+          if (!team1.isActive) {
+            return NextResponse.json({ error: "Team 1 is from a previous season. Please reactivate your team." }, { status: 400 });
           }
           // Check if user is actually on this team
           const allTeam1Players = [team1.player1Id, team1.player2Id];
@@ -232,13 +232,13 @@ export async function POST(request: NextRequest) {
         if (usedTeam2Id) {
           const team2 = await prisma.team.findUnique({
             where: { id: usedTeam2Id },
-            include: { player1: true, player2: true, season: true }
+            include: { player1: true, player2: true }
           });
           if (!team2) {
             return NextResponse.json({ error: "Team 2 not found" }, { status: 404 });
           }
-          if (!team2.season.isActive) {
-            return NextResponse.json({ error: "Team 2 is from a previous season. Teams expire each season." }, { status: 400 });
+          if (!team2.isActive) {
+            return NextResponse.json({ error: "Team 2 is from a previous season. Please reactivate your team." }, { status: 400 });
           }
           t2p1Id = team2.player1Id;
           t2p2Id = team2.player2Id;
@@ -341,22 +341,46 @@ export async function POST(request: NextRequest) {
         await prisma.team.update({
           where: { id: usedTeam1Id },
           data: {
-            wins: team1Won ? { increment: 1 } : undefined,
-            losses: team1Won ? undefined : { increment: 1 },
-            matchesPlayed: { increment: 1 },
+            totalWins: team1Won ? { increment: 1 } : undefined,
+            totalLosses: team1Won ? undefined : { increment: 1 },
+            totalMatchesPlayed: { increment: 1 },
           }
         }).catch(() => {});
+        
+        // Update current season stats
+        if (currentSeason) {
+          await prisma.teamSeasonStats.updateMany({
+            where: { teamId: usedTeam1Id, seasonId: currentSeason.id },
+            data: {
+              wins: team1Won ? { increment: 1 } : undefined,
+              losses: team1Won ? undefined : { increment: 1 },
+              matchesPlayed: { increment: 1 },
+            }
+          }).catch(() => {});
+        }
       }
 
       if (usedTeam2Id) {
         await prisma.team.update({
           where: { id: usedTeam2Id },
           data: {
-            wins: !team1Won ? { increment: 1 } : undefined,
-            losses: !team1Won ? undefined : { increment: 1 },
-            matchesPlayed: { increment: 1 },
+            totalWins: !team1Won ? { increment: 1 } : undefined,
+            totalLosses: !team1Won ? undefined : { increment: 1 },
+            totalMatchesPlayed: { increment: 1 },
           }
         }).catch(() => {});
+        
+        // Update current season stats
+        if (currentSeason) {
+          await prisma.teamSeasonStats.updateMany({
+            where: { teamId: usedTeam2Id, seasonId: currentSeason.id },
+            data: {
+              wins: !team1Won ? { increment: 1 } : undefined,
+              losses: !team1Won ? undefined : { increment: 1 },
+              matchesPlayed: { increment: 1 },
+            }
+          }).catch(() => {});
+        }
       }
 
       match = await prisma.$transaction(async (tx) => {
