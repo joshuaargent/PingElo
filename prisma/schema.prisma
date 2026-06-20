@@ -341,6 +341,7 @@ model TournamentParticipant {
 
 enum EloChangeType {
   MATCH
+  TOURNAMENT_ENTRY
   TOURNAMENT_WIN
   TOURNAMENT_PRIZE
   SEASON_BONUS

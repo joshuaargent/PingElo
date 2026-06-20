@@ -711,12 +711,29 @@ export default function TournamentDetailPage() {
                         Edit Tournament
                       </Button>
                     )}
-                    {tournament.participants.length >= 2 && (
-                      <Button onClick={handleStartTournament} isLoading={isStarting} className="bg-green-600 hover:bg-green-700">
-                        <Play className="h-4 w-4 mr-2" />
-                        Start Tournament
-                      </Button>
-                    )}
+                    {(() => {
+                      // Calculate minimum participants based on format
+                      const minParticipants = 
+                        tournament.format === 'ROUND_ROBIN' ? 3 : 4;
+                      const current = tournament.participants.length;
+                      const canStart = current >= minParticipants;
+                      
+                      return (
+                        <Button 
+                          onClick={handleStartTournament} 
+                          isLoading={isStarting} 
+                          disabled={!canStart}
+                          className={`${canStart ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 cursor-not-allowed'}`}
+                          title={!canStart ? `Need at least ${minParticipants} participants to start (currently ${current}/${minParticipants})` : 'Start Tournament'}
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Start Tournament
+                          {!canStart && (
+                            <span className="ml-2 opacity-75">({current}/{minParticipants})</span>
+                          )}
+                        </Button>
+                      );
+                    })()}
                   </>
                 )}
               </div>

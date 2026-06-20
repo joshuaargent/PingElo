@@ -19,7 +19,7 @@ export async function POST(
     const { id: tournamentId } = await params;
     const userId = session!.user.id;
     const body = await request.json().catch(() => ({}));
-    const { teamId } = body; // For doubles tournaments, optionally pass a teamId
+    const { teamId } = body;
 
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
@@ -46,7 +46,6 @@ export async function POST(
         return NextResponse.json({ error: "Team ID required for doubles tournaments" }, { status: 400 });
       }
 
-      // Verify team exists and user is a member
       const team = await prisma.team.findUnique({
         where: { id: teamId },
         include: { player1: true, player2: true },
@@ -64,12 +63,10 @@ export async function POST(
         return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 });
       }
 
-      // Check if banned
       if (team.player1.isBanned || team.player2.isBanned) {
         return NextResponse.json({ error: "A team member is banned" }, { status: 403 });
       }
 
-      // Check if already registered with this team
       const existing = await prisma.tournamentParticipant.findUnique({
         where: { tournamentId_teamId: { tournamentId, teamId } },
       });
@@ -78,7 +75,6 @@ export async function POST(
         return NextResponse.json({ error: "This team is already registered" }, { status: 400 });
       }
 
-      // Check if either player is already registered with another team in this tournament
       const playerAlreadyRegistered = await prisma.tournamentParticipant.findFirst({
         where: {
           tournamentId,
@@ -95,8 +91,8 @@ export async function POST(
       });
 
       if (playerAlreadyRegistered) {
-        return NextResponse.json({ 
-          error: "One of the team members is already registered with another team in this tournament" 
+        return NextResponse.json({
+          error: "One of the team members is already registered with another team in this tournament"
         }, { status: 400 });
       }
 
@@ -112,6 +108,26 @@ export async function POST(
             where: { id: teamId },
             data: { foreverElo: team.foreverElo - entryFee },
           });
+
+          // Create ELO history entries for both players
+          const feePerPlayer = Math.floor(entryFee / 2);
+          for (const player of [team.player1, team.player2]) {
+            await tx.eloHistory.create({
+              data: {
+                userId: player.id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: player.foreverElo,
+                eloAfter: player.foreverElo - feePerPlayer,
+                change: -feePerPlayer,
+                description: `Entry fee for tournament: ${tournament.name}`,
+                metadata: {
+                  tournamentId,
+                  teamId,
+                  entryFee,
+                },
+              },
+            });
+          }
         }
 
         return tx.tournamentParticipant.create({
@@ -159,6 +175,7 @@ export async function POST(
 
     const playerElo = user.foreverElo;
     const entryFee = calculateEntryFee(playerElo);
+    const eloBefore = playerElo;
 
     if (playerElo < entryFee) {
       return NextResponse.json({ error: `Insufficient ELO (${playerElo}). Need at least ${entryFee}.` }, { status: 400 });
@@ -169,6 +186,21 @@ export async function POST(
         await tx.user.update({
           where: { id: userId },
           data: { foreverElo: playerElo - entryFee },
+        });
+
+        // Create ELO history entry
+        await tx.eloHistory.create({
+          data: {
+            userId,
+            changeType: 'TOURNAMENT_ENTRY',
+            eloBefore,
+            eloAfter: playerElo - entryFee,
+            change: -entryFee,
+            description: `Entry fee for tournament: ${tournament.name}`,
+            metadata: {
+              tournamentId,
+            },
+          },
         });
       }
 
@@ -218,7 +250,6 @@ export async function DELETE(
     }
 
     if (tournament.matchType === "DOUBLES") {
-      // Find participant by user membership in any team
       const participant = await prisma.tournamentParticipant.findFirst({
         where: {
           tournamentId,
@@ -226,7 +257,11 @@ export async function DELETE(
             OR: [{ player1Id: userId }, { player2Id: userId }],
           },
         },
-        include: { team: true },
+        include: { 
+          team: {
+            include: { player1: true, player2: true },
+          },
+        },
       });
 
       if (!participant || !participant.team) {
@@ -235,6 +270,7 @@ export async function DELETE(
 
       const team = participant.team;
       const entryFee = participant.eloAtEntry - team.foreverElo;
+      const feePerPlayer = Math.floor(entryFee / 2);
 
       await prisma.$transaction(async (tx) => {
         if (entryFee > 0) {
@@ -242,6 +278,25 @@ export async function DELETE(
             where: { id: team.id },
             data: { foreverElo: team.foreverElo + entryFee },
           });
+
+          // Refund both players and create history entries
+          for (const player of [team.player1, team.player2]) {
+            await tx.eloHistory.create({
+              data: {
+                userId: player.id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: player.foreverElo,
+                eloAfter: player.foreverElo + feePerPlayer,
+                change: feePerPlayer,
+                description: `Refund for leaving tournament: ${tournament.name}`,
+                metadata: {
+                  tournamentId,
+                  teamId: team.id,
+                  isRefund: true,
+                },
+              },
+            });
+          }
         }
         await tx.tournamentParticipant.delete({ where: { id: participant.id } });
       });
@@ -260,12 +315,29 @@ export async function DELETE(
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const entryFee = participant.eloAtEntry - (user?.foreverElo || 0);
+    const eloBefore = user?.foreverElo || 0;
 
     await prisma.$transaction(async (tx) => {
       if (entryFee > 0) {
         await tx.user.update({
           where: { id: userId },
-          data: { foreverElo: (user?.foreverElo || 0) + entryFee },
+          data: { foreverElo: eloBefore + entryFee },
+        });
+
+        // Create refund history entry
+        await tx.eloHistory.create({
+          data: {
+            userId,
+            changeType: 'TOURNAMENT_ENTRY',
+            eloBefore,
+            eloAfter: eloBefore + entryFee,
+            change: entryFee,
+            description: `Refund for leaving tournament: ${tournament.name}`,
+            metadata: {
+              tournamentId,
+              isRefund: true,
+            },
+          },
         });
       }
       await tx.tournamentParticipant.delete({ where: { id: participant.id } });
