@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 
 const MAX_TEAMS_PER_PERSON = 2;
+const MAX_TEAMS_CREATED_PER_PERSON = 1;
 
 // GET /api/teams/[id] - Get team details
 export async function GET(
@@ -134,11 +135,7 @@ export async function POST(
           endDate,
           isActive: true,
         },
-      }).catch(() => null);
-      
-      if (!currentSeason) {
-        return NextResponse.json({ error: "Failed to create season" }, { status: 500 });
-      }
+      });
     }
     
     // Get the team
@@ -172,8 +169,26 @@ export async function POST(
       return NextResponse.json({ error: "Team already has stats for this season" }, { status: 400 });
     }
     
+    // Reactivation counts as creation for player1 (the creator)
+    // Check if player1 has already used their creation slot this season
+    if (team.player1Id === userId) {
+      const teamsCreatedByUser = await prisma.team.count({
+        where: {
+          player1Id: userId,
+          seasonStats: {
+            some: { seasonId: currentSeason.id },
+          },
+        },
+      });
+      
+      if (teamsCreatedByUser >= MAX_TEAMS_CREATED_PER_PERSON) {
+        return NextResponse.json({
+          error: `You can only create or reactivate ${MAX_TEAMS_CREATED_PER_PERSON} team(s) as creator`,
+        }, { status: 400 });
+      }
+    }
+    
     // Check if reactivating would exceed the 2-team limit for either player
-    // Count ALL active teams for each player (including teams they didn't create)
     const player1ActiveTeams = await prisma.team.count({
       where: {
         isActive: true,

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
           endDate,
           isActive: true,
         },
-      }).catch(() => null);
+      });
     }
     
     // Build where clause for teams
@@ -164,11 +164,7 @@ export async function POST(request: NextRequest) {
           endDate,
           isActive: true,
         },
-      }).catch(() => null);
-      
-      if (!currentSeason) {
-        return NextResponse.json({ error: "Failed to create season. Please try again." }, { status: 500 });
-      }
+      });
     }
     
     // If teamId provided, we're reactivating
@@ -201,6 +197,61 @@ export async function POST(request: NextRequest) {
       const hasCurrentSeason = existingTeam.seasonStats.some(s => s.seasonId === currentSeason.id);
       if (hasCurrentSeason) {
         return NextResponse.json({ error: "Team already has stats for this season" }, { status: 400 });
+      }
+      
+      // Reactivation counts as creation for player1 (the creator)
+      // Check if player1 has already used their creation slot this season
+      if (existingTeam.player1Id === userId) {
+        // User is the creator, check their creation limit
+        const teamsCreatedByUser = await prisma.team.count({
+          where: {
+            player1Id: userId,
+            seasonStats: {
+              some: { seasonId: currentSeason.id },
+            },
+          },
+        });
+        
+        if (teamsCreatedByUser >= MAX_TEAMS_CREATED_PER_PERSON) {
+          return NextResponse.json({
+            error: `You can only create or reactivate ${MAX_TEAMS_CREATED_PER_PERSON} team(s) as creator`,
+          }, { status: 400 });
+        }
+      }
+      
+      // Check if reactivating would exceed the 2-team limit for either player
+      const player1ActiveTeams = await prisma.team.count({
+        where: {
+          isActive: true,
+          OR: [
+            { player1Id: existingTeam.player1Id },
+            { player2Id: existingTeam.player1Id },
+          ],
+        },
+      });
+      
+      const player2ActiveTeams = await prisma.team.count({
+        where: {
+          isActive: true,
+          OR: [
+            { player1Id: existingTeam.player2Id },
+            { player2Id: existingTeam.player2Id },
+          ],
+        },
+      });
+      
+      if (player1ActiveTeams >= MAX_TEAMS_PER_PERSON) {
+        const player1 = await prisma.user.findUnique({ where: { id: existingTeam.player1Id } });
+        return NextResponse.json({
+          error: `${player1?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams`,
+        }, { status: 400 });
+      }
+      
+      if (player2ActiveTeams >= MAX_TEAMS_PER_PERSON) {
+        const player2 = await prisma.user.findUnique({ where: { id: existingTeam.player2Id } });
+        return NextResponse.json({
+          error: `${player2?.name || 'Player'} already has ${MAX_TEAMS_PER_PERSON} teams`,
+        }, { status: 400 });
       }
       
       // Reactivate the team and create new season stats
