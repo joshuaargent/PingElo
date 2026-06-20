@@ -63,7 +63,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { session, response: authResponse } = await getAdminSessionOrForbidden();
+    const { response: authResponse } = await getAdminSessionOrForbidden();
     if (authResponse) return authResponse;
 
     const { id } = await params;

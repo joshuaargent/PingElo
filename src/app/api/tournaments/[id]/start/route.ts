@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
+import { getAdminSessionOrForbidden, getSessionOrUnauthorized } from "@/lib/auth-actions";
 
 interface BracketSlot {
   round: number;
@@ -170,11 +170,33 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Require admin session
-    const { response } = await getAdminSessionOrForbidden();
-    if (response) return response;
-
     const { id } = await params;
+    
+    // Get user's session
+    const { session, response: authResponse } = await getSessionOrUnauthorized();
+    if (authResponse) return authResponse;
+    
+    // Check if admin
+    const isAdmin = (session!.user as { role?: string }).role === 'ADMIN';
+    
+    if (!isAdmin) {
+      // Not admin, check if user is the creator
+      const tournamentCheck = await prisma.tournament.findUnique({
+        where: { id },
+        select: { creatorId: true },
+      });
+      
+      if (!tournamentCheck) {
+        return NextResponse.json({ error: "Tournament not found" }, { status: 404 });
+      }
+      
+      if (tournamentCheck.creatorId !== session!.user.id) {
+        return NextResponse.json(
+          { error: "Only the tournament creator or an admin can start the tournament" },
+          { status: 403 }
+        );
+      }
+    }
 
     // Get tournament with participants
     const tournament = await prisma.tournament.findUnique({
