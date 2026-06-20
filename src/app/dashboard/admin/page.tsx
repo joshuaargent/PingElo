@@ -1,5 +1,6 @@
 'use client';
 import { PageHero } from '@/components/layout/PageHero';
+import { TOURNAMENT_HOUSE_INJECTION } from '@/lib/elo';
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -502,27 +503,30 @@ export default function AdminDashboardPage() {
           <div className="grid lg:grid-cols-2 gap-6">
             <Card className="p-6">
               <h3 className="font-semibold text-text-primary mb-4">ELO Settings</h3>
+              <p className="text-sm text-text-secondary mb-4">
+                These values are defined in code and cannot be changed via the admin dashboard.
+              </p>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">Starting ELO</p>
                     <p className="text-sm text-text-secondary">Default ELO for new users</p>
                   </div>
-                  <Badge>1000</Badge>
+                  <Badge variant="primary">1000</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">K-Factor (New Players)</p>
                     <p className="text-sm text-text-secondary">ELO change multiplier for 0-10 games</p>
                   </div>
-                  <Badge>64</Badge>
+                  <Badge variant="primary">64</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">K-Factor (Established)</p>
                     <p className="text-sm text-text-secondary">ELO change multiplier for 31-100 games</p>
                   </div>
-                  <Badge>32</Badge>
+                  <Badge variant="primary">32</Badge>
                 </div>
               </div>
             </Card>
@@ -535,20 +539,29 @@ export default function AdminDashboardPage() {
                     <p className="font-medium">House Injection</p>
                     <p className="text-sm text-text-secondary">ELO added to each tournament prize pool</p>
                   </div>
-                  <Badge>500 ELO</Badge>
+                  <Badge variant="accent">{TOURNAMENT_HOUSE_INJECTION} ELO</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
                   <div>
                     <p className="font-medium">1st Place Prize</p>
                     <p className="text-sm text-text-secondary">Percentage of prize pool</p>
                   </div>
-                  <Badge>60%</Badge>
+                  <Badge variant="accent">60%</Badge>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
+                  <div>
+                    <p className="font-medium">2nd Place Prize</p>
+                    <p className="text-sm text-text-secondary">Percentage of prize pool</p>
+                  </div>
+                  <Badge variant="accent">40%</Badge>
                 </div>
               </div>
-              <Button variant="outline" className="w-full mt-4">
-                <Settings className="h-4 w-4 mr-2" />
-                Edit Settings
-              </Button>
+              <div className="mt-4 p-4 bg-accent/10 border border-accent/30 rounded-lg">
+                <p className="text-sm text-text-secondary">
+                  <Flag className="h-4 w-4 inline mr-2 text-accent" />
+                  To change these values, edit <code className="bg-bg-primary px-1 rounded">src/lib/elo.ts</code>
+                </p>
+              </div>
             </Card>
           </div>
         )}
