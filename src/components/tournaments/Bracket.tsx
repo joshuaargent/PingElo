@@ -10,6 +10,25 @@ interface Player {
   image?: string | null;
 }
 
+// For singles tournaments
+interface UserParticipant {
+  id: string;
+  userId: string;
+  user: Player;
+}
+
+// For doubles tournaments
+interface TeamParticipant {
+  id: string;
+  teamId: string;
+  team: {
+    id: string;
+    name: string | null;
+    player1: Player;
+    player2: Player;
+  };
+}
+
 interface BracketSlot {
   id: string;
   round: number;
@@ -27,7 +46,7 @@ interface BracketSlot {
 interface BracketProps {
   brackets: BracketSlot[];
   format: string;
-  players: { userId: string; user: Player }[];
+  players: (UserParticipant | TeamParticipant)[];
   onMatchClick?: (bracket: BracketSlot) => void;
   isAdmin?: boolean;
 }
@@ -67,11 +86,28 @@ export function TournamentBracket({ brackets, format, players, onMatchClick, isA
     );
   }
 
-  // Get player name by ID
+  // Check if this is a doubles tournament (has teamId)
+  const isDoubles = players.length > 0 && 'teamId' in players[0];
+
+  // Get player/team name by ID
   const getPlayer = (playerId?: string) => {
     if (!playerId) return null;
-    const participant = players.find(p => p.userId === playerId);
-    return participant?.user;
+    
+    const participant = players.find(p => p.id === playerId);
+    if (!participant) return null;
+
+    if (isDoubles) {
+      const teamP = participant as TeamParticipant;
+      const name = teamP.team.name || `${teamP.team.player1.name} & ${teamP.team.player2.name}`;
+      return {
+        id: teamP.teamId,
+        name,
+        image: teamP.team.player1.image,
+      };
+    }
+    
+    const userP = participant as UserParticipant;
+    return userP.user;
   };
 
   // Group brackets by round

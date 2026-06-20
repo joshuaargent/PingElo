@@ -32,18 +32,37 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
-interface Participant {
+// User participant for singles tournaments
+interface UserParticipant {
   id: string;
   userId: string;
+  teamId?: null;
+  eloAtEntry: number;
+  paidEntry: boolean;
+  finalPlacement?: number;
   user: {
     id: string;
     name: string;
     image: string | null;
     foreverElo: number;
   };
+}
+
+// Team participant for doubles tournaments
+interface TeamParticipant {
+  id: string;
+  userId?: null;
+  teamId: string;
   eloAtEntry: number;
   paidEntry: boolean;
   finalPlacement?: number;
+  team: {
+    id: string;
+    name: string | null;
+    foreverElo: number;
+    player1: { id: string; name: string; image: string | null };
+    player2: { id: string; name: string; image: string | null };
+  };
 }
 
 interface Bracket {
@@ -85,7 +104,7 @@ interface Tournament {
     name: string;
     image: string | null;
   };
-  participants: Participant[];
+  participants: (UserParticipant | TeamParticipant)[];
   brackets?: Bracket[];
   matches?: Match[];
 }
@@ -97,6 +116,9 @@ export default function TournamentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [userTeams, setUserTeams] = useState<any[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  const [showTeamSelect, setShowTeamSelect] = useState(false);
   const [loggingMatch, setLoggingMatch] = useState<{ bracket: Bracket; player1: any; player2: any } | null>(null);
   const [scores, setScores] = useState({ player1: '', player2: '' });
   const [winner, setWinner] = useState<'player1' | 'player2' | ''>('');
@@ -119,7 +141,15 @@ export default function TournamentDetailPage() {
       }
     }
     fetchTournament();
-  }, [params.id]);
+    
+    // Fetch user's teams if tournament is doubles
+    if (session?.user) {
+      fetch('/api/teams')
+        .then(res => res.ok ? res.json() : { teams: [] })
+        .then(data => setUserTeams(data.teams || []))
+        .catch(() => setUserTeams([]));
+    }
+  }, [params.id, session]);
 
   const refreshTournament = async () => {
     const res = await fetch(`/api/tournaments/${params.id}`);
@@ -135,6 +165,16 @@ export default function TournamentDetailPage() {
       return;
     }
 
+    // For doubles tournaments, show team selection
+    if (tournament?.matchType === 'DOUBLES') {
+      if (userTeams.length === 0) {
+        alert('You need to create a team first to join doubles tournaments. Go to /teams to create one.');
+        return;
+      }
+      setShowTeamSelect(true);
+      return;
+    }
+
     setIsJoining(true);
     try {
       const res = await fetch(`/api/tournaments/${params.id}/join`, {
@@ -142,6 +182,36 @@ export default function TournamentDetailPage() {
       });
       if (res.ok) {
         await refreshTournament();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to join');
+      }
+    } catch (error) {
+      console.error('Failed to join tournament:', error);
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleJoinWithTeam = async () => {
+    if (!selectedTeamId) {
+      alert('Please select a team');
+      return;
+    }
+
+    setIsJoining(true);
+    setShowTeamSelect(false);
+    try {
+      const res = await fetch(`/api/tournaments/${params.id}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: selectedTeamId }),
+      });
+      if (res.ok) {
+        await refreshTournament();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to join');
       }
     } catch (error) {
       console.error('Failed to join tournament:', error);
@@ -212,15 +282,31 @@ export default function TournamentDetailPage() {
     }
   };
 
+  // Check if current user is a participant (works for both singles and doubles)
   const isParticipant = session?.user && tournament?.participants.some(
-    (p) => p.user.id === session.user?.id
+    (p) => {
+      if (tournament.matchType === 'DOUBLES') {
+        const teamP = p as TeamParticipant;
+        return teamP.team?.player1?.id === session.user?.id || teamP.team?.player2?.id === session.user?.id;
+      }
+      const userP = p as UserParticipant;
+      return userP.user?.id === session.user?.id;
+    }
   );
 
-  // Get player name by ID
-  const getPlayerName = (playerId?: string) => {
-    if (!playerId || !tournament) return null;
-    const participant = tournament.participants.find(p => p.userId === playerId);
-    return participant?.user;
+  // Get participant name by ID (handles both singles and doubles)
+  const getParticipantName = (participantId?: string) => {
+    if (!participantId || !tournament) return null;
+    const participant = tournament.participants.find(p => p.id === participantId);
+    if (!participant) return null;
+    
+    if (tournament.matchType === 'DOUBLES') {
+      const teamP = participant as TeamParticipant;
+      const name = teamP.team?.name || `${teamP.team?.player1?.name} & ${teamP.team?.player2?.name}`;
+      return { name, foreverElo: teamP.team?.foreverElo || 0 };
+    }
+    const userP = participant as UserParticipant;
+    return { name: userP.user?.name || 'Unknown', foreverElo: userP.user?.foreverElo || 0 };
   };
 
   // Get match result
@@ -264,6 +350,62 @@ export default function TournamentDetailPage() {
 
   return (
     <>
+      {/* Team Selection Modal for Doubles */}
+      {showTeamSelect && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-text-primary mb-4">Select Your Team</h3>
+            <p className="text-text-secondary mb-4">Choose which team to register for this doubles tournament:</p>
+            <div className="space-y-3 mb-6">
+              {userTeams.map((team) => (
+                <div
+                  key={team.id}
+                  onClick={() => setSelectedTeamId(team.id)}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                    selectedTeamId === team.id
+                      ? 'border-accent bg-accent/10'
+                      : 'border-border hover:border-accent/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      src={team.player1.image || undefined}
+                      alt={team.player1.name}
+                      fallback={team.player1.name.charAt(0)}
+                      size="sm"
+                    />
+                    <span className="text-text-muted">&</span>
+                    <Avatar
+                      src={team.player2.image || undefined}
+                      alt={team.player2.name}
+                      fallback={team.player2.name.charAt(0)}
+                      size="sm"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-text-primary">
+                        {team.name || `${team.player1.name.split(' ')[0]} & ${team.player2.name.split(' ')[0]}`}
+                      </p>
+                      <p className="text-sm text-text-muted">
+                        {team.player1.name} & {team.player2.name}
+                      </p>
+                    </div>
+                    <Badge>{team.foreverElo} ELO</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setShowTeamSelect(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleJoinWithTeam} isLoading={isJoining} disabled={!selectedTeamId} className="flex-1">
+                Join Tournament
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Match Logging Modal */}
       {loggingMatch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -280,7 +422,7 @@ export default function TournamentDetailPage() {
                       size="lg"
                     />
                     <p className="font-medium text-text-primary mt-2">{loggingMatch.player1.name}</p>
-                    <p className="text-sm text-text-muted">{getPlayerName(loggingMatch.bracket.player1Id)?.foreverElo} ELO</p>
+                    <p className="text-sm text-text-muted">{loggingMatch.player1.foreverElo || 0} ELO</p>
                   </div>
                   <span className="text-2xl font-bold text-text-muted">vs</span>
                   <div>
@@ -291,7 +433,7 @@ export default function TournamentDetailPage() {
                       size="lg"
                     />
                     <p className="font-medium text-text-primary mt-2">{loggingMatch.player2.name}</p>
-                    <p className="text-sm text-text-muted">{getPlayerName(loggingMatch.bracket.player2Id)?.foreverElo} ELO</p>
+                    <p className="text-sm text-text-muted">{loggingMatch.player2.foreverElo || 0} ELO</p>
                   </div>
                 </div>
               </div>
@@ -466,8 +608,8 @@ export default function TournamentDetailPage() {
               </h2>
               <div className="space-y-2">
                 {pendingMatches.map((bracket) => {
-                  const p1 = getPlayerName(bracket.player1Id);
-                  const p2 = getPlayerName(bracket.player2Id);
+                  const p1 = getParticipantName(bracket.player1Id);
+                  const p2 = getParticipantName(bracket.player2Id);
                   return (
                     <div 
                       key={bracket.id}
@@ -491,30 +633,56 @@ export default function TournamentDetailPage() {
           {/* Participants */}
           <Card className="p-6 mb-6">
             <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5 text-accent" />
-              Participants ({tournament.participants.length}/{tournament.maxParticipants})
+              {tournament.matchType === 'DOUBLES' ? <UsersIcon className="h-5 w-5 text-accent" /> : <Users className="h-5 w-5 text-accent" />}
+              {tournament.matchType === 'DOUBLES' ? 'Teams' : 'Participants'} ({tournament.participants.length}/{tournament.maxParticipants})
             </h2>
 
             {tournament.participants.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {tournament.participants.map((participant, index) => (
-                  <div key={participant.id} className="p-3 bg-bg-secondary rounded-xl">
+                  <div key={participant.id} className="p-4 bg-bg-secondary rounded-xl">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center text-accent font-bold text-sm">
                         {index + 1}
                       </div>
-                      <Avatar
-                        src={participant.user.image}
-                        alt={participant.user.name}
-                        fallback={participant.user.name.charAt(0)}
-                        size="sm"
-                      />
-                      <div>
-                        <p className="font-medium text-text-primary text-sm">{participant.user.name}</p>
-                        <p className="text-xs text-text-muted">
-                          {participant.eloAtEntry} ELO
-                        </p>
-                      </div>
+                      {tournament.matchType === 'DOUBLES' ? (
+                        // Show team participants
+                        <>
+                          <Avatar
+                            src={(participant as TeamParticipant).team.player1.image}
+                            alt={(participant as TeamParticipant).team.player1.name}
+                            fallback={(participant as TeamParticipant).team.player1.name.charAt(0)}
+                            size="sm"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-text-primary text-sm">
+                              {(participant as TeamParticipant).team.name || 
+                                `${(participant as TeamParticipant).team.player1.name.split(' ')[0]} & ${(participant as TeamParticipant).team.player2.name.split(' ')[0]}`}
+                            </p>
+                            <p className="text-xs text-text-muted">
+                              {(participant as TeamParticipant).team.player1.name} & {(participant as TeamParticipant).team.player2.name}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-text-primary">{(participant as TeamParticipant).eloAtEntry}</p>
+                            <p className="text-xs text-text-muted">Team ELO</p>
+                          </div>
+                        </>
+                      ) : (
+                        // Show user participants
+                        <>
+                          <Avatar
+                            src={(participant as UserParticipant).user.image}
+                            alt={(participant as UserParticipant).user.name}
+                            fallback={(participant as UserParticipant).user.name.charAt(0)}
+                            size="sm"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-text-primary text-sm">{(participant as UserParticipant).user.name}</p>
+                            <p className="text-xs text-text-muted">{(participant as UserParticipant).user.foreverElo} ELO</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -535,8 +703,8 @@ export default function TournamentDetailPage() {
                 format={tournament.format}
                 players={tournament.participants}
                 onMatchClick={(bracket) => {
-                  const p1 = getPlayerName(bracket.player1Id);
-                  const p2 = getPlayerName(bracket.player2Id);
+                  const p1 = getParticipantName(bracket.player1Id);
+                  const p2 = getParticipantName(bracket.player2Id);
                   if (p1 && p2) {
                     setLoggingMatch({ bracket, player1: p1, player2: p2 });
                   }
