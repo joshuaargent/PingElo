@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Leaderboard } from '@/components/elo/Leaderboard';
-import { Button } from '@/components/ui/Button';
-import { User, Users } from 'lucide-react';
+import { User, Users, Trophy, TrendingUp, Crown } from 'lucide-react';
 
 // Mock data for preview - in production this would come from API
 const mockLeaderboardData = [
@@ -32,73 +30,125 @@ export default function LeaderboardPage() {
   const [matchType, setMatchType] = useState<MatchType>('singles');
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader
-        title="Leaderboard"
-        description="See how you rank against other players"
-      />
-
-      {/* Match Type Selector */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
-          <button
-            onClick={() => setMatchType('singles')}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-              matchType === 'singles'
-                ? 'bg-bg-primary text-text-primary shadow-sm'
-                : 'hover:bg-bg-primary/50'
-            }`}
-          >
-            <User className="h-4 w-4" />
-            Singles
-          </button>
-          <button
-            onClick={() => setMatchType('doubles')}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-              matchType === 'doubles'
-                ? 'bg-bg-primary text-text-primary shadow-sm'
-                : 'hover:bg-bg-primary/50'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            Doubles
-          </button>
+    <>
+      {/* Hero Section - Consistent with homepage styling */}
+      <section className="relative overflow-hidden py-12 md:py-16 lg:py-20">
+        {/* Background Decoration */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
         </div>
-      </div>
 
-      {/* ELO Type Selector */}
-      <div className="mb-8 flex items-center justify-between">
-        <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
-          <button
-            onClick={() => setLeaderboardType('forever')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-              leaderboardType === 'forever'
-                ? 'bg-bg-primary text-text-primary shadow-sm'
-                : 'hover:bg-bg-primary/50'
-            }`}
-          >
-            Forever ELO
-          </button>
-          <button
-            onClick={() => setLeaderboardType('season')}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
-              leaderboardType === 'season'
-                ? 'bg-bg-primary text-text-primary shadow-sm'
-                : 'hover:bg-bg-primary/50'
-            }`}
-          >
-            Season ELO
-          </button>
+        <div className="container">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Badge */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-accent-light px-4 py-1.5 text-sm font-medium text-accent">
+              <Trophy className="h-4 w-4" />
+              <span>ELO Rankings</span>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Leaderboard
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
+              See how you rank against other players
+            </p>
+
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-3 gap-8 rounded-2xl bg-bg-card/50 p-6 backdrop-blur-sm border border-border/50">
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Users className="h-6 w-6" />
+                  <span>48</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Total Players</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <TrendingUp className="h-6 w-6" />
+                  <span>156</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Active Matches</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Crown className="h-6 w-6" />
+                  <span>1285</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Top ELO</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Leaderboard */}
-      <Leaderboard
-        entries={mockLeaderboardData}
-        type={leaderboardType}
-        matchType={matchType}
-        showSeasonElo={leaderboardType === 'forever'}
-      />
-    </div>
+      {/* Content Section */}
+      <div className="container mx-auto px-4 pb-16">
+        {/* Match Type Selector */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
+            <button
+              onClick={() => setMatchType('singles')}
+              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                matchType === 'singles'
+                  ? 'bg-bg-primary text-text-primary shadow-sm'
+                  : 'hover:bg-bg-primary/50'
+              }`}
+            >
+              <User className="h-4 w-4" />
+              Singles
+            </button>
+            <button
+              onClick={() => setMatchType('doubles')}
+              className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                matchType === 'doubles'
+                  ? 'bg-bg-primary text-text-primary shadow-sm'
+                  : 'hover:bg-bg-primary/50'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Doubles
+            </button>
+          </div>
+        </div>
+
+        {/* ELO Type Selector */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
+            <button
+              onClick={() => setLeaderboardType('forever')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                leaderboardType === 'forever'
+                  ? 'bg-bg-primary text-text-primary shadow-sm'
+                  : 'hover:bg-bg-primary/50'
+              }`}
+            >
+              Forever ELO
+            </button>
+            <button
+              onClick={() => setLeaderboardType('season')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                leaderboardType === 'season'
+                  ? 'bg-bg-primary text-text-primary shadow-sm'
+                  : 'hover:bg-bg-primary/50'
+              }`}
+            >
+              Season ELO
+            </button>
+          </div>
+        </div>
+
+        {/* Leaderboard */}
+        <Leaderboard
+          entries={mockLeaderboardData}
+          type={leaderboardType}
+          matchType={matchType}
+          showSeasonElo={leaderboardType === 'forever'}
+        />
+      </div>
+    </>
   );
 }

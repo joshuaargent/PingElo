@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatNumber } from '@/lib/utils';
-import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus } from 'lucide-react';
+import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus, Zap } from 'lucide-react';
 
 // Mock tournament data - in production this would come from API
 const mockTournaments = [
@@ -108,18 +107,71 @@ export default function TournamentsPage() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader
-        title="Tournaments"
-        description="Compete in paid-entry tournaments with prize pools"
-        action={
-          <Button leftIcon={<Plus className="h-4 w-4" />}>
-            Create Tournament
-          </Button>
-        }
-      />
+    <>
+      {/* Hero Section - Consistent with homepage styling */}
+      <section className="relative overflow-hidden py-12 md:py-16 lg:py-20">
+        {/* Background Decoration */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
+        </div>
 
-      {/* Filters */}
+        <div className="container">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Badge */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-accent-light px-4 py-1.5 text-sm font-medium text-accent">
+              <Trophy className="h-4 w-4" />
+              <span>Competition</span>
+            </div>
+
+            {/* Title */}
+            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Tournaments
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
+              Compete in paid-entry tournaments with prize pools
+            </p>
+
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-3 gap-8 rounded-2xl bg-bg-card/50 p-6 backdrop-blur-sm border border-border/50">
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Trophy className="h-6 w-6" />
+                  <span>3</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Active Tournaments</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Users className="h-6 w-6" />
+                  <span>48</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Total Players</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Zap className="h-6 w-6" />
+                  <span>1,880</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Prize Pool</p>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="mt-8">
+              <Button leftIcon={<Plus className="h-4 w-4" />} size="lg">
+                Create Tournament
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <div className="container mx-auto px-4 pb-16">
+        {/* Filters */}
       <div className="flex flex-wrap items-center gap-4 mb-8">
         {/* Match Type Filter */}
         <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
@@ -205,7 +257,8 @@ export default function TournamentsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

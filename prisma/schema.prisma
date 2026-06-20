@@ -92,6 +92,10 @@ model User {
   createdTournaments Tournament[]
   seasonWins     Season[]  @relation("SeasonWinner")
   doublesSeasonWins Season[] @relation("SeasonDoublesWinner")
+  // ELO History
+  eloHistory     EloHistory[]
+  // Weekly Activity
+  weeklyActivity WeeklyActivity[]
 }
 
 model Account {
@@ -264,6 +268,7 @@ model Tournament {
   creator         User      @relation(fields: [creatorId], references: [id])
   participants    TournamentParticipant[]
   matches         Match[]
+  brackets        TournamentBracket[]
 }
 
 model TournamentParticipant {
@@ -282,4 +287,111 @@ model TournamentParticipant {
   @@unique([tournamentId, userId])
   @@index([tournamentId])
   @@index([userId])
+}
+
+// ============================================
+// ELO History - Track individual ELO changes
+// ============================================
+
+enum EloChangeType {
+  MATCH
+  TOURNAMENT_WIN
+  TOURNAMENT_PRIZE
+  SEASON_BONUS
+  ADMIN_ADJUSTMENT
+  ADMIN_REVERT
+}
+
+model EloHistory {
+  id            String         @id @default(cuid())
+  userId        String
+  matchId       String?        // Related match (if applicable)
+  changeType    EloChangeType
+  
+  // ELO values
+  eloBefore    Int            // ELO before this change
+  eloAfter     Int            // ELO after this change
+  change       Int            // Change amount (positive or negative)
+  
+  // Context
+  description  String?        // Human-readable description
+  metadata     Json?          // Additional context (opponent, tournament, etc.)
+  
+  // Timestamps
+  createdAt    DateTime       @default(now())
+
+  // Relationships
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([matchId])
+  @@index([changeType])
+  @@index([createdAt])
+}
+
+// ============================================
+// Tournament Bracket - Track bracket structure
+// ============================================
+
+model TournamentBracket {
+  id            String         @id @default(cuid())
+  tournamentId  String
+  
+  // Bracket position
+  round         Int            // Round number (1 = first round)
+  position      Int            // Position within the round
+  bracketType   String         @default("winner") // winner, loser, grand_final
+  
+  // Match tracking
+  matchId       String?        // Related match in this bracket position
+  
+  // Forbye tracking (automatic advancement)
+  isBye         Boolean        @default(false)
+  
+  // Advancement tracking
+  winnerAdvancesTo Int?        // Round number winner advances to
+  loserAdvancesTo  Int?        // Round number loser advances to (for double elim)
+  
+  // Timestamps
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relationships
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, round, position, bracketType])
+  @@index([tournamentId])
+  @@index([round])
+}
+
+// ============================================
+// Weekly Activity - Track weekly activity bonuses
+// ============================================
+
+model WeeklyActivity {
+  id            String         @id @default(cuid())
+  userId        String
+  weekStart     DateTime      // Start of the week (Monday)
+  
+  // Activity tracking
+  matchesPlayed Int            @default(0)
+  wins          Int            @default(0)
+  eloChange     Int            @default(0)     // Net ELO change this week
+  activityBonus Int            @default(0)    // Bonus ELO earned
+  
+  // Status
+  isQualified   Boolean        @default(false) // 2+ matches = qualified
+  bonusAwarded  Boolean        @default(false)
+  
+  // Timestamps
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relationships
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+  @@index([weekStart])
+  @@index([isQualified])
 }

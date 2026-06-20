@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -108,18 +107,58 @@ export default function DashboardPage() {
   const userName = session?.user?.name || 'Player';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Welcome Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-text-primary mb-2">
-          Welcome back, {userName.split(' ')[0]}! 👋
-        </h1>
-        <p className="text-text-secondary">
-          Ready for some ping pong?
-        </p>
-      </div>
+    <>
+      {/* Hero Section - Consistent with homepage styling */}
+      <section className="relative overflow-hidden py-12 md:py-16">
+        {/* Background Decoration */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
+        </div>
 
-      {/* Quick Actions */}
+        <div className="container">
+          <div className="mx-auto max-w-4xl text-center">
+            {/* Title */}
+            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Welcome back, {userName.split(' ')[0]}! 👋
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg md:text-xl">
+              Ready for some ping pong?
+            </p>
+
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-3 gap-8 rounded-2xl bg-bg-card/50 p-6 backdrop-blur-sm border border-border/50">
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <TrendingUp className="h-6 w-6" />
+                  <span>{mockStats.foreverElo}</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Your ELO</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Trophy className="h-6 w-6" />
+                  <span>#{mockStats.rank}</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Current Rank</p>
+              </div>
+              <div className="text-center">
+                <div className="text-accent flex items-center justify-center gap-2 text-2xl font-bold md:text-3xl">
+                  <Zap className="h-6 w-6" />
+                  <span>{mockStats.winRate}%</span>
+                </div>
+                <p className="text-text-secondary mt-1 text-sm">Win Rate</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      <div className="container mx-auto px-4 pb-16">
+        {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Link href="/matches/new">
           <Card className="p-4 text-center hover:border-accent transition-colors cursor-pointer">
@@ -359,6 +398,7 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
