@@ -166,8 +166,10 @@ export async function POST(request: NextRequest) {
     // Validate entry fee (must be non-negative and within limits)
     const validatedEntryFee = Math.max(0, Math.min(Number(entryFee) || 0, MAX_ENTRY_FEE));
 
-    // Validate prize pool (must be non-negative)
-    const validatedPrizePool = Math.max(0, Number(prizePool) || 0);
+    // Validate prize pool - default to house injection if not provided
+    const validatedPrizePool = prizePool !== undefined && prizePool !== null && prizePool !== ""
+      ? Math.max(0, Math.min(Number(prizePool), MAX_ENTRY_FEE * 10))
+      : TOURNAMENT_HOUSE_INJECTION;
 
     // Validate format against allowed values
     const validatedFormat = VALID_FORMATS.includes(format) ? format : "SINGLE_ELIMINATION";
