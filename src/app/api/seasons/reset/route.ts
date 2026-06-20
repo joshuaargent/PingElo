@@ -1,21 +1,59 @@
 /**
  * Season Reset API Route
- * Resets season ELO for all users (admin-only)
+ * Resets season ELO for all users
+ * - Automatic trigger when season end date passes (no auth required)
+ * - Manual trigger by admin (requires admin session)
  * Also resets all teams from the previous season
- * Requires admin authentication
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
 
-// Validation constants
-const SEASON_RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours between resets
-
 export async function POST(request: NextRequest) {
   try {
-    // Require admin authentication
-    const { response: authResponse } = await getAdminSessionOrForbidden();
-    if (authResponse) return authResponse;
+    // Check if this is a cron/scheduled call (has secret) or admin session
+    const authHeader = request.headers.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
+    const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    
+    let isAdmin = false;
+    
+    // Check for admin session if not a cron call
+    if (!isCronCall) {
+      const { response: authResponse } = await getAdminSessionOrForbidden();
+      if (authResponse) return authResponse;
+      isAdmin = true;
+    }
+
+    // Check if there's an active season
+    const currentSeason = await prisma.season.findFirst({
+      where: { isActive: true },
+    });
+
+    if (!currentSeason) {
+      return NextResponse.json(
+        { error: "No active season found" },
+        { status: 400 }
+      );
+    }
+
+    // For non-cron calls, check if season has ended
+    // Cron jobs can trigger even before end date (manual admin override)
+    if (!isCronCall) {
+      const now = new Date();
+      const shouldReset = now > currentSeason.endDate;
+      
+      if (!shouldReset) {
+        return NextResponse.json({
+          message: "Season not ready for reset",
+          currentSeason: {
+            name: currentSeason.name,
+            endDate: currentSeason.endDate,
+          },
+          daysRemaining: Math.ceil((currentSeason.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        });
+      }
+    }
 
     // Perform the reset
     const result = await prisma.$transaction(async (tx) => {
