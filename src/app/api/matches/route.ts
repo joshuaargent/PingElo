@@ -10,6 +10,8 @@ import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFact
 // Validation constants
 const MIN_SCORE = 3;
 const MAX_SCORE = 21;
+const MATCH_COOLDOWN_MS = 60000; // 60 seconds between same matchup to prevent race conditions
+const MAX_RECENT_MATCHES = 10; // Max recent matches to check
 
 /**
  * GET /api/matches - List matches with filtering and pagination
@@ -182,6 +184,30 @@ export async function POST(request: NextRequest) {
     const currentSeason = await prisma.season.findFirst({
       where: { isActive: true },
     });
+
+    // Check for duplicate/rapid match submissions (race condition prevention)
+    if (matchType !== "DOUBLES" && player1Id && player2Id) {
+      const recentMatches = await prisma.match.findMany({
+        where: {
+          OR: [
+            { player1Id, player2Id },
+            { player1Id: player2Id, player2Id: player1Id },
+          ],
+          createdAt: {
+            gte: new Date(Date.now() - MATCH_COOLDOWN_MS),
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      });
+
+      if (recentMatches.length > 0) {
+        return NextResponse.json(
+          { error: "Please wait before logging another match between these players" },
+          { status: 429 }
+        );
+      }
+    }
 
     let match;
     let eloChangeResult;
@@ -500,8 +526,8 @@ export async function POST(request: NextRequest) {
       }
 
       const [player1, player2] = await Promise.all([
-        prisma.user.findUnique({ where: { id: player1Id } }),
-        prisma.user.findUnique({ where: { id: player2Id } }),
+        prisma.user.findUnique({ where: { id: player1Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true } }),
+        prisma.user.findUnique({ where: { id: player2Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true } }),
       ]);
 
       if (!player1 || !player2) {
@@ -511,9 +537,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (player1.isBanned || player2.isBanned) {
+      if (player1.isBanned) {
         return NextResponse.json(
-          { error: "One or both players are banned" },
+          { error: `${player1.name} is banned${player1.banReason ? `: ${player1.banReason}` : ""}` },
+          { status: 403 }
+        );
+      }
+      if (player2.isBanned) {
+        return NextResponse.json(
+          { error: `${player2.name} is banned${player2.banReason ? `: ${player2.banReason}` : ""}` },
           { status: 403 }
         );
       }

@@ -12,6 +12,20 @@ const MIN_PARTICIPANTS = 2;
 const MAX_PARTICIPANTS = 64;
 const MIN_SCORE = 3;
 const MAX_SCORE = 21;
+const MAX_ENTRY_FEE = 10000;
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 1000;
+
+// Valid tournament formats
+const VALID_FORMATS = ["SINGLE_ELIMINATION", "DOUBLE_ELIMINATION", "ROUND_ROBIN", "SWISS"];
+
+// Sanitize string input to prevent XSS
+function sanitizeString(str: string): string {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/[<>]/g, "") // Remove potential HTML tags
+    .trim();
+}
 
 /**
  * GET /api/tournaments - List tournaments
@@ -126,8 +140,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Sanitize string inputs to prevent XSS
+    const sanitizedName = sanitizeString(String(name));
+    const sanitizedDescription = description ? sanitizeString(String(description)) : null;
+
+    // Validate name length
+    if (sanitizedName.length > MAX_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: `Tournament name must be ${MAX_NAME_LENGTH} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    // Validate description length
+    if (sanitizedDescription && sanitizedDescription.length > MAX_DESCRIPTION_LENGTH) {
+      return NextResponse.json(
+        { error: `Tournament description must be ${MAX_DESCRIPTION_LENGTH} characters or less` },
+        { status: 400 }
+      );
+    }
+
     // Validate match type
     const finalMatchType = matchType === "DOUBLES" ? "DOUBLES" : "SINGLES";
+
+    // Validate entry fee (must be non-negative and within limits)
+    const validatedEntryFee = Math.max(0, Math.min(Number(entryFee) || 0, MAX_ENTRY_FEE));
+
+    // Validate prize pool (must be non-negative)
+    const validatedPrizePool = Math.max(0, Number(prizePool) || 0);
+
+    // Validate format against allowed values
+    const validatedFormat = VALID_FORMATS.includes(format) ? format : "SINGLE_ELIMINATION";
 
     // For doubles, adjust max participants (need even numbers for pairs)
     let finalMaxParticipants = Math.min(
@@ -136,30 +179,47 @@ export async function POST(request: NextRequest) {
     );
     if (finalMatchType === "DOUBLES") {
       // For doubles, maxParticipants refers to number of teams
-      // So we need 4 * teams players (but the db stores it as players)
-      // Actually, let's keep it simple: maxParticipants for doubles = number of teams
       finalMaxParticipants = Math.min(Math.max(maxParticipants || 8, MIN_PARTICIPANTS), MAX_PARTICIPANTS / 2);
     }
 
-    const finalMaxScore = Math.min(
+    // Validate max score (must be between MIN_SCORE and MAX_SCORE)
+    const validatedMaxScore = Math.min(
       Math.max(maxScore || 21, MIN_SCORE),
       MAX_SCORE
     );
 
+    // Validate status if provided (only allow DRAFT or REGISTRATION_OPEN for creation)
+    const validatedStatus = (status === "DRAFT" || status === "REGISTRATION_OPEN") 
+      ? status 
+      : "DRAFT";
+
+    // Validate startsAt if provided (must be a valid future date)
+    let validatedStartsAt: Date | null = null;
+    if (startsAt) {
+      const parsedDate = new Date(startsAt);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid start date format" },
+          { status: 400 }
+        );
+      }
+      validatedStartsAt = parsedDate;
+    }
+
     // Create tournament
     const tournament = await prisma.tournament.create({
       data: {
-        name,
-        description: description || null,
+        name: sanitizedName,
+        description: sanitizedDescription,
         matchType: finalMatchType,
         creatorId: userId,
-        entryFee: entryFee || 0,
-        prizePool: prizePool || TOURNAMENT_HOUSE_INJECTION,
-        maxScore: finalMaxScore,
-        format: format || "SINGLE_ELIMINATION",
+        entryFee: validatedEntryFee,
+        prizePool: validatedPrizePool,
+        maxScore: validatedMaxScore,
+        format: validatedFormat,
         maxParticipants: finalMaxParticipants,
-        startsAt: startsAt ? new Date(startsAt) : null,
-        status: status || "DRAFT",
+        startsAt: validatedStartsAt,
+        status: validatedStatus,
       },
       include: {
         creator: {

@@ -1,49 +1,21 @@
 /**
  * Season Reset API Route
- * Resets season ELO for all users (on-demand version)
- * Also deletes all teams from the previous season
- * This can be called manually or triggered on first request of a new season
+ * Resets season ELO for all users (admin-only)
+ * Also resets all teams from the previous season
+ * Requires admin authentication
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
+
+// Validation constants
+const SEASON_RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours between resets
 
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Require admin for manual reset
-    const authHeader = request.headers.get("authorization");
-    const adminSecret = process.env.SEASON_RESET_SECRET;
-    
-    // Allow reset if the correct secret is provided
-    let isAuthorized = adminSecret && authHeader === `Bearer ${adminSecret}`;
-    
-    if (!isAuthorized) {
-      // Check if there's an active season that needs to be reset
-      const currentSeason = await prisma.season.findFirst({
-        where: { isActive: true },
-      });
-
-      if (!currentSeason) {
-        return NextResponse.json(
-          { error: "No active season found" },
-          { status: 400 }
-        );
-      }
-
-      // Check if season has ended
-      const now = new Date();
-      const shouldReset = now > currentSeason.endDate;
-      
-      if (!shouldReset) {
-        return NextResponse.json({
-          message: "Season not ready for reset",
-          currentSeason: {
-            name: currentSeason.name,
-            endDate: currentSeason.endDate,
-          },
-          daysRemaining: Math.ceil((currentSeason.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-        });
-      }
-    }
+    // Require admin authentication
+    const { response: authResponse } = await getAdminSessionOrForbidden();
+    if (authResponse) return authResponse;
 
     // Perform the reset
     const result = await prisma.$transaction(async (tx) => {
