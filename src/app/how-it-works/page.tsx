@@ -211,55 +211,127 @@ export default function HowItWorksPage() {
           </Card>
         </div>
 
-        <Card className="p-4 bg-bg-secondary">
+        <Card className="p-4 bg-bg-secondary mb-6">
           <p className="text-sm text-text-secondary">
             <strong>Quick tip:</strong> The leaderboard lets you filter by &quot;All Time&quot; (Forever ELO) 
             or &quot;Season&quot; (Season ELO). Your profile shows both so you can track your career 
             progress and current form!
           </p>
         </Card>
+
+        {/* Singles vs Doubles */}
+        <h3 className="text-lg font-semibold mb-4">Singles vs Doubles: Separate Ratings!</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="p-6 border-2 border-purple-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center">
+                <Users className="h-6 w-6 text-purple-500" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Singles (1v1)</h4>
+                <p className="text-xs text-text-muted">Your solo rating</p>
+              </div>
+            </div>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li><strong>Singles Forever ELO</strong> - never resets</li>
+              <li><strong>Singles Season ELO</strong> - resets monthly</li>
+              <li>Your individual performance</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6 border-2 border-orange-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center">
+                <Users className="h-6 w-6 text-orange-500" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Doubles (2v2)</h4>
+                <p className="text-xs text-text-muted">Your team rating</p>
+              </div>
+            </div>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li><strong>Doubles Forever ELO</strong> - never resets</li>
+              <li><strong>Doubles Season ELO</strong> - resets monthly</li>
+              <li>Requires forming teams</li>
+            </ul>
+          </Card>
+        </div>
+
+        <Card className="p-4 bg-accent/10 border-accent/20 mt-6">
+          <p className="text-sm text-text-secondary">
+            <strong>Important:</strong> Singles and doubles are <em>completely separate</em>! 
+            Your 1500 in singles doesn&apos;t affect your 800 in doubles. Each mode has its own 
+            ELO, its own leaderboard, and its own season champion.
+          </p>
+        </Card>
       </section>
 
       {/* Doubles Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Doubles Matches</h2>
+        <h2 className="text-2xl font-bold text-text-primary mb-6">Doubles Teams</h2>
         
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Users className="h-6 w-6 text-accent" />
-              <h3 className="text-lg font-semibold">Two Ways to Play</h3>
+              <Calendar className="h-6 w-6 text-accent" />
+              <h3 className="text-lg font-semibold">Seasonal Teams</h3>
             </div>
             <p className="text-text-secondary text-sm mb-4">
-              Doubles matches can be played in two ways:
+              Teams are tied to the current season and reset when a new season starts. 
+              This lets you form different partnerships over time!
             </p>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-2">
-              <li><strong>With Teams:</strong> Play with your registered team partners you&apos;ve created</li>
-              <li><strong>Pick Players:</strong> Grab any 4 players for a pickup game</li>
+              <li><strong>Create:</strong> You can create <em>1 team</em> per season</li>
+              <li><strong>Join:</strong> You can be in <em>up to 2 teams</em> per season</li>
+              <li><strong>Example:</strong> You create a team with Alex. Jordan can create a team with you. Now you&apos;re in 2 teams!</li>
             </ul>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <Zap className="h-6 w-6 text-accent" />
-              <h3 className="text-lg font-semibold">Team Partners</h3>
+              <h3 className="text-lg font-semibold">Team ELO</h3>
             </div>
             <p className="text-text-secondary text-sm mb-4">
-              Create teams with other players to track your doubles history together:
+              When you form a team, its ELO is based on both players&apos; doubles ELO:
             </p>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-2">
+              <li>Team ELO = average of both players&apos; doubles forever ELO</li>
               <li>Teams accumulate wins and losses together</li>
-              <li>Each player can be on multiple teams</li>
-              <li>Team ELO is based on both players&apos; doubles ELO</li>
-              <li>Visit the Teams page to create and manage partnerships</li>
+              <li>Team stats appear on both players&apos; profiles</li>
+              <li>Visit the <a href="/teams" className="text-accent hover:underline">Teams page</a> to manage</li>
             </ul>
+          </Card>
+        </div>
+
+        <h3 className="text-lg font-semibold mb-4">Tournaments vs Casual Games</h3>
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <Card className="p-4 bg-green-500/10 border-green-500/30">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <span className="text-green-500 text-xl">✓</span> Casual Games (Pickup)
+            </h3>
+            <p className="text-sm text-text-secondary">
+              For regular games, pick any 4 players for ad-hoc matches. No team registration needed. 
+              Great for spontaneous games!
+            </p>
+          </Card>
+
+          <Card className="p-4 bg-orange-500/10 border-orange-500/30">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <span className="text-orange-500 text-xl">🏆</span> Tournaments (Teams Only)
+            </h3>
+            <p className="text-sm text-text-secondary">
+              Doubles tournaments require registered teams from the current season. 
+              This ensures fair competition and team accountability.
+            </p>
           </Card>
         </div>
 
         <Card className="p-4 bg-bg-secondary">
           <p className="text-sm text-text-secondary">
-            <strong>Tournament Note:</strong> Doubles tournaments require you to join with a team.
-            You can only be on one team per tournament to keep it fair!
+            <strong>How it works:</strong> You create a team → Someone else creates a team with you → 
+            Both teams exist! But you can&apos;t create a third team, and the same partnership 
+            can&apos;t exist twice in one season.
           </p>
         </Card>
       </section>
