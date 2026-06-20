@@ -244,10 +244,46 @@ export default function TeamsPage() {
 
   return (
     <>
-      <PageHero title="My Teams" description={showHistory ? "All your past and present teams" : "Manage your doubles partnerships for this season"} />
+      <PageHero 
+        title="My Teams" 
+        description={showHistory 
+          ? "All your past and present teams" 
+          : currentSeason 
+            ? `${currentSeason.name}` 
+            : "Manage your doubles partnerships"
+        } 
+      />
       <div className="container mx-auto px-4 pb-16">
         <div className="mx-auto max-w-4xl">
           
+
+          {/* Season and Limits Banner */}
+          {!showHistory && limits && (
+            <Card className="p-4 mb-6 bg-gradient-to-r from-accent/10 to-transparent border-l-4 border-l-accent">
+              <div className="flex flex-wrap justify-between items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="font-medium text-text-primary">
+                      {currentSeason?.name || 'Season'}
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      {limits.teamsYouAreIn} / {limits.maxTeamsYouCanBeIn} teams • {limits.teamsCreatedByYou} / {limits.maxTeamsYouCanCreate} created
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {!canBeInMoreTeams && (
+                    <Badge variant="outline" className="text-amber-500 border-amber-500">Team limit</Badge>
+                  )}
+                  {!canCreateTeam && (
+                    <Badge variant="outline" className="text-red-500 border-red-500">No creations left</Badge>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {stats && stats.totalTeams > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <Card className="p-4 text-center">
