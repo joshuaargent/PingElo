@@ -38,6 +38,23 @@ export default function DashboardPage() {
     if (!session?.user) {
       redirect('/auth/signin');
     }
+    
+    // Check if season needs reset
+    async function checkSeason() {
+      try {
+        const res = await fetch('/api/seasons/current');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.needsReset) {
+            redirect('/season-reset');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check season:', error);
+      }
+    }
+    
+    checkSeason();
   }, [session, status]);
 
   useEffect(() => {

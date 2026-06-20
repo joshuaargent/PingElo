@@ -90,7 +90,12 @@ export default function AdminDashboardPage() {
   // Check if user is admin
   useEffect(() => {
     if (status === 'loading') return;
-    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+    if (!session?.user) {
+      router.push('/auth/signin');
+    }
+    // Check role from session - it might be stored differently
+    const userRole = (session?.user as any)?.role;
+    if (userRole !== 'ADMIN') {
       router.push('/dashboard');
     }
   }, [session, status, router]);
