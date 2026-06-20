@@ -455,35 +455,6 @@ export default function HowItWorksPage() {
         </Card>
       </section>
 
-      {/* Activity Section */}
-      <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Staying Active</h2>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Zap className="h-6 w-6 text-green-500" />
-              <h3 className="text-lg font-semibold">Activity Bonus</h3>
-            </div>
-            <p className="text-text-secondary text-sm">
-              Play <strong>2+ matches per week</strong> to earn an activity bonus. This helps
-              keep the ELO economy fresh and rewards regular players.
-            </p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Users className="h-6 w-6 text-yellow-500" />
-              <h3 className="text-lg font-semibold">Rusty Badge</h3>
-            </div>
-            <p className="text-text-secondary text-sm">
-              If you haven&apos;t played for <strong>4+ weeks</strong>, you&apos;ll see a &quot;Rusty&quot;
-              badge on your profile. This is just informational—it doesn&apos;t affect your ELO.
-            </p>
-          </Card>
-        </div>
-      </section>
-
       {/* Fair Play Section */}
       <section>
         <Card className="p-6 bg-accent/5 border-accent/20">

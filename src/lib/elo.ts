@@ -7,8 +7,7 @@
  * Key Features:
  * - Dynamic K-factor for faster convergence with new players
  * - Score margin multiplier for casual matches
- * - Activity bonus to prevent ELO economy stagnation
- * - Inactivity indicators (informational only)
+ * - Doubles support with team-based ELO calculations
  * - Doubles support with team-based ELO calculations
  */
 
