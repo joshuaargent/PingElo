@@ -183,9 +183,11 @@ export default function TournamentsPage() {
 
             {/* CTA */}
             <div className="mt-8">
-              <Button leftIcon={<Plus className="h-4 w-4" />} size="lg">
-                Create Tournament
-              </Button>
+              <Link href="/tournaments/create">
+                <Button leftIcon={<Plus className="h-4 w-4" />} size="lg">
+                  Create Tournament
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
