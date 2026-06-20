@@ -7,6 +7,23 @@ import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized, getAdminSessionOrForbidden } from "@/lib/auth-actions";
 import { getKFactorLabel, getEloTierLabel, checkRustyStatus, calculatePercentile } from "@/lib/elo";
 
+// Validation constants
+const MIN_NAME_LENGTH = 2;
+const MAX_NAME_LENGTH = 50;
+const MIN_ELO = 0;
+const MAX_ELO = 10000;
+
+// Valid user roles
+const VALID_ROLES = ["USER", "ADMIN"];
+
+// Sanitize string input to prevent XSS
+function sanitizeString(str: string): string {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/[<>]/g, "") // Remove potential HTML tags
+    .trim();
+}
+
 /**
  * GET /api/users/[id] - Get user profile
  */
@@ -152,18 +169,63 @@ export async function PATCH(
     // Admins can update any field
     const updateData: Record<string, unknown> = {};
 
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.image !== undefined) updateData.image = body.image;
+    // Validate and sanitize name
+    if (body.name !== undefined) {
+      const sanitizedName = sanitizeString(String(body.name));
+      if (sanitizedName.length < MIN_NAME_LENGTH || sanitizedName.length > MAX_NAME_LENGTH) {
+        return NextResponse.json(
+          { error: `Name must be between ${MIN_NAME_LENGTH} and ${MAX_NAME_LENGTH} characters` },
+          { status: 400 }
+        );
+      }
+      updateData.name = sanitizedName;
+    }
+    
+    // Sanitize image URL
+    if (body.image !== undefined) {
+      updateData.image = body.image || null;
+    }
     
     // Admin-only fields
     if (isAdmin) {
-      if (body.role !== undefined) updateData.role = body.role;
+      // Validate role
+      if (body.role !== undefined) {
+        if (!VALID_ROLES.includes(body.role)) {
+          return NextResponse.json(
+            { error: `Invalid role. Must be one of: ${VALID_ROLES.join(", ")}` },
+            { status: 400 }
+          );
+        }
+        updateData.role = body.role;
+      }
+      
       if (body.isBanned !== undefined) {
         updateData.isBanned = body.isBanned;
         updateData.banReason = body.banReason || null;
       }
-      if (body.foreverElo !== undefined) updateData.foreverElo = body.foreverElo;
-      if (body.seasonElo !== undefined) updateData.seasonElo = body.seasonElo;
+      
+      // Validate ELO bounds
+      if (body.foreverElo !== undefined) {
+        const foreverElo = Number(body.foreverElo);
+        if (isNaN(foreverElo) || foreverElo < MIN_ELO || foreverElo > MAX_ELO) {
+          return NextResponse.json(
+            { error: `Forever ELO must be between ${MIN_ELO} and ${MAX_ELO}` },
+            { status: 400 }
+          );
+        }
+        updateData.foreverElo = foreverElo;
+      }
+      
+      if (body.seasonElo !== undefined) {
+        const seasonElo = Number(body.seasonElo);
+        if (isNaN(seasonElo) || seasonElo < MIN_ELO || seasonElo > MAX_ELO) {
+          return NextResponse.json(
+            { error: `Season ELO must be between ${MIN_ELO} and ${MAX_ELO}` },
+            { status: 400 }
+          );
+        }
+        updateData.seasonElo = seasonElo;
+      }
     }
 
     const updatedUser = await prisma.user.update({

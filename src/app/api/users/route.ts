@@ -44,16 +44,14 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           image: true,
-          email: true,
+          // Note: email, role, isBanned, banReason are admin-only fields
+          // Public API intentionally omits these for privacy
           foreverElo: true,
           seasonElo: true,
           doublesForeverElo: true,
           doublesSeasonElo: true,
           matchesPlayed: true,
           doublesMatchesPlayed: true,
-          role: true,
-          isBanned: true,
-          banReason: true,
           createdAt: true,
         },
         orderBy: { [sortField]: sortOrder },

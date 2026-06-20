@@ -81,43 +81,43 @@ export async function POST(
     // The entry fee was calculated at entry time based on eloAtEntry
     let entryFee = 0;
     if (participant.teamId && participant.team) {
-      // For doubles: use the locked-in entry ELO values (participant.player1EloAtEntry, player2EloAtEntry)
-      // Each player paid a fee based on their ELO at entry time
-      // We stored this info in the participant record - recalculate the fee
+      // For doubles: use the locked-in entry ELO values
       const p1EloAtEntry = participant.player1EloAtEntry || participant.team.player1.foreverElo;
       const p2EloAtEntry = participant.player2EloAtEntry || participant.team.player2?.foreverElo || participant.team.player1.foreverElo;
-      // Recalculate the entry fee based on ELOs at time of entry
       entryFee = calculateDoublesEntryFee(p1EloAtEntry, p2EloAtEntry) * 2;
     } else if (participant.userId && participant.user) {
-      // For singles: use eloAtEntry to calculate what they paid
       entryFee = calculateEntryFee(participant.eloAtEntry);
     }
 
-    // Refund entry fee, create history entries, and deduct from prize pool
-    if (entryFee > 0) {
-      // Deduct from prize pool first
-      await prisma.tournament.update({
-        where: { id: tournamentId },
-        data: { prizePool: tournament.prizePool - entryFee },
-      });
-
-      if (participant.teamId && participant.team) {
-        await prisma.team.update({
-          where: { id: participant.teamId },
-          data: { foreverElo: participant.team.foreverElo + entryFee },
+    // Use transaction to prevent race conditions
+    await prisma.$transaction(async (tx) => {
+      if (entryFee > 0) {
+        // Deduct from prize pool first
+        await tx.tournament.update({
+          where: { id: tournamentId },
+          data: { prizePool: tournament.prizePool - entryFee },
         });
 
-        // Split refund between team players
-        const feePerPlayer = Math.floor(entryFee / 2);
-        for (const player of [participant.team.player1, participant.team.player2].filter(Boolean) as any[]) {
-          await prisma.eloHistory.create({
+        if (participant.teamId && participant.team) {
+          // Refund each player individually based on their locked-in entry fee
+          const feePerPlayer = calculateDoublesEntryFee(
+            participant.player1EloAtEntry || participant.team.player1.foreverElo,
+            participant.player2EloAtEntry || participant.team.player2?.foreverElo || participant.team.player1.foreverElo
+          );
+          
+          // Refund player 1
+          await tx.user.update({
+            where: { id: participant.team.player1Id },
+            data: { foreverElo: { increment: feePerPlayer } },
+          });
+          await tx.eloHistory.create({
             data: {
-              userId: player.id,
+              userId: participant.team.player1Id,
               changeType: 'TOURNAMENT_ENTRY',
-              eloBefore: player.foreverElo,
-              eloAfter: player.foreverElo + feePerPlayer,
+              eloBefore: participant.team.player1.foreverElo,
+              eloAfter: participant.team.player1.foreverElo + feePerPlayer,
               change: feePerPlayer,
-              description: `Refund for leaving tournament: ${tournament.name}`,
+              description: `Refund for being removed from tournament: ${tournament.name}`,
               metadata: {
                 tournamentId,
                 teamId: participant.teamId,
@@ -126,35 +126,55 @@ export async function POST(
               },
             },
           });
-        }
-      } else if (participant.userId && participant.user) {
-        await prisma.user.update({
-          where: { id: participant.userId },
-          data: { foreverElo: participant.user.foreverElo + entryFee },
-        });
-
-        // Create refund history entry
-        await prisma.eloHistory.create({
-          data: {
-            userId: participant.userId,
-            changeType: 'TOURNAMENT_ENTRY',
-            eloBefore: participant.user.foreverElo,
-            eloAfter: participant.user.foreverElo + entryFee,
-            change: entryFee,
-            description: `Refund for leaving tournament: ${tournament.name}`,
-            metadata: {
-              tournamentId,
-              isRefund: true,
-              removedBy: userId,
+          
+          // Refund player 2 if exists
+          if (participant.team.player2Id) {
+            await tx.user.update({
+              where: { id: participant.team.player2Id },
+              data: { foreverElo: { increment: feePerPlayer } },
+            });
+            await tx.eloHistory.create({
+              data: {
+                userId: participant.team.player2Id,
+                changeType: 'TOURNAMENT_ENTRY',
+                eloBefore: participant.team.player2.foreverElo,
+                eloAfter: participant.team.player2.foreverElo + feePerPlayer,
+                change: feePerPlayer,
+                description: `Refund for being removed from tournament: ${tournament.name}`,
+                metadata: {
+                  tournamentId,
+                  teamId: participant.teamId,
+                  isRefund: true,
+                  removedBy: userId,
+                },
+              },
+            });
+          }
+        } else if (participant.userId && participant.user) {
+          await tx.user.update({
+            where: { id: participant.userId },
+            data: { foreverElo: { increment: entryFee } },
+          });
+          await tx.eloHistory.create({
+            data: {
+              userId: participant.userId,
+              changeType: 'TOURNAMENT_ENTRY',
+              eloBefore: participant.user.foreverElo,
+              eloAfter: participant.user.foreverElo + entryFee,
+              change: entryFee,
+              description: `Refund for being removed from tournament: ${tournament.name}`,
+              metadata: {
+                tournamentId,
+                isRefund: true,
+                removedBy: userId,
+              },
             },
-          },
-        });
+          });
+        }
       }
-    }
 
-    // Remove participant
-    await prisma.tournamentParticipant.delete({
-      where: { id: participantId },
+      // Remove participant
+      await tx.tournamentParticipant.delete({ where: { id: participant.id } });
     });
 
     return NextResponse.json({ 
