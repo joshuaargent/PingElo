@@ -1,6 +1,6 @@
 /**
  * Leaderboard API Route
- * Handles leaderboard data for rankings
+ * Handles leaderboard data for rankings (singles and doubles)
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -8,6 +8,11 @@ import { checkRustyStatus, checkActivityBonus } from "@/lib/elo";
 
 /**
  * GET /api/leaderboard - Get leaderboard data
+ * Query params:
+ *   - page: page number (default: 1)
+ *   - limit: items per page (default: 50)
+ *   - type: "forever" or "season" (default: "forever")
+ *   - matchType: "singles", "doubles", or "all" (default: "singles")
  */
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +20,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "50");
     const type = searchParams.get("type") || "forever"; // "forever" or "season"
+    const matchType = searchParams.get("matchType") || "singles"; // "singles", "doubles", or "all"
 
     const skip = (page - 1) * limit;
 
@@ -28,6 +34,13 @@ export async function GET(request: NextRequest) {
       seasonId = activeSeason?.id || null;
     }
 
+    // Build match filter based on matchType
+    const matchTypeFilter = matchType === "all" 
+      ? {} // No filter - include all
+      : matchType === "doubles"
+        ? { matchType: "DOUBLES" as const }
+        : { matchType: "SINGLES" as const };
+
     // Get all users with their match data
     const users = await prisma.user.findMany({
       where: {
@@ -40,55 +53,115 @@ export async function GET(request: NextRequest) {
         foreverElo: true,
         seasonElo: true,
         matchesPlayed: true,
+        doublesForeverElo: true,
+        doublesSeasonElo: true,
+        doublesMatchesPlayed: true,
         createdAt: true,
       },
     });
 
-    // Get match stats for each user
+    // Get match stats for each user based on match type
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
 
-    // Get wins and last match for each player
-    const winsData = await prisma.match.findMany({
-      where: { deletedAt: null },
+    // Get all matches with winner info
+    const matchesData = await prisma.match.findMany({
+      where: { 
+        deletedAt: null,
+        ...matchTypeFilter,
+      },
       select: {
         winnerId: true,
         createdAt: true,
       },
     });
 
-    // Aggregate data
-    const playerStats = new Map<string, { wins: number; lastMatch: Date | null }>();
-    for (const match of winsData) {
-      const existing = playerStats.get(match.winnerId);
-      if (existing) {
-        existing.wins += 1;
+    // Get matches where user was a participant (for stats)
+    const allMatches = await prisma.match.findMany({
+      where: { 
+        deletedAt: null,
+        ...matchTypeFilter,
+      },
+      select: {
+        winnerId: true,
+        player1Id: true,
+        player2Id: true,
+        team1Player1Id: true,
+        team1Player2Id: true,
+        team2Player1Id: true,
+        team2Player2Id: true,
+        createdAt: true,
+      },
+    });
+
+    // Aggregate data for each user
+    const playerStats = new Map<string, { 
+      wins: number; 
+      matchesPlayed: number;
+      lastMatch: Date | null 
+    }>();
+
+    for (const match of allMatches) {
+      // Determine all players in this match
+      const playerIds = [
+        match.player1Id,
+        match.player2Id,
+        match.team1Player1Id,
+        match.team1Player2Id,
+        match.team2Player1Id,
+        match.team2Player2Id,
+      ].filter(Boolean) as string[];
+
+      // Update stats for each player
+      for (const playerId of playerIds) {
+        const existing = playerStats.get(playerId) || { wins: 0, matchesPlayed: 0, lastMatch: null };
+        existing.matchesPlayed += 1;
+        if (match.winnerId === playerId) {
+          existing.wins += 1;
+        }
         if (!existing.lastMatch || match.createdAt > existing.lastMatch) {
           existing.lastMatch = match.createdAt;
         }
-      } else {
-        playerStats.set(match.winnerId, { wins: 1, lastMatch: match.createdAt });
+        playerStats.set(playerId, existing);
       }
     }
 
     // Calculate all stats
     const leaderboardData = users.map((user) => {
-      const stats = playerStats.get(user.id) || { wins: 0, lastMatch: null };
+      const stats = playerStats.get(user.id) || { wins: 0, matchesPlayed: 0, lastMatch: null };
+      
+      // Use singles or doubles ELO based on matchType
+      const eloData = matchType === "doubles" 
+        ? {
+            elo: type === "season" ? user.doublesSeasonElo : user.doublesForeverElo,
+            totalMatches: user.doublesMatchesPlayed,
+          }
+        : {
+            elo: type === "season" ? user.seasonElo : user.foreverElo,
+            totalMatches: user.matchesPlayed,
+          };
+
       const rustyStatus = checkRustyStatus(stats.lastMatch);
       const activityStatus = checkActivityBonus(0); // Simplified
-      const losses = user.matchesPlayed - stats.wins;
+      const losses = stats.matchesPlayed - stats.wins;
       const winRate =
-        user.matchesPlayed > 0
-          ? Math.round((stats.wins / user.matchesPlayed) * 100 * 10) / 10
+        stats.matchesPlayed > 0
+          ? Math.round((stats.wins / stats.matchesPlayed) * 100 * 10) / 10
           : 0;
 
       return {
         userId: user.id,
         name: user.name,
         image: user.image,
+        // ELO values
         foreverElo: user.foreverElo,
         seasonElo: user.seasonElo,
-        matchesPlayed: user.matchesPlayed,
+        doublesForeverElo: user.doublesForeverElo,
+        doublesSeasonElo: user.doublesSeasonElo,
+        // Current leaderboard value
+        elo: eloData.elo,
+        // Stats
+        matchesPlayed: stats.matchesPlayed,
         wins: stats.wins,
         losses,
         winRate,
@@ -104,9 +177,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by the requested ELO type
     const sortedData = leaderboardData.sort((a, b) => {
-      const eloA = type === "season" ? a.seasonElo : a.foreverElo;
-      const eloB = type === "season" ? b.seasonElo : b.foreverElo;
-      return eloB - eloA;
+      return b.elo - a.elo;
     });
 
     // Add rank
@@ -121,6 +192,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leaderboard: paginatedData,
       type,
+      matchType,
       seasonId,
       pagination: {
         page,

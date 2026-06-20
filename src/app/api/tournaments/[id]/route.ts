@@ -1,11 +1,10 @@
 /**
  * Tournament Detail API Route
- * Handles single tournament retrieval and operations
+ * Handles single tournament retrieval and operations (singles and doubles)
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized, getAdminSessionOrForbidden } from "@/lib/auth-actions";
-import { calculateEntryFee, calculateTournamentPayout, getTournamentPrizePool } from "@/lib/elo";
 
 /**
  * GET /api/tournaments/[id] - Get tournament details
@@ -35,6 +34,7 @@ export async function GET(
                 name: true,
                 image: true,
                 foreverElo: true,
+                doublesForeverElo: true,
               },
             },
           },
@@ -53,6 +53,34 @@ export async function GET(
               },
             },
             player2: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            team1Player1: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            team1Player2: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            team2Player1: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+            team2Player2: {
               select: {
                 id: true,
                 name: true,
@@ -109,7 +137,6 @@ export async function PATCH(
       );
     }
 
-    // Only creator or admin can update
     const isAdmin = session!.user.role === "ADMIN";
     const isCreator = tournament.creatorId === session!.user.id;
 
@@ -120,7 +147,6 @@ export async function PATCH(
       );
     }
 
-    // Cannot update completed or cancelled tournaments
     if (tournament.status === "COMPLETED" || tournament.status === "CANCELLED") {
       return NextResponse.json(
         { error: "Cannot update completed or cancelled tournaments" },
@@ -128,7 +154,6 @@ export async function PATCH(
       );
     }
 
-    // Build update data
     const updateData: Record<string, unknown> = {};
 
     if (body.name !== undefined) updateData.name = body.name;
@@ -140,7 +165,6 @@ export async function PATCH(
       updateData.startsAt = body.startsAt ? new Date(body.startsAt) : null;
     }
     if (body.status !== undefined) {
-      // Validate status transitions
       const validTransitions: Record<string, string[]> = {
         DRAFT: ["REGISTRATION_OPEN", "CANCELLED"],
         REGISTRATION_OPEN: ["IN_PROGRESS", "CANCELLED"],
@@ -216,7 +240,6 @@ export async function DELETE(
       );
     }
 
-    // Cannot delete in-progress tournaments (cancel instead)
     if (tournament.status === "IN_PROGRESS") {
       return NextResponse.json(
         { error: "Cannot delete in-progress tournaments. Cancel it instead." },

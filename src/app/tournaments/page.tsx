@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { formatNumber } from '@/lib/utils';
-import { Trophy, Users, Calendar, Clock, ArrowRight, Plus } from 'lucide-react';
+import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus } from 'lucide-react';
 
 // Mock tournament data - in production this would come from API
 const mockTournaments = [
@@ -17,6 +17,7 @@ const mockTournaments = [
     description: 'Our weekly tournament with standard single elimination format.',
     creator: { id: '1', name: 'Alex Chen', image: null },
     status: 'REGISTRATION_OPEN',
+    matchType: 'SINGLES',
     entryFee: 10,
     prizePool: 610,
     maxParticipants: 8,
@@ -31,6 +32,7 @@ const mockTournaments = [
     description: 'Monthly tournament with higher stakes and bigger prizes.',
     creator: { id: '2', name: 'Sarah Miller', image: null },
     status: 'IN_PROGRESS',
+    matchType: 'SINGLES',
     entryFee: 20,
     prizePool: 720,
     maxParticipants: 8,
@@ -41,10 +43,26 @@ const mockTournaments = [
   },
   {
     id: '3',
+    name: 'Doubles Championship',
+    description: 'Partner up for our doubles tournament! Teams of two compete.',
+    creator: { id: '3', name: 'Mike Johnson', image: null },
+    status: 'REGISTRATION_OPEN',
+    matchType: 'DOUBLES',
+    entryFee: 15,
+    prizePool: 650,
+    maxParticipants: 4,
+    participantCount: 2,
+    format: 'SINGLE_ELIMINATION',
+    startsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '4',
     name: 'Beginner Friendly',
     description: 'Free entry for players under 1000 ELO. Great for newcomers!',
-    creator: { id: '3', name: 'Mike Johnson', image: null },
+    creator: { id: '4', name: 'Emma Wilson', image: null },
     status: 'COMPLETED',
+    matchType: 'SINGLES',
     entryFee: 0,
     prizePool: 500,
     maxParticipants: 8,
@@ -77,11 +95,15 @@ const statusLabels = {
 
 export default function TournamentsPage() {
   const [filter, setFilter] = useState<'all' | 'open' | 'in_progress'>('all');
+  const [matchTypeFilter, setMatchTypeFilter] = useState<'all' | 'singles' | 'doubles'>('all');
 
   const filteredTournaments = mockTournaments.filter((t) => {
-    if (filter === 'all') return true;
     if (filter === 'open') return t.status === 'REGISTRATION_OPEN';
     if (filter === 'in_progress') return t.status === 'IN_PROGRESS';
+    return true;
+  }).filter((t) => {
+    if (matchTypeFilter === 'singles') return t.matchType === 'SINGLES';
+    if (matchTypeFilter === 'doubles') return t.matchType === 'DOUBLES';
     return true;
   });
 
@@ -98,7 +120,44 @@ export default function TournamentsPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex flex-wrap items-center gap-4 mb-8">
+        {/* Match Type Filter */}
+        <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
+          <button
+            onClick={() => setMatchTypeFilter('all')}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all ${
+              matchTypeFilter === 'all'
+                ? 'bg-bg-primary text-text-primary shadow-sm'
+                : 'hover:bg-bg-primary/50'
+            }`}
+          >
+            All Types
+          </button>
+          <button
+            onClick={() => setMatchTypeFilter('singles')}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all ${
+              matchTypeFilter === 'singles'
+                ? 'bg-bg-primary text-text-primary shadow-sm'
+                : 'hover:bg-bg-primary/50'
+            }`}
+          >
+            <User className="h-4 w-4" />
+            Singles
+          </button>
+          <button
+            onClick={() => setMatchTypeFilter('doubles')}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ring-offset-bg transition-all ${
+              matchTypeFilter === 'doubles'
+                ? 'bg-bg-primary text-text-primary shadow-sm'
+                : 'hover:bg-bg-primary/50'
+            }`}
+          >
+            <UsersIcon className="h-4 w-4" />
+            Doubles
+          </button>
+        </div>
+
+        {/* Status Filter */}
         <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
           <button
             onClick={() => setFilter('all')}
@@ -160,6 +219,7 @@ interface Tournament {
   description?: string;
   creator: { id: string; name: string; image?: string | null };
   status: string;
+  matchType: string;
   entryFee: number;
   prizePool: number;
   maxParticipants: number;
@@ -172,6 +232,7 @@ interface Tournament {
 function TournamentCard({ tournament }: { tournament: Tournament }) {
   const isOpen = tournament.status === 'REGISTRATION_OPEN';
   const isFull = tournament.participantCount >= tournament.maxParticipants;
+  const isDoubles = tournament.matchType === 'DOUBLES';
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-md">
@@ -179,9 +240,24 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-text-primary mb-1">
-              {tournament.name}
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {tournament.name}
+              </h3>
+              <Badge variant={isDoubles ? 'default' : 'outline'} size="sm">
+                {isDoubles ? (
+                  <>
+                    <UsersIcon className="mr-1 h-3 w-3" />
+                    Doubles
+                  </>
+                ) : (
+                  <>
+                    <User className="mr-1 h-3 w-3" />
+                    Singles
+                  </>
+                )}
+              </Badge>
+            </div>
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                 statusColors[tournament.status as keyof typeof statusColors]
@@ -224,7 +300,7 @@ function TournamentCard({ tournament }: { tournament: Tournament }) {
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-4 w-4 text-text-secondary" />
           <span className="text-sm text-text-secondary">
-            {tournament.participantCount} / {tournament.maxParticipants} players
+            {tournament.participantCount} / {tournament.maxParticipants} {isDoubles ? 'teams' : 'players'}
           </span>
           {isFull && (
             <Badge variant="danger" size="sm">Full</Badge>

@@ -21,7 +21,6 @@ export async function POST(
     const { id: tournamentId } = await params;
     const userId = session!.user.id;
 
-    // Get tournament
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
       include: {
@@ -40,7 +39,6 @@ export async function POST(
       );
     }
 
-    // Check if tournament is open for registration
     if (tournament.status !== "REGISTRATION_OPEN") {
       return NextResponse.json(
         { error: "Tournament is not open for registration" },
@@ -48,7 +46,6 @@ export async function POST(
       );
     }
 
-    // Check if tournament is full
     if (tournament._count.participants >= tournament.maxParticipants) {
       return NextResponse.json(
         { error: "Tournament is full" },
@@ -56,7 +53,6 @@ export async function POST(
       );
     }
 
-    // Check if user is already registered
     const existingParticipant = await prisma.tournamentParticipant.findUnique({
       where: {
         tournamentId_userId: {
@@ -73,7 +69,6 @@ export async function POST(
       );
     }
 
-    // Get user to calculate entry fee
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -85,7 +80,6 @@ export async function POST(
       );
     }
 
-    // Check if user is banned
     if (user.isBanned) {
       return NextResponse.json(
         { error: "Banned users cannot join tournaments" },
@@ -93,36 +87,41 @@ export async function POST(
       );
     }
 
-    // Calculate entry fee based on current ELO
-    const entryFee = calculateEntryFee(user.foreverElo);
+    // Use appropriate ELO based on tournament match type
+    const playerElo = tournament.matchType === "DOUBLES" 
+      ? user.doublesForeverElo 
+      : user.foreverElo;
 
-    // Check if user has enough ELO for entry fee (if applicable)
-    if (user.foreverElo < entryFee) {
+    // Determine which ELO field to update based on match type
+    const eloField = tournament.matchType === "DOUBLES" 
+      ? "doublesForeverElo" 
+      : "foreverElo";
+
+    const entryFee = calculateEntryFee(playerElo);
+
+    if (playerElo < entryFee) {
       return NextResponse.json(
         { error: `Insufficient ELO to join. You need at least ${entryFee} ELO.` },
         { status: 400 }
       );
     }
 
-    // Create participant and deduct ELO in a transaction
     const participant = await prisma.$transaction(async (tx) => {
-      // Deduct entry fee if applicable
       if (entryFee > 0) {
         await tx.user.update({
           where: { id: userId },
           data: {
-            foreverElo: user.foreverElo - entryFee,
+            [eloField]: playerElo - entryFee,
           },
         });
       }
 
-      // Create participant record
       return tx.tournamentParticipant.create({
         data: {
           tournamentId,
           userId,
-          eloAtEntry: user.foreverElo,
-          paidEntry: entryFee === 0 || entryFee > 0, // Mark as paid regardless since ELO is deducted
+          eloAtEntry: playerElo,
+          paidEntry: entryFee === 0 || entryFee > 0,
         },
         include: {
           user: {
@@ -131,6 +130,7 @@ export async function POST(
               name: true,
               image: true,
               foreverElo: true,
+              doublesForeverElo: true,
             },
           },
         },
@@ -141,8 +141,9 @@ export async function POST(
       participant,
       entryFee,
       deducted: entryFee > 0,
+      matchType: tournament.matchType,
       message: entryFee > 0
-        ? `You paid ${entryFee} ELO to join the tournament`
+        ? `You paid ${entryFee} ${tournament.matchType === "DOUBLES" ? "doubles" : ""} ELO to join the tournament`
         : "You joined the tournament for free (ELO below 800)",
     }, { status: 201 });
   } catch (error) {
@@ -168,7 +169,6 @@ export async function DELETE(
     const { id: tournamentId } = await params;
     const userId = session!.user.id;
 
-    // Get tournament
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
     });
@@ -180,7 +180,6 @@ export async function DELETE(
       );
     }
 
-    // Check if tournament is still accepting registrations
     if (tournament.status !== "REGISTRATION_OPEN") {
       return NextResponse.json(
         { error: "Cannot leave tournament after it has started" },
@@ -188,7 +187,6 @@ export async function DELETE(
       );
     }
 
-    // Get participant
     const participant = await prisma.tournamentParticipant.findUnique({
       where: {
         tournamentId_userId: {
@@ -205,25 +203,29 @@ export async function DELETE(
       );
     }
 
-    // Refund entry fee if it was paid
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
+    const eloField = tournament.matchType === "DOUBLES" 
+      ? "doublesForeverElo" 
+      : "foreverElo";
+
     await prisma.$transaction(async (tx) => {
-      // Delete participant
       await tx.tournamentParticipant.delete({
         where: { id: participant.id },
       });
 
-      // Refund entry fee if it was paid and not already paid out
       if (participant.paidEntry && !participant.paidOut && participant.eloAtEntry > 0) {
-        const entryFee = participant.eloAtEntry - (user?.foreverElo || 0);
+        const currentElo = tournament.matchType === "DOUBLES" 
+          ? (user?.doublesForeverElo || 0)
+          : (user?.foreverElo || 0);
+        const entryFee = participant.eloAtEntry - currentElo;
         if (entryFee > 0) {
           await tx.user.update({
             where: { id: userId },
             data: {
-              foreverElo: user!.foreverElo + entryFee,
+              [eloField]: currentElo + entryFee,
             },
           });
         }

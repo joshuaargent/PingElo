@@ -1,6 +1,6 @@
 /**
  * Tournaments API Route
- * Handles tournament creation and listing
+ * Handles tournament creation and listing (singles and doubles)
  */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -23,10 +23,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const status = searchParams.get("status");
     const creatorId = searchParams.get("creatorId");
+    const matchType = searchParams.get("matchType"); // "SINGLES" or "DOUBLES"
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
     const where: Record<string, unknown> = {};
 
     if (status) {
@@ -35,6 +35,10 @@ export async function GET(request: NextRequest) {
 
     if (creatorId) {
       where.creatorId = creatorId;
+    }
+
+    if (matchType) {
+      where.matchType = matchType;
     }
 
     const [tournaments, total] = await Promise.all([
@@ -97,6 +101,7 @@ export async function POST(request: NextRequest) {
     const {
       name,
       description,
+      matchType, // "SINGLES" or "DOUBLES"
       entryFee,
       prizePool,
       maxScore,
@@ -113,11 +118,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate numbers
-    const finalMaxParticipants = Math.min(
+    // Validate match type
+    const finalMatchType = matchType === "DOUBLES" ? "DOUBLES" : "SINGLES";
+
+    // For doubles, adjust max participants (need even numbers for pairs)
+    let finalMaxParticipants = Math.min(
       Math.max(maxParticipants || 8, MIN_PARTICIPANTS),
       MAX_PARTICIPANTS
     );
+    if (finalMatchType === "DOUBLES") {
+      // For doubles, maxParticipants refers to number of teams
+      // So we need 4 * teams players (but the db stores it as players)
+      // Actually, let's keep it simple: maxParticipants for doubles = number of teams
+      finalMaxParticipants = Math.min(Math.max(maxParticipants || 8, MIN_PARTICIPANTS), MAX_PARTICIPANTS / 2);
+    }
+
     const finalMaxScore = Math.min(
       Math.max(maxScore || 21, MIN_SCORE),
       MAX_SCORE
@@ -128,6 +143,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description: description || null,
+        matchType: finalMatchType,
         creatorId: userId,
         entryFee: entryFee || 0,
         prizePool: prizePool || TOURNAMENT_HOUSE_INJECTION,

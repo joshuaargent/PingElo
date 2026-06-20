@@ -1,8 +1,8 @@
 'use client';
 
-import { forwardRef, useState } from 'react';
+import { forwardRef } from 'react';
 import Link from 'next/link';
-import { cn, formatNumber, formatRelativeTime } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { EloBadge } from './EloBadge';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +15,8 @@ interface LeaderboardEntry {
   image?: string | null;
   foreverElo: number;
   seasonElo: number;
+  doublesForeverElo?: number;
+  doublesSeasonElo?: number;
   matchesPlayed: number;
   wins: number;
   losses: number;
@@ -27,6 +29,7 @@ interface LeaderboardEntry {
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
   type?: 'forever' | 'season';
+  matchType?: 'singles' | 'doubles';
   showSeasonElo?: boolean;
   className?: string;
   onEntryClick?: (entry: LeaderboardEntry) => void;
@@ -40,6 +43,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(
     {
       entries,
       type = 'forever',
+      matchType = 'singles',
       showSeasonElo = false,
       className,
       onEntryClick,
@@ -59,7 +63,10 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(
                   Player
                 </th>
                 <th className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary sm:table-cell">
-                  {type === 'forever' ? 'Forever ELO' : 'Season ELO'}
+                  {matchType === 'doubles' 
+                    ? (type === 'forever' ? 'Doubles Forever ELO' : 'Doubles Season ELO')
+                    : (type === 'forever' ? 'Forever ELO' : 'Season ELO')
+                  }
                 </th>
                 <th className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary md:table-cell">
                   Record
@@ -78,6 +85,7 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(
                   key={entry.userId}
                   entry={entry}
                   type={type}
+                  matchType={matchType}
                   showSeasonElo={showSeasonElo}
                   onClick={() => onEntryClick?.(entry)}
                 />
@@ -107,12 +115,30 @@ Leaderboard.displayName = 'Leaderboard';
 interface LeaderboardRowProps {
   entry: LeaderboardEntry;
   type?: 'forever' | 'season';
+  matchType?: 'singles' | 'doubles';
   showSeasonElo?: boolean;
   onClick?: () => void;
 }
 
-function LeaderboardRow({ entry, type, showSeasonElo, onClick }: LeaderboardRowProps) {
-  const displayElo = type === 'forever' ? entry.foreverElo : entry.seasonElo;
+function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: LeaderboardRowProps) {
+  // Get the appropriate ELO based on match type and ELO type
+  const getDisplayElo = () => {
+    if (matchType === 'doubles') {
+      return type === 'forever' ? (entry.doublesForeverElo || 1000) : (entry.doublesSeasonElo || 1000);
+    }
+    return type === 'forever' ? entry.foreverElo : entry.seasonElo;
+  };
+
+  // Get the secondary ELO to show (if applicable)
+  const getSecondaryElo = () => {
+    if (matchType === 'doubles') {
+      return type === 'forever' ? entry.doublesSeasonElo : entry.doublesForeverElo;
+    }
+    return type === 'forever' ? entry.seasonElo : undefined;
+  };
+
+  const displayElo = getDisplayElo();
+  const secondaryElo = showSeasonElo ? getSecondaryElo() : undefined;
   const isTopThree = entry.rank <= 3;
 
   return (
@@ -139,7 +165,7 @@ function LeaderboardRow({ entry, type, showSeasonElo, onClick }: LeaderboardRowP
       {/* Player */}
       <td className="px-4 py-4">
         <Link
-          href={`/players/${entry.userId}`}
+          href={`/profile/${entry.userId}`}
           className="flex items-center gap-3"
           onClick={(e) => e.stopPropagation()}
         >
@@ -164,9 +190,12 @@ function LeaderboardRow({ entry, type, showSeasonElo, onClick }: LeaderboardRowP
       <td className="hidden px-4 py-4 text-right sm:table-cell">
         <div className="flex flex-col items-end gap-1">
           <EloBadge elo={displayElo} showLabel={false} />
-          {showSeasonElo && type === 'forever' && (
+          {secondaryElo && (
             <span className="text-xs text-text-secondary">
-              Season: {formatNumber(entry.seasonElo)}
+              {matchType === 'doubles' 
+                ? `Singles: ${type === 'forever' ? entry.foreverElo : entry.seasonElo}`
+                : `Doubles: ${type === 'forever' ? (entry.doublesForeverElo || 1000) : (entry.doublesSeasonElo || 1000)}`
+              }
             </span>
           )}
         </div>
