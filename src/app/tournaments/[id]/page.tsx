@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
+import { TournamentBracket } from '@/components/tournaments/Bracket';
 import { 
   Trophy, Users, ArrowLeft, Plus, User, Users as UsersIcon, 
   Braces, Play, Target
@@ -53,7 +54,8 @@ interface Bracket {
   player1Id?: string;
   player2Id?: string;
   winnerId?: string;
-  isBye: boolean;
+  bracketType?: string;
+  isBye?: boolean;
 }
 
 interface Match {
@@ -526,75 +528,30 @@ export default function TournamentDetailPage() {
           </Card>
 
           {/* Bracket Visualization */}
-          {tournament.status === 'IN_PROGRESS' && (tournament.matches?.length ?? 0) > 0 && (
-            <Card className="p-6">
-              <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                <Braces className="h-5 w-5 text-accent" />
-                Match History
-              </h2>
-              <div className="space-y-4">
-                {tournament.matches?.slice(0, 8).map((match) => (
-                  <div key={match.id} className="p-4 bg-bg-secondary rounded-lg border border-border">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className={match.winnerId === match.player1Id ? 'font-bold text-green-600' : 'text-text-muted'}>
-                          {match.player1?.name || 'TBD'}
-                        </span>
-                        <span className="font-bold">{match.player1Score}</span>
-                        <span className="text-text-muted">vs</span>
-                        <span className="font-bold">{match.player2Score}</span>
-                        <span className={match.winnerId === match.player2Id ? 'font-bold text-green-600' : 'text-text-muted'}>
-                          {match.player2?.name || 'TBD'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Pending Bracket Slots */}
           {tournament.status === 'IN_PROGRESS' && (tournament.brackets?.length ?? 0) > 0 && (
             <Card className="p-6">
-              <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                <Braces className="h-5 w-5 text-accent" />
-                Bracket
-              </h2>
-              <div className="space-y-3">
-                {tournament.brackets?.filter(b => b.player1Id && b.player2Id).map((bracket) => {
+              <TournamentBracket
+                brackets={tournament.brackets || []}
+                format={tournament.format}
+                players={tournament.participants}
+                onMatchClick={(bracket) => {
                   const p1 = getPlayerName(bracket.player1Id);
                   const p2 = getPlayerName(bracket.player2Id);
-                  return (
-                    <div key={bracket.id} className="p-3 bg-bg-secondary rounded-lg flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">R{bracket.round}</Badge>
-                        <span className={bracket.winnerId === bracket.player1Id ? 'font-bold text-green-600' : 'text-text-muted'}>
-                          {p1?.name || 'TBD'}
-                        </span>
-                        <span className="text-text-muted">vs</span>
-                        <span className={bracket.winnerId === bracket.player2Id ? 'font-bold text-green-600' : 'text-text-muted'}>
-                          {p2?.name || 'TBD'}
-                        </span>
-                      </div>
-                      {bracket.matchId ? (
-                        <Badge variant="success">Complete</Badge>
-                      ) : (
-                        <Badge variant="outline">Pending</Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                  if (p1 && p2) {
+                    setLoggingMatch({ bracket, player1: p1, player2: p2 });
+                  }
+                }}
+                isAdmin={isAdmin}
+              />
             </Card>
           )}
 
-          {/* No Matches Yet */}
-          {tournament.status === 'IN_PROGRESS' && (tournament.matches?.length ?? 0) === 0 && (
+          {/* No Bracket Yet */}
+          {tournament.status === 'IN_PROGRESS' && (tournament.brackets?.length ?? 0) === 0 && (
             <Card className="p-6 text-center">
               <Trophy className="h-12 w-12 mx-auto mb-4 text-text-muted" />
               <h3 className="font-semibold text-text-primary mb-2">Tournament In Progress</h3>
-              <p className="text-text-secondary">Matches will appear here as they are logged.</p>
+              <p className="text-text-secondary">Bracket is being generated...</p>
             </Card>
           )}
         </div>

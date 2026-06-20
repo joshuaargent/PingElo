@@ -156,19 +156,88 @@ export async function POST(
       });
     }
 
-    // Find next bracket slot for advancement
-    const nextRound = (round || 1) + 1;
-    const nextPosition = Math.ceil(position / 2);
-    
-    const nextSlot = tournament.brackets.find(
-      b => b.round === nextRound && b.position === nextPosition
-    );
+    // Update bracket slot with winner
+    if (bracketSlot) {
+      await prisma.tournamentBracket.update({
+        where: { id: bracketSlot.id },
+        data: { 
+          matchId: match.id,
+          winnerId: winnerId,
+        },
+      });
+    }
 
-    if (nextSlot) {
-      // Tournament not complete yet - just mark the match
-      // Advancement logic would need a separate mechanism
-    } else {
-      // This was the final match - tournament complete!
+    // Advance winner to next round
+    const currentBracketType = bracketSlot?.bracketType || 'winner';
+    
+    if (currentBracketType === 'winner' || currentBracketType === 'loser') {
+      const nextRound = (round || 1) + 1;
+      const nextPosition = Math.ceil(position / 2);
+      
+      // Find next bracket slot
+      let nextSlot = tournament.brackets.find(
+        b => b.round === nextRound && b.position === nextPosition
+      );
+      
+      if (nextSlot) {
+        // Advance winner to next bracket position
+        const isFirstSlot = position % 2 === 1;
+        
+        if (isFirstSlot && !nextSlot.player1Id) {
+          await prisma.tournamentBracket.update({
+            where: { id: nextSlot.id },
+            data: { player1Id: winnerId },
+          });
+        } else if (!isFirstSlot && !nextSlot.player2Id) {
+          await prisma.tournamentBracket.update({
+            where: { id: nextSlot.id },
+            data: { player2Id: winnerId },
+          });
+        }
+      }
+      
+      // For double elimination - handle loser bracket
+      if (currentBracketType === 'winner' && tournament.format === 'DOUBLE_ELIMINATION') {
+        // Find corresponding loser bracket slot (simplified - just mark loser bracket)
+        const totalParticipants = tournament.brackets.filter(b => b.bracketType === 'winner' && b.round === 1).length;
+        const loserRound = round + totalParticipants;
+        
+        const loserSlot = tournament.brackets.find(
+          b => b.bracketType === 'loser' && b.round === loserRound && b.position === position
+        );
+        if (loserSlot) {
+          // Loser advances to loser bracket
+          const isFirstSlot = position % 2 === 1;
+          if (isFirstSlot && !loserSlot.player1Id) {
+            await prisma.tournamentBracket.update({
+              where: { id: loserSlot.id },
+              data: { player1Id: loser.id },
+            });
+          } else if (!isFirstSlot && !loserSlot.player2Id) {
+            await prisma.tournamentBracket.update({
+              where: { id: loserSlot.id },
+              data: { player2Id: loser.id },
+            });
+          }
+        }
+      }
+    }
+
+    // Check if tournament is complete
+    // For single elimination: check if grand finals winner bracket is done
+    // For round robin: check if all matches are complete
+    const allMatchesComplete = tournament.brackets
+      .filter(b => b.player1Id && b.player2Id && !b.matchId)
+      .length === 0;
+    
+    const hasFinalMatch = tournament.brackets.some(
+      b => !b.bracketType || b.bracketType === 'winner'
+    ) && tournament.brackets
+      .filter(b => b.round === Math.max(...tournament.brackets.map(x => x.round)))
+      .every(b => b.matchId);
+
+    if (allMatchesComplete || hasFinalMatch) {
+      // Tournament complete!
       await prisma.tournament.update({
         where: { id: tournamentId },
         data: { status: 'COMPLETED' },

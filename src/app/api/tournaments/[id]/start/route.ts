@@ -212,6 +212,51 @@ export async function POST(
       );
     }
 
+    // Validate minimum participants based on match type
+    if (tournament.matchType === 'DOUBLES' && tournament.participants.length < 4) {
+      return NextResponse.json(
+        { error: "Doubles tournaments require at least 4 participants (2 teams)" },
+        { status: 400 }
+      );
+    }
+
+    // For single elimination, validate power of 2 participants
+    if (tournament.format === 'SINGLE_ELIMINATION') {
+      const n = tournament.participants.length;
+      if (n < 4) {
+        return NextResponse.json(
+          { error: "Single elimination requires at least 4 participants" },
+          { status: 400 }
+        );
+      }
+      // Check if power of 2
+      if (Math.log2(n) !== Math.floor(Math.log2(n))) {
+        // Allow non-power-of-2 with byes
+        console.log(`Starting with ${n} participants (byes will be assigned)`);
+      }
+    }
+
+    if (tournament.format === 'DOUBLE_ELIMINATION' && tournament.participants.length < 4) {
+      return NextResponse.json(
+        { error: "Double elimination requires at least 4 participants" },
+        { status: 400 }
+      );
+    }
+
+    if (tournament.format === 'ROUND_ROBIN' && tournament.participants.length < 3) {
+      return NextResponse.json(
+        { error: "Round robin requires at least 3 participants" },
+        { status: 400 }
+      );
+    }
+
+    if (tournament.format === 'SWISS' && tournament.participants.length < 4) {
+      return NextResponse.json(
+        { error: "Swiss format requires at least 4 participants" },
+        { status: 400 }
+      );
+    }
+
     // Generate bracket slots
     const participants = tournament.participants.map(p => ({
       id: p.userId,
