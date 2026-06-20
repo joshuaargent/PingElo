@@ -39,8 +39,8 @@ export default function DashboardPage() {
       redirect('/auth/signin');
     }
     
-    // Check if user has seen this season's intro
-    async function checkSeason() {
+    // Check if user has seen this season's intro (runs every time)
+    async function checkSeasonIntro() {
       try {
         const res = await fetch('/api/seasons/current');
         if (res.ok) {
@@ -48,10 +48,8 @@ export default function DashboardPage() {
           const currentSeasonName = data.season?.name || 'Current Season';
           const lastSeenSeason = localStorage.getItem('lastSeenSeason');
           
-          // Show season intro if:
-          // 1. Season needs reset (old season ended), OR
-          // 2. User hasn't seen this season yet
-          if (data.needsReset || lastSeenSeason !== currentSeasonName) {
+          // Show season intro if user hasn't seen this season yet
+          if (lastSeenSeason !== currentSeasonName) {
             redirect('/season-reset');
           }
         }
@@ -60,7 +58,7 @@ export default function DashboardPage() {
       }
     }
     
-    checkSeason();
+    checkSeasonIntro();
   }, [session, status]);
 
   useEffect(() => {

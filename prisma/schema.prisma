@@ -336,22 +336,27 @@ model EloHistory {
 model TournamentBracket {
   id            String         @id @default(cuid())
   tournamentId  String
-  
+
   // Bracket position
   round         Int            // Round number (1 = first round)
   position      Int            // Position within the round
   bracketType   String         @default("winner") // winner, loser, grand_final
-  
+
+  // Player tracking for this bracket slot
+  player1Id     String?        // First player/team in this match
+  player2Id     String?        // Second player/team in this match
+
   // Match tracking
   matchId       String?        // Related match in this bracket position
-  
+  winnerId      String?        // Winner of this match
+
   // Forbye tracking (automatic advancement)
   isBye         Boolean        @default(false)
-  
+
   // Advancement tracking
   winnerAdvancesTo Int?        // Round number winner advances to
   loserAdvancesTo  Int?        // Round number loser advances to (for double elim)
-  
+
   // Timestamps
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

@@ -92,6 +92,12 @@ export async function GET(
             createdAt: "asc",
           },
         },
+        brackets: {
+          orderBy: [
+            { round: 'asc' },
+            { position: 'asc' },
+          ],
+        },
       },
     });
 
@@ -137,8 +143,9 @@ export async function PATCH(
       );
     }
 
-    const isAdmin = session!.user.role === "ADMIN";
-    const isCreator = tournament.creatorId === session!.user.id;
+    const userRole = (session!.user as { role?: string }).role;
+    const isAdmin = userRole === "ADMIN";
+    const isCreator = tournament.creatorId === (session!.user as { id: string }).id;
 
     if (!isAdmin && !isCreator) {
       return NextResponse.json(
