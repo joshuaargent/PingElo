@@ -56,6 +56,10 @@ export async function POST(
         return NextResponse.json({ error: "Team not found" }, { status: 404 });
       }
 
+      if (!team.isActive) {
+        return NextResponse.json({ error: "Team is inactive. Please reactivate your team first." }, { status: 400 });
+      }
+
       if (team.player1Id !== userId && team.player2Id !== userId) {
         return NextResponse.json({ error: "You are not a member of this team" }, { status: 403 });
       }
