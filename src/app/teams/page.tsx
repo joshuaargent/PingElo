@@ -204,7 +204,7 @@ export default function TeamsPage() {
                         <div className="flex gap-2 mt-1">
                           <Badge>{team.foreverElo} Team ELO</Badge>
                           {team.seasonElo !== team.foreverElo && (
-                            <Badge variant="secondary">{team.seasonElo} Season</Badge>
+                            <Badge variant="accent">{team.seasonElo} Season</Badge>
                           )}
                         </div>
                       </div>
