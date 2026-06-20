@@ -199,24 +199,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Team already has stats for this season" }, { status: 400 });
       }
       
-      // Reactivation counts as creation for player1 (the creator)
-      // Check if player1 has already used their creation slot this season
-      if (existingTeam.player1Id === userId) {
-        // User is the creator, check their creation limit
-        const teamsCreatedByUser = await prisma.team.count({
-          where: {
-            player1Id: userId,
-            seasonStats: {
-              some: { seasonId: currentSeason.id },
-            },
-          },
-        });
-        
-        if (teamsCreatedByUser >= MAX_TEAMS_CREATED_PER_PERSON) {
-          return NextResponse.json({
-            error: `You can only create or reactivate ${MAX_TEAMS_CREATED_PER_PERSON} team(s) as creator`,
-          }, { status: 400 });
-        }
+      // Reactivation counts toward YOUR activation limit (the person who reactivates)
+      // Check how many teams YOU have activated this season
+      const teamsActivatedByYou = await prisma.teamSeasonStats.count({
+        where: {
+          activatedById: userId,
+          seasonId: currentSeason.id,
+        },
+      });
+      
+      if (teamsActivatedByYou >= MAX_TEAMS_CREATED_PER_PERSON) {
+        return NextResponse.json({
+          error: `You can only create or reactivate ${MAX_TEAMS_CREATED_PER_PERSON} team(s) per season`,
+        }, { status: 400 });
       }
       
       // Check if reactivating would exceed the 2-team limit for either player
@@ -260,11 +255,12 @@ export async function POST(request: NextRequest) {
         data: { isActive: true },
       });
       
-      // Create season stats for current season
+      // Create season stats for current season, tracking who activated
       await prisma.teamSeasonStats.create({
         data: {
           teamId: teamId,
           seasonId: currentSeason.id,
+          activatedById: userId,
           seasonElo: updatedTeam.foreverElo,
         },
       });
@@ -362,6 +358,7 @@ export async function POST(request: NextRequest) {
           seasonStats: {
             create: {
               seasonId: currentSeason.id,
+              activatedById: userId,
               seasonElo: avgElo,
             },
           },

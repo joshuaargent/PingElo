@@ -85,6 +85,8 @@ model User {
   // Teams (as either player 1 or player 2)
   teamsAsP1      Team[]    @relation("TeamPlayer1")
   teamsAsP2      Team[]    @relation("TeamPlayer2")
+  // Team activations (who activated each team for each season)
+  teamActivations TeamSeasonStats[] @relation("TeamActivation")
   // Match creation
   createdMatches Match[]   @relation("MatchCreator")
   // Tournaments
@@ -198,6 +200,10 @@ model TeamSeasonStats {
   seasonId      String
   season        Season    @relation(fields: [seasonId], references: [id])
   
+  // Who activated this team for this season (tracks creation/reactivation)
+  activatedById String?
+  activatedBy   User?     @relation("TeamActivation", fields: [activatedById], references: [id])
+  
   // Season-specific ELO (resets each season)
   seasonElo     Int       @default(1000)
   
@@ -213,6 +219,7 @@ model TeamSeasonStats {
   @@unique([teamId, seasonId])
   @@index([teamId])
   @@index([seasonId])
+  @@index([activatedById])
 }
 
 model Match {
