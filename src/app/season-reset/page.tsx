@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import confetti from 'canvas-confetti';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
-import { Trophy, TrendingUp, Star, CheckCircle, ArrowRight, Sparkles, Target, Flame, Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { Trophy, TrendingUp, Star, CheckCircle, ArrowRight, Sparkles, Target, Flame, Zap, Crown, TrendingDown, Award, Users } from 'lucide-react';
 
 interface UserSeasonStats {
   name: string;
@@ -22,6 +24,12 @@ interface UserSeasonStats {
   percentile: number;
   isChampion: boolean;
   championBonus: number;
+  // New detailed stats
+  biggestUpset?: { opponent: string; opponentElo: number; gained: number };
+  longestStreak?: number;
+  bestWinMargin?: number;
+  totalPartnerWins?: number;
+  favoritePartner?: { name: string; wins: number };
 }
 
 interface SeasonInfo {
@@ -36,6 +44,45 @@ export default function SeasonResetPage() {
   const [userStats, setUserStats] = useState<UserSeasonStats | null>(null);
   const [seasonInfo, setSeasonInfo] = useState<SeasonInfo | null>(null);
   const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Fire confetti celebration
+  const fireConfetti = useCallback(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    
+    const colors = ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1'];
+    
+    (function frame() {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: colors,
+      });
+      
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+    
+    // Big burst in center
+    confetti({
+      particleCount: 100,
+      spread: 100,
+      origin: { x: 0.5, y: 0.5 },
+      colors: colors,
+      startVelocity: 45,
+    });
+  }, []);
 
   useEffect(() => {
     async function loadSeasonData() {
@@ -59,8 +106,10 @@ export default function SeasonResetPage() {
         const lastSeenSeason = localStorage.getItem('lastSeenSeason');
         
         if (lastSeenSeason === currentSeasonName) {
-          // User has already seen this season, mark as seen
           setHasMarkedSeen(true);
+        } else {
+          // First time seeing new season - show confetti!
+          setShowConfetti(true);
         }
         
         setSeasonInfo({
@@ -80,8 +129,16 @@ export default function SeasonResetPage() {
     }
   }, [session, router]);
 
+  // Fire confetti when page loads for new seasons
+  useEffect(() => {
+    if (status === 'summary' && showConfetti && !hasMarkedSeen) {
+      setTimeout(() => {
+        fireConfetti();
+      }, 500);
+    }
+  }, [status, showConfetti, hasMarkedSeen, fireConfetti]);
+
   const handleContinue = () => {
-    // Mark season as seen only when user clicks continue
     if (seasonInfo?.name && !hasMarkedSeen) {
       localStorage.setItem('lastSeenSeason', seasonInfo.name);
       setHasMarkedSeen(true);
@@ -90,18 +147,30 @@ export default function SeasonResetPage() {
   };
 
   const handleDismiss = () => {
-    // Mark season as seen
     if (seasonInfo?.name && !hasMarkedSeen) {
       localStorage.setItem('lastSeenSeason', seasonInfo.name);
       setHasMarkedSeen(true);
     }
   };
 
+  // Get hype message based on performance
+  const getHypeMessage = () => {
+    if (!userStats) return "Time to make your mark!";
+    if (userStats.isChampion) return "👑 You were UNSTOPPABLE!";
+    if (userStats.seasonGains >= 200) return "🔥 Absolute LEGEND status!";
+    if (userStats.seasonGains >= 100) return "⚡ On FIRE this season!";
+    if (userStats.seasonGains >= 50) return "🚀 Climbing the ranks!";
+    if (userStats.winRate >= 80) return "🏆 Dominant force!";
+    if (userStats.winRate >= 60) return "💪 Solid performance!";
+    if (userStats.seasonGains >= 0) return "🌟 Steady improvement!";
+    if (userStats.seasonMatches === 0) return "🌅 Fresh start awaits!";
+    return "💪 Every legend starts somewhere!";
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center">
-          {/* Animated Loading */}
           <div className="relative w-24 h-24 mx-auto mb-8">
             <div className="absolute inset-0 border-4 border-accent/20 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
@@ -149,7 +218,7 @@ export default function SeasonResetPage() {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="text-center max-w-3xl mx-auto px-4">
         {/* Header Animation */}
-        <div className="relative w-32 h-32 mx-auto mb-8">
+        <div className="relative w-32 h-32 mx-auto mb-6">
           <div className="absolute inset-0 bg-accent/20 rounded-full animate-ping"></div>
           <div className="absolute inset-0 bg-gradient-to-br from-accent to-orange-500 rounded-full animate-bounce"></div>
           <div className="absolute inset-0 flex items-center justify-center">
@@ -160,7 +229,10 @@ export default function SeasonResetPage() {
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary mb-2">
           {seasonInfo?.name || 'New Season'}!
         </h1>
-        <p className="text-xl text-text-secondary mb-8">
+        <p className="text-xl text-accent font-semibold mb-2">
+          {getHypeMessage()}
+        </p>
+        <p className="text-lg text-text-secondary mb-8">
           Your ping pong journey continues
         </p>
 
@@ -182,12 +254,17 @@ export default function SeasonResetPage() {
                   {seasonInfo?.previousName} Recap
                 </p>
               </div>
+              {userStats.isChampion && (
+                <Badge variant="accent" className="ml-auto">
+                  <Crown className="h-4 w-4 mr-1" /> Champion
+                </Badge>
+              )}
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-500" />
+                <TrendingUp className={`h-6 w-6 mx-auto mb-2 ${userStats.seasonGains >= 0 ? 'text-green-500' : 'text-red-500'}`} />
                 <p className="text-2xl font-bold text-text-primary">
                   {userStats.seasonGains >= 0 ? '+' : ''}{userStats.seasonGains}
                 </p>
@@ -223,16 +300,28 @@ export default function SeasonResetPage() {
               </div>
             </div>
 
-            {/* Champion Bonus */}
+            {/* Champion Celebration */}
             {userStats.isChampion && (
-              <div className="mt-6 p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl border-2 border-yellow-500">
+              <div className="mt-6 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border-2 border-yellow-500">
                 <div className="flex items-center justify-center gap-3">
-                  <Star className="h-6 w-6 text-yellow-500" />
-                  <span className="text-lg font-bold text-yellow-700 dark:text-yellow-400">
-                    Season Champion! +{userStats.championBonus} Bonus ELO!
+                  <Star className="h-8 w-8 text-yellow-500 animate-pulse" />
+                  <span className="text-xl font-bold text-yellow-400">
+                    🏆 SEASON CHAMPION! +{userStats.championBonus} Bonus ELO! 🏆
                   </span>
-                  <Star className="h-6 w-6 text-yellow-500" />
+                  <Star className="h-8 w-8 text-yellow-500 animate-pulse" />
                 </div>
+                <p className="text-center text-text-secondary mt-2">
+                  You dominated the competition. This bonus is now permanent!
+                </p>
+              </div>
+            )}
+
+            {/* Milestone Badges */}
+            {userStats.seasonMatches >= 20 && (
+              <div className="mt-4 flex justify-center">
+                <Badge variant="outline" className="text-lg px-4 py-2">
+                  <Award className="h-5 w-5 mr-2" /> Dedicated Player - {userStats.seasonMatches} matches!
+                </Badge>
               </div>
             )}
           </Card>
@@ -247,32 +336,32 @@ export default function SeasonResetPage() {
           
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-accent">1</span>
+              <div className="w-8 h-8 bg-green-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-4 w-4 text-green-500" />
               </div>
               <div>
                 <p className="font-medium text-text-primary">Season ELO reset to 1000</p>
-                <p className="text-sm text-text-secondary">Fresh start for everyone!</p>
+                <p className="text-sm text-text-secondary">Fresh start for everyone - compete for the crown!</p>
               </div>
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-accent">2</span>
+              <div className="w-8 h-8 bg-yellow-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Trophy className="h-4 w-4 text-yellow-500" />
               </div>
               <div>
                 <p className="font-medium text-text-primary">Compete for the crown</p>
-                <p className="text-sm text-text-secondary">Season champion earns bonus ELO</p>
+                <p className="text-sm text-text-secondary">Season champion earns a permanent 10% bonus to forever ELO</p>
               </div>
             </div>
             
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="font-bold text-accent">3</span>
+              <div className="w-8 h-8 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="h-4 w-4 text-blue-500" />
               </div>
               <div>
                 <p className="font-medium text-text-primary">Your forever ELO is safe</p>
-                <p className="text-sm text-text-secondary">All-time progress preserved</p>
+                <p className="text-sm text-text-secondary">All-time progress preserved forever</p>
               </div>
             </div>
           </div>
@@ -282,7 +371,12 @@ export default function SeasonResetPage() {
         <div className="text-center space-y-4">
           <Button 
             size="lg"
-            onClick={handleContinue}
+            onClick={() => {
+              if (!userStats?.isChampion) {
+                fireConfetti();
+              }
+              handleContinue();
+            }}
             rightIcon={<ArrowRight className="h-5 w-5" />}
             className="px-8"
           >
