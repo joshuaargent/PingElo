@@ -39,13 +39,19 @@ export default function DashboardPage() {
       redirect('/auth/signin');
     }
     
-    // Check if season needs reset
+    // Check if user has seen this season's intro
     async function checkSeason() {
       try {
         const res = await fetch('/api/seasons/current');
         if (res.ok) {
           const data = await res.json();
-          if (data.needsReset) {
+          const currentSeasonName = data.season?.name || 'Current Season';
+          const lastSeenSeason = localStorage.getItem('lastSeenSeason');
+          
+          // Show season intro if:
+          // 1. Season needs reset (old season ended), OR
+          // 2. User hasn't seen this season yet
+          if (data.needsReset || lastSeenSeason !== currentSeasonName) {
             redirect('/season-reset');
           }
         }
