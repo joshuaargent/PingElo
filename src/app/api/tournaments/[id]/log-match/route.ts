@@ -348,16 +348,56 @@ export async function POST(
                 });
               }
             } else {
-              // For doubles, update team ELOs
-              await prisma.team.update({
+              // For doubles:
+              // 1. Give each player their individual reward (half of placement prize each)
+              // 2. Give team the total of both players' rewards
+              const firstPlacePrize = Math.floor(prizePool * first);
+              const secondPlacePrize = Math.floor(prizePool * second);
+              const firstPerPlayer = Math.floor(firstPlacePrize / 2);
+              const secondPerPlayer = Math.floor(secondPlacePrize / 2);
+
+              // Get winning team and players
+              const firstTeam = await prisma.team.findUnique({
                 where: { id: firstPlaceId },
-                data: { foreverElo: { increment: Math.floor(prizePool * first) } },
+                include: { player1: true, player2: true }
               });
-              if (secondPlaceId) {
-                await prisma.team.update({
-                  where: { id: secondPlaceId },
-                  data: { foreverElo: { increment: Math.floor(prizePool * second) } },
+              if (firstTeam) {
+                // Give each player their individual reward
+                await prisma.user.update({
+                  where: { id: firstTeam.player1Id },
+                  data: { doublesForeverElo: { increment: firstPerPlayer } },
                 });
+                await prisma.user.update({
+                  where: { id: firstTeam.player2Id },
+                  data: { doublesForeverElo: { increment: firstPerPlayer } },
+                });
+                // Give team the total
+                await prisma.team.update({
+                  where: { id: firstPlaceId },
+                  data: { foreverElo: { increment: firstPlacePrize } },
+                });
+              }
+
+              // Same for second place
+              if (secondPlaceId) {
+                const secondTeam = await prisma.team.findUnique({
+                  where: { id: secondPlaceId },
+                  include: { player1: true, player2: true }
+                });
+                if (secondTeam) {
+                  await prisma.user.update({
+                    where: { id: secondTeam.player1Id },
+                    data: { doublesForeverElo: { increment: secondPerPlayer } },
+                  });
+                  await prisma.user.update({
+                    where: { id: secondTeam.player2Id },
+                    data: { doublesForeverElo: { increment: secondPerPlayer } },
+                  });
+                  await prisma.team.update({
+                    where: { id: secondPlaceId },
+                    data: { foreverElo: { increment: secondPlacePrize } },
+                  });
+                }
               }
             }
             
@@ -379,10 +419,27 @@ export async function POST(
                     data: { foreverElo: { increment: Math.floor(prizePool * third) } },
                   });
                 } else {
-                  await prisma.team.update({
+                  // Doubles 3rd place: players + team
+                  const thirdPlacePrize = Math.floor(prizePool * third);
+                  const perPlayer = Math.floor(thirdPlacePrize / 2);
+                  const thirdTeam = await prisma.team.findUnique({
                     where: { id: thirdPlaceId },
-                    data: { foreverElo: { increment: Math.floor(prizePool * third) } },
+                    include: { player1: true, player2: true }
                   });
+                  if (thirdTeam) {
+                    await prisma.user.update({
+                      where: { id: thirdTeam.player1Id },
+                      data: { doublesForeverElo: { increment: perPlayer } },
+                    });
+                    await prisma.user.update({
+                      where: { id: thirdTeam.player2Id },
+                      data: { doublesForeverElo: { increment: perPlayer } },
+                    });
+                    await prisma.team.update({
+                      where: { id: thirdPlaceId },
+                      data: { foreverElo: { increment: thirdPlacePrize } },
+                    });
+                  }
                 }
               }
             }

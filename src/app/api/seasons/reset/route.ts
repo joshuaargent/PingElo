@@ -89,9 +89,10 @@ export async function POST(request: NextRequest) {
         
         // 1b. Mark all active teams as inactive (preserved for history)
         // Teams persist but become inactive when season ends
+        // Also reset team doublesSeasonElo to 1000
         await tx.team.updateMany({
           where: { isActive: true },
-          data: { isActive: false },
+          data: { isActive: false, doublesSeasonElo: 1000 },
         });
       }
 

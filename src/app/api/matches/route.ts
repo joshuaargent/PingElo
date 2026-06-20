@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { calculateEloChange, calculateDoublesEloChange, getTeamElo } from "@/lib/elo";
+import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor } from "@/lib/elo";
 
 // Validation constants
 const MIN_SCORE = 3;

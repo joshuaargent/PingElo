@@ -156,6 +156,23 @@ export function getDoublesKFactor(player1Games: number, player2Games: number): n
 }
 
 /**
+ * Gets the K-factor for a team based on team matches played
+ * Teams track their own ELO history separate from individual players
+ */
+export function getTeamKFactor(gamesPlayed: number): number {
+  if (gamesPlayed < K_FACTOR_THRESHOLDS.NEW_PLAYER) {
+    return K_FACTORS.NEW_PLAYER;
+  }
+  if (gamesPlayed < K_FACTOR_THRESHOLDS.ADJUSTING) {
+    return K_FACTORS.ADJUSTING;
+  }
+  if (gamesPlayed < K_FACTOR_THRESHOLDS.ESTABLISHED) {
+    return K_FACTORS.ESTABLISHED;
+  }
+  return K_FACTORS.VETERAN;
+}
+
+/**
  * Gets a human-readable label for the K-factor tier
  */
 export function getKFactorLabel(gamesPlayed: number): string {
