@@ -14,7 +14,11 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
     | 'health'
     | 'performance'
     | 'code'
-    | 'outline';
+    | 'outline'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'primary';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -31,6 +35,10 @@ const variantStyles: Record<string, string> = {
   performance: 'bg-orange-100 text-orange-700',
   code: 'bg-cyan-100 text-cyan-700',
   outline: 'border border-border text-text-secondary',
+  success: 'bg-green-100 text-green-700',
+  warning: 'bg-yellow-100 text-yellow-700',
+  danger: 'bg-red-100 text-red-700',
+  primary: 'bg-accent text-white',
 };
 
 const sizeStyles: Record<string, string> = {

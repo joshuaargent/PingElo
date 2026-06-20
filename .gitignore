@@ -36,3 +36,5 @@ next-env.d.ts
 
 # Contentlayer
 .contentlayerserver.log
+
+/src/generated/prisma

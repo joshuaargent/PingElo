@@ -10,6 +10,7 @@ export interface PageHeaderProps {
   title: string;
   description?: string;
   children?: React.ReactNode;
+  action?: React.ReactNode;
   className?: string;
   align?: 'left' | 'center';
   size?: 'default' | 'large';
@@ -23,6 +24,7 @@ export function PageHeader({
   title,
   description,
   children,
+  action,
   className,
   align = 'center',
   size = 'default',
@@ -30,25 +32,30 @@ export function PageHeader({
   return (
     <header className={cn('py-12 md:py-16', size === 'large' && 'py-16 md:py-24', className)}>
       <div className={cn('container', align === 'center' && 'text-center')}>
-        <h1
-          className={cn(
-            'text-text-primary font-bold tracking-tight',
-            size === 'default' ? 'text-3xl md:text-4xl' : 'text-4xl md:text-5xl'
-          )}
-        >
-          {title}
-        </h1>
-        {description && (
-          <p
-            className={cn(
-              'text-text-secondary mt-4 max-w-2xl text-lg',
-              align === 'center' && 'mx-auto'
+        <div className="flex items-center justify-between">
+          <div className={cn('flex-1', align === 'center' && 'text-center')}>
+            <h1
+              className={cn(
+                'text-text-primary font-bold tracking-tight',
+                size === 'default' ? 'text-3xl md:text-4xl' : 'text-4xl md:text-5xl'
+              )}
+            >
+              {title}
+            </h1>
+            {description && (
+              <p
+                className={cn(
+                  'text-text-secondary mt-4 max-w-2xl text-lg',
+                  align === 'center' && 'mx-auto'
+                )}
+              >
+                {description}
+              </p>
             )}
-          >
-            {description}
-          </p>
-        )}
-        {children && <div className="mt-6">{children}</div>}
+            {children && <div className="mt-6">{children}</div>}
+          </div>
+          {action && <div className="ml-4">{action}</div>}
+        </div>
       </div>
     </header>
   );

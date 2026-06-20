@@ -8,7 +8,7 @@ import { User } from 'lucide-react';
 // ============================================
 
 export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
-  src?: string;
+  src?: string | null;
   alt: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   fallback?: React.ReactNode;

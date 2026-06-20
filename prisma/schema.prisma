@@ -1,0 +1,209 @@
+// PingElo - Prisma Schema
+// Database schema for ping pong ELO tracking platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum Role {
+  PLAYER
+  ADMIN
+}
+
+enum TournamentFormat {
+  SINGLE_ELIMINATION
+  DOUBLE_ELIMINATION
+  ROUND_ROBIN
+  SWISS
+}
+
+enum TournamentStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// Models
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String
+  image         String?
+  passwordHash  String?
+  role          Role      @default(PLAYER)
+  isBanned      Boolean   @default(false)
+  banReason     String?
+
+  // ELO tracking
+  foreverElo     Int       @default(1000)
+  seasonElo      Int       @default(1000)
+  matchesPlayed  Int       @default(0)
+
+  // Season tracking
+  seasonId       String?
+  season         Season?   @relation(fields: [seasonId], references: [id])
+
+  // Timestamps
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  accounts       Account[]
+  sessions       Session[]
+  matchesAsP1    Match[]   @relation("Player1")
+  matchesAsP2    Match[]   @relation("Player2")
+  createdMatches Match[]   @relation("MatchCreator")
+  tournaments    TournamentParticipant[]
+  createdTournaments Tournament[]
+  seasonWins     Season[]  @relation("SeasonWinner")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Season {
+  id          String   @id @default(cuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  winnerId    String?  @unique
+  winnerElo   Int?
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  winner      User?    @relation("SeasonWinner", fields: [winnerId], references: [id])
+  users       User[]
+  matches     Match[]
+}
+
+model Match {
+  id            String    @id @default(cuid())
+  player1Id     String
+  player2Id     String
+  player1Score  Int       // Must be >= 3 and <= 21
+  player2Score  Int       // Must be >= 3 and <= 21
+  winnerId      String
+
+  // ELO changes at time of match
+  player1EloBefore Int
+  player2EloBefore Int
+  player1EloChange Int
+  player2EloChange Int
+
+  // Season context
+  seasonId      String?
+  season        Season?   @relation(fields: [seasonId], references: [id])
+
+  // Metadata
+  isTournamentMatch Boolean @default(false)
+  tournamentId      String?
+  tournament        Tournament? @relation(fields: [tournamentId], references: [id])
+
+  // Admin tracking
+  createdById   String
+  createdBy     User     @relation("MatchCreator", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime? // Soft delete for admin
+
+  // Relationships
+  player1       User     @relation("Player1", fields: [player1Id], references: [id])
+  player2       User     @relation("Player2", fields: [player2Id], references: [id])
+
+  @@index([player1Id])
+  @@index([player2Id])
+  @@index([winnerId])
+  @@index([seasonId])
+}
+
+model Tournament {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  creatorId       String
+
+  // Tournament settings
+  entryFee        Int       @default(0)      // ELO cost to enter
+  prizePool       Int       @default(0)      // House ELO added
+  maxScore        Int       @default(21)     // Win condition (3-21)
+  format          TournamentFormat @default(SINGLE_ELIMINATION)
+  maxParticipants Int       @default(8)
+
+  // Status
+  status          TournamentStatus @default(DRAFT)
+  startsAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  creator         User      @relation(fields: [creatorId], references: [id])
+  participants    TournamentParticipant[]
+  matches         Match[]
+}
+
+model TournamentParticipant {
+  id              String    @id @default(cuid())
+  tournamentId    String
+  userId          String
+  eloAtEntry      Int       // Locked at entry time
+  paidEntry       Boolean   @default(false)
+  paidOut         Boolean   @default(false)
+  finalPlacement  Int?
+  createdAt       DateTime  @default(now())
+
+  tournament      Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+}

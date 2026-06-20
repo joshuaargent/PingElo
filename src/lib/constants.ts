@@ -1,24 +1,24 @@
 // ============================================
-// Site Configuration
+// Site Configuration - PingElo
 // ============================================
 
 export const siteConfig = {
-  name: 'My Template',
-  description: 'A reusable Next.js template for any website project.',
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
+  name: 'PingElo',
+  description: 'Track your ping pong skills with ELO ratings, compete in tournaments, and climb the leaderboard.',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://pingelo.app',
   ogImage: '/og-image.png',
-  location: 'Surrey, United Kingdom',
+  location: 'Your Ping Pong Venue',
   links: {
-    youtube: 'https://youtube.com/@joshua_argent',
-    github: 'https://github.com/joshuaargent',
-    instagram: 'https://instagram.com/joshua_argent',
-    facebook: 'https://facebook.com/joshua_argent',
-    strava: 'https://www.strava.com/athletes/500534339',
-    email: 'mailto:argentjackjoshua@outlook.com',
+    youtube: '',
+    github: 'https://github.com',
+    instagram: '',
+    facebook: '',
+    strava: '',
+    email: 'mailto:hello@pingelo.app',
   },
   author: {
-    name: 'Your Name',
-    bio: 'Your bio here',
+    name: 'PingElo',
+    bio: 'Ping pong ELO tracking platform',
   },
 };
 
@@ -27,12 +27,12 @@ export const siteConfig = {
 // ============================================
 
 export const meta = {
-  title: 'My Template',
-  description: 'A reusable Next.js template for any website project.',
-  keywords: ['template', 'nextjs', 'website', 'portfolio'] as string[],
-  siteName: 'My Template',
-  twitter: '@yourhandle',
-  instagramHandle: '@yourhandle',
+  title: 'PingElo - Ping Pong ELO Tracking',
+  description: 'Track your ping pong skills with ELO ratings, compete in tournaments, and climb the leaderboard.',
+  keywords: ['ping pong', 'elo', 'rating', 'tournament', 'leaderboard', 'table tennis'] as string[],
+  siteName: 'PingElo',
+  twitter: '@pingelo',
+  instagramHandle: '@pingelo',
 };
 
 // ============================================
@@ -40,28 +40,24 @@ export const meta = {
 // ============================================
 
 export const mainNav = [
-  { label: 'Home', href: '/' },
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Leaderboard', href: '/leaderboard' },
+  { label: 'Tournaments', href: '/tournaments' },
+  { label: 'How It Works', href: '/how-it-works' },
 ];
 
 export const footerNav = {
   main: [
     { label: 'Home', href: '/' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
+    { label: 'Leaderboard', href: '/leaderboard' },
+    { label: 'Tournaments', href: '/tournaments' },
   ],
   content: [
-    { label: 'Home', href: '/' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
+    { label: 'How It Works', href: '/how-it-works' },
+    { label: 'Help', href: '/help' },
   ],
   social: [
-    { label: 'YouTube', href: siteConfig.links.youtube },
     { label: 'GitHub', href: siteConfig.links.github },
-    { label: 'Instagram', href: siteConfig.links.instagram },
-    { label: 'Facebook', href: siteConfig.links.facebook },
-    { label: 'Strava', href: siteConfig.links.strava },
+    { label: 'Contact', href: siteConfig.links.email },
   ],
 };
 
