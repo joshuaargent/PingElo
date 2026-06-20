@@ -978,7 +978,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-1">Tournament Name</label>
                   <Input
                     value={editingTournament.name}
                     onChange={(e) => setEditingTournament({ ...editingTournament, name: e.target.value })}
@@ -989,6 +989,7 @@ export default function AdminDashboardPage() {
                   <Input
                     value={editingTournament.description || ''}
                     onChange={(e) => setEditingTournament({ ...editingTournament, description: e.target.value })}
+                    placeholder="Optional description..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -996,6 +997,7 @@ export default function AdminDashboardPage() {
                     <label className="block text-sm font-medium text-text-secondary mb-1">Entry Fee (ELO)</label>
                     <Input
                       type="number"
+                      min="0"
                       value={editingTournament.entryFee}
                       onChange={(e) => setEditingTournament({ ...editingTournament, entryFee: parseInt(e.target.value) || 0 })}
                     />
@@ -1004,18 +1006,28 @@ export default function AdminDashboardPage() {
                     <label className="block text-sm font-medium text-text-secondary mb-1">Max Players</label>
                     <Input
                       type="number"
+                      min="2"
                       value={editingTournament.maxParticipants}
-                      onChange={(e) => setEditingTournament({ ...editingTournament, maxParticipants: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setEditingTournament({ ...editingTournament, maxParticipants: parseInt(e.target.value) || 4 })}
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Max Score</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Max Score (3-21)</label>
                     <Input
                       type="number"
+                      min="3"
+                      max="21"
                       value={editingTournament.maxScore}
-                      onChange={(e) => setEditingTournament({ ...editingTournament, maxScore: parseInt(e.target.value) || 21 })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 3 && val <= 21) {
+                          setEditingTournament({ ...editingTournament, maxScore: val });
+                        } else if (isNaN(val) || e.target.value === '') {
+                          setEditingTournament({ ...editingTournament, maxScore: val || 0 });
+                        }
+                      }}
                     />
                   </div>
                   <div>
@@ -1033,6 +1045,19 @@ export default function AdminDashboardPage() {
                   Cancel
                 </Button>
                 <Button onClick={async () => {
+                  // Validate
+                  if (!editingTournament.name.trim()) {
+                    alert('Please enter a tournament name');
+                    return;
+                  }
+                  if (editingTournament.maxScore < 3 || editingTournament.maxScore > 21) {
+                    alert('Max Score must be between 3 and 21');
+                    return;
+                  }
+                  if (editingTournament.entryFee < 0) {
+                    alert('Entry Fee cannot be negative');
+                    return;
+                  }
                   try {
                     const res = await fetch(`/api/tournaments/${editingTournament.id}`, {
                       method: 'PATCH',

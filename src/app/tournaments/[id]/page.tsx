@@ -99,6 +99,7 @@ interface Tournament {
   entryFee: number;
   prizePool: number;
   maxParticipants: number;
+  maxScore: number;
   format: string;
   creatorId: string;
   startsAt: string | null;
@@ -126,7 +127,9 @@ export default function TournamentDetailPage() {
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
+    entryFee: 0,
     maxParticipants: 0,
+    maxScore: 21,
     startsAt: '',
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -305,7 +308,9 @@ export default function TournamentDetailPage() {
       setEditForm({
         name: tournament.name,
         description: tournament.description || '',
+        entryFee: tournament.entryFee || 0,
         maxParticipants: tournament.maxParticipants,
+        maxScore: tournament.maxScore || 21,
         startsAt: tournament.startsAt ? new Date(tournament.startsAt).toISOString().slice(0, 16) : '',
       });
       setShowEditModal(true);
@@ -313,12 +318,31 @@ export default function TournamentDetailPage() {
   };
 
   const handleEditTournament = async () => {
+    // Validate
+    if (!editForm.name.trim()) {
+      alert('Please enter a tournament name');
+      setIsEditing(false);
+      return;
+    }
+    if (editForm.maxScore < 3 || editForm.maxScore > 21) {
+      alert('Max Score must be between 3 and 21');
+      setIsEditing(false);
+      return;
+    }
+
     setIsEditing(true);
     try {
       const res = await fetch(`/api/tournaments/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          name: editForm.name,
+          description: editForm.description || null,
+          entryFee: editForm.entryFee || 0,
+          maxParticipants: editForm.maxParticipants,
+          maxScore: editForm.maxScore,
+          startsAt: editForm.startsAt || null
+        }),
       });
       if (res.ok) {
         await refreshTournament();
@@ -971,7 +995,7 @@ export default function TournamentDetailPage() {
             <h2 className="text-xl font-bold text-text-primary mb-4"><span className="hidden sm:inline">Edit Tournament</span><span className="sm:hidden">Edit</span></h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Tournament Name</label>
                 <Input
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
@@ -982,6 +1006,16 @@ export default function TournamentDetailPage() {
                 <Input
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  placeholder="Optional description..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Entry Fee (ELO)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editForm.entryFee || 0}
+                  onChange={(e) => setEditForm({ ...editForm, entryFee: parseInt(e.target.value) || 0 })}
                 />
               </div>
               <div>
@@ -990,8 +1024,24 @@ export default function TournamentDetailPage() {
                   type="number"
                   min={2}
                   value={editForm.maxParticipants}
-                  onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) || 4 })}
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">Max Score (3-21)</label>
+                <Input
+                  type="number"
+                  min="3"
+                  max="21"
+                  value={editForm.maxScore || 21}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val) && val >= 3 && val <= 21) {
+                      setEditForm({ ...editForm, maxScore: val });
+                    }
+                  }}
+                />
+                <p className="text-xs text-text-muted mt-1">Points needed to win a game</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">Start Date/Time</label>

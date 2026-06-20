@@ -28,6 +28,8 @@ export default function CreateTournamentPage() {
   const [matchType, setMatchType] = useState<MatchType>('SINGLES');
   const [format, setFormat] = useState<Format>('SINGLE_ELIMINATION');
   const [maxParticipants, setMaxParticipants] = useState('8');
+  const [entryFee, setEntryFee] = useState('0');
+  const [maxScore, setMaxScore] = useState('21');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,18 @@ export default function CreateTournamentPage() {
       return;
     }
 
+    const maxScoreNum = parseInt(maxScore);
+    if (isNaN(maxScoreNum) || maxScoreNum < 3 || maxScoreNum > 21) {
+      setError('Max Score must be between 3 and 21');
+      return;
+    }
+
+    const entryFeeNum = parseInt(entryFee);
+    if (isNaN(entryFeeNum) || entryFeeNum < 0) {
+      setError('Entry Fee must be 0 or higher');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -62,6 +76,8 @@ export default function CreateTournamentPage() {
           matchType,
           format,
           maxParticipants: parseInt(maxParticipants),
+          entryFee: entryFeeNum,
+          maxScore: maxScoreNum,
           status: 'REGISTRATION_OPEN',
         }),
       });
@@ -198,26 +214,60 @@ export default function CreateTournamentPage() {
           <Card className="p-6 mb-6">
             <h2 className="text-lg font-semibold text-text-primary mb-4">Settings</h2>
             
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Max Participants
-              </label>
-              <select
-                className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                value={maxParticipants}
-                onChange={(e) => setMaxParticipants(e.target.value)}
-              >
-                <option value="4">4</option>
-                <option value="8">8</option>
-                <option value="16">16</option>
-                <option value="32">32</option>
-                <option value="64">64</option>
-              </select>
-              <p className="text-sm text-text-muted mt-2">
-                {matchType === 'DOUBLES' 
-                  ? `This will create ${parseInt(maxParticipants)} teams of 2`
-                  : `This will allow ${parseInt(maxParticipants)} players`}
-              </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Max Participants
+                </label>
+                <select
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  value={maxParticipants}
+                  onChange={(e) => setMaxParticipants(e.target.value)}
+                >
+                  <option value="4">4</option>
+                  <option value="8">8</option>
+                  <option value="16">16</option>
+                  <option value="32">32</option>
+                  <option value="64">64</option>
+                </select>
+                <p className="text-sm text-text-muted mt-2">
+                  {matchType === 'DOUBLES' 
+                    ? `This will create ${parseInt(maxParticipants)} teams of 2`
+                    : `This will allow ${parseInt(maxParticipants)} players`}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Entry Fee (ELO)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={entryFee}
+                  onChange={(e) => setEntryFee(e.target.value)}
+                  placeholder="0"
+                />
+                <p className="text-sm text-text-muted mt-2">
+                  Players pay this ELO to join. It goes into the prize pool. Set to 0 for free tournaments.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Max Score (Points to Win)
+                </label>
+                <Input
+                  type="number"
+                  min="3"
+                  max="21"
+                  value={maxScore}
+                  onChange={(e) => setMaxScore(e.target.value)}
+                />
+                <p className="text-sm text-text-muted mt-2">
+                  Points needed to win a game. Common values: 11 (faster) or 21 (standard). You can still have close games like 7-5 or 19-17.
+                </p>
+              </div>
             </div>
           </Card>
 
