@@ -70,6 +70,7 @@ export default function TeamsPage() {
   const [limits, setLimits] = useState<TeamLimits | null>(null);
   const [stats, setStats] = useState<TeamStats | null>(null);
   const [currentSeason, setCurrentSeason] = useState<CurrentSeason | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -136,6 +137,7 @@ export default function TeamsPage() {
       if (playersRes.ok) setAllPlayers((await playersRes.json()).users || []);
     } catch (error) {
       console.error("Failed to fetch:", error);
+      setApiError("Failed to load teams. Please try again.");
     } finally {
       setIsLoading(false);
     }
