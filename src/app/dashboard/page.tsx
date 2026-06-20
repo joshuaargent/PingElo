@@ -108,14 +108,8 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Hero Section - Consistent with homepage styling, no stats */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden py-12 md:py-16">
-        {/* Background Decoration */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-96 w-96 rounded-full bg-accent/5 blur-3xl" />
-        </div>
-
         <div className="container">
           <div className="mx-auto max-w-4xl text-center">
             {/* Title */}

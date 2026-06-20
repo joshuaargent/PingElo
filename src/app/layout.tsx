@@ -118,6 +118,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-screen flex-col antialiased">
         <Providers>
+          {/* Decorative Background - applies to all pages */}
+          <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-1/4 h-[600px] w-[600px] rounded-full bg-accent/5 blur-[120px]" />
+            <div className="absolute top-1/3 right-1/4 h-[500px] w-[500px] rounded-full bg-accent/[3%] blur-[100px]" />
+            <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-accent/5 blur-[80px]" />
+          </div>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
