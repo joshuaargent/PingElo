@@ -172,7 +172,8 @@ export async function POST(
       return NextResponse.json({ error: "Team already has stats for this season" }, { status: 400 });
     }
     
-    // Check if either player has reached their team limit
+    // Check if reactivating would exceed the 2-team limit for either player
+    // Count ALL active teams for each player (including teams they didn't create)
     const player1ActiveTeams = await prisma.team.count({
       where: {
         isActive: true,

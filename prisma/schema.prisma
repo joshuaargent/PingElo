@@ -183,8 +183,8 @@ model Team {
   seasonStats  TeamSeasonStats[]
   tournamentParticipants TournamentParticipant[]
 
-  // One team per partnership (regardless of season)
-  @@unique([player1Id, player2Id])
+  // One team per partnership per season (prevent duplicates within a season)
+  // Note: We track this via TeamSeasonStats @@unique([teamId, seasonId]) instead
   @@index([player1Id])
   @@index([player2Id])
   @@index([isActive])

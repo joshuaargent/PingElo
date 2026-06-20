@@ -1,10 +1,11 @@
 /**
  * Teams API Route
- * Manage doubles teams (persist across seasons with per-season stats)
+ * Manage doubles teams
  * Rules:
- * - Each person can CREATE 1 team per partnership
+ * - Each person can CREATE 1 team (as player1)
  * - Each person can BE IN up to 2 teams per season
- * - No duplicate partnerships (same players = same team)
+ * - No duplicate partnerships within a season (same players = same team)
+ * - Can create new team with same partner in different seasons
  * - Stats tracked per season via TeamSeasonStats
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -242,40 +243,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "This player is banned" }, { status: 403 });
     }
     
-    // Check if partnership already exists
-    const existingTeam = await prisma.team.findFirst({
+    // Check if user already has a team with this partner in current season
+    const existingTeamThisSeason = await prisma.team.findFirst({
       where: {
         OR: [
           { player1Id: userId, player2Id: partnerId },
           { player1Id: partnerId, player2Id: userId },
         ],
-      },
-      include: {
         seasonStats: {
-          include: { season: true },
-          orderBy: { season: { startDate: 'desc' } },
+          some: { seasonId: currentSeason.id },
         },
       },
     });
     
-    if (existingTeam) {
-      // If team is inactive, offer to reactivate
-      if (!existingTeam.isActive) {
-        // Check if already has stats for current season
-        const hasCurrentSeason = existingTeam.seasonStats.some(s => s.seasonId === currentSeason.id);
-        if (!hasCurrentSeason) {
-          return NextResponse.json({ 
-            canReactivate: true,
-            team: existingTeam,
-            message: `You played together before! Want to reactivate ${existingTeam.name || 'your team'} for this season?`,
-          });
-        }
-      }
-      
+    if (existingTeamThisSeason) {
       return NextResponse.json({ 
-        error: "You already have a team with this player",
-        team: existingTeam,
-        isActive: existingTeam.isActive,
+        error: "You already have a team with this player this season",
+        team: existingTeamThisSeason,
       }, { status: 400 });
     }
     
