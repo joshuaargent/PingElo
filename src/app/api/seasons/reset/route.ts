@@ -1,8 +1,8 @@
 /**
  * Season Reset API Route
  * Resets season ELO for all users
- * - Automatic trigger when season end date passes (no auth required)
- * - Manual trigger by admin (requires admin session)
+ * Smart detection: Automatically resets when season end date passes (no auth required)
+ * Admins can manually trigger reset with secret or session
  * Also resets all teams from the previous season
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -11,47 +11,44 @@ import { getAdminSessionOrForbidden } from "@/lib/auth-actions";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if this is a cron/scheduled call (has secret) or admin session
+    // Check if this is an admin call (secret or session)
     const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-    const isCronCall = cronSecret && authHeader === `Bearer ${cronSecret}`;
+    const adminSecret = process.env.ADMIN_SET_SECRET;
+    const isAuthorized = adminSecret && authHeader === `Bearer ${adminSecret}`;
     
-    let isAdmin = false;
-    
-    // Check for admin session if not a cron call
-    if (!isCronCall) {
+    // If not authorized with secret, check for admin session
+    if (!isAuthorized) {
       const { response: authResponse } = await getAdminSessionOrForbidden();
-      if (authResponse) return authResponse;
-      isAdmin = true;
-    }
-
-    // Check if there's an active season
-    const currentSeason = await prisma.season.findFirst({
-      where: { isActive: true },
-    });
-
-    if (!currentSeason) {
-      return NextResponse.json(
-        { error: "No active season found" },
-        { status: 400 }
-      );
-    }
-
-    // For non-cron calls, check if season has ended
-    // Cron jobs can trigger even before end date (manual admin override)
-    if (!isCronCall) {
-      const now = new Date();
-      const shouldReset = now > currentSeason.endDate;
-      
-      if (!shouldReset) {
-        return NextResponse.json({
-          message: "Season not ready for reset",
-          currentSeason: {
-            name: currentSeason.name,
-            endDate: currentSeason.endDate,
-          },
-          daysRemaining: Math.ceil((currentSeason.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      if (authResponse) {
+        // Not admin - but check if we should auto-reset based on date
+        const currentSeason = await prisma.season.findFirst({
+          where: { isActive: true },
         });
+
+        if (!currentSeason) {
+          return NextResponse.json(
+            { error: "No active season found" },
+            { status: 400 }
+          );
+        }
+
+        // Smart detection: auto-reset if season end date has passed
+        const now = new Date();
+        const shouldReset = now > currentSeason.endDate;
+        
+        if (!shouldReset) {
+          return NextResponse.json({
+            message: "Season not ready for reset",
+            currentSeason: {
+              name: currentSeason.name,
+              endDate: currentSeason.endDate,
+            },
+            daysRemaining: Math.ceil((currentSeason.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+          });
+        }
+        // Season date passed - proceed with reset (no auth needed)
+      } else {
+        // Is admin - proceed (admin can reset anytime)
       }
     }
 
