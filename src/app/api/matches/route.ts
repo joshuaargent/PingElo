@@ -488,6 +488,19 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Get team ELO values before changes for history tracking
+      let team1EloBefore = 1000;
+      let team2EloBefore = 1000;
+      
+      if (usedTeam1Id) {
+        const team1Data = await prisma.team.findUnique({ where: { id: usedTeam1Id }, select: { foreverElo: true } });
+        team1EloBefore = team1Data?.foreverElo || 1000;
+      }
+      if (usedTeam2Id) {
+        const team2Data = await prisma.team.findUnique({ where: { id: usedTeam2Id }, select: { foreverElo: true } });
+        team2EloBefore = team2Data?.foreverElo || 1000;
+      }
+
       // Store ELO values before changes and calculate streaks
       const p1Streak = calculateStreak(p1.lastMatchDate, p1.currentStreak, p1.longestStreak);
       const p2Streak = calculateStreak(p2.lastMatchDate, p2.currentStreak, p2.longestStreak);
@@ -584,6 +597,53 @@ export async function POST(request: NextRequest) {
                 streakBonus: streakResult.bonus,
                 streakBefore: player.streak.newStreak - 1,
                 streakAfter: player.streak.newStreak,
+              },
+            },
+          });
+        }
+
+        // Create Team ELO history entries
+        if (usedTeam1Id) {
+          await tx.teamEloHistory.create({
+            data: {
+              teamId: usedTeam1Id,
+              matchId: newMatch.id,
+              changeType: 'MATCH',
+              eloBefore: team1EloBefore,
+              eloAfter: team1EloBefore + eloResult.team1Change,
+              change: eloResult.team1Change,
+              description: isTournamentMatch ? `Team match (Tournament)` : 'Team match',
+              metadata: {
+                matchType: 'DOUBLES',
+                opponentTeamId: usedTeam2Id,
+                player1Score,
+                player2Score,
+                team1Won,
+                isTournamentMatch,
+                tournamentId,
+              },
+            },
+          });
+        }
+        
+        if (usedTeam2Id) {
+          await tx.teamEloHistory.create({
+            data: {
+              teamId: usedTeam2Id,
+              matchId: newMatch.id,
+              changeType: 'MATCH',
+              eloBefore: team2EloBefore,
+              eloAfter: team2EloBefore + eloResult.team2Change,
+              change: eloResult.team2Change,
+              description: isTournamentMatch ? `Team match (Tournament)` : 'Team match',
+              metadata: {
+                matchType: 'DOUBLES',
+                opponentTeamId: usedTeam1Id,
+                player1Score,
+                player2Score,
+                team1Won: !team1Won,
+                isTournamentMatch,
+                tournamentId,
               },
             },
           });

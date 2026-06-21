@@ -479,45 +479,45 @@ export default function ProfilePage() {
 
       {/* Head-to-Head Modal */}
       {headToHeadOpen && headToHeadData && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Swords className="h-6 w-6" />
-                Head-to-Head: {profile?.name} vs {headToHeadData.players?.player2?.name}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Swords className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="truncate">vs {headToHeadData.players?.player2?.name}</span>
               </h2>
               <button
                 onClick={() => setHeadToHeadOpen(false)}
-                className="text-text-secondary hover:text-text-primary"
+                className="text-text-secondary hover:text-text-primary p-2"
               >
                 ✕
               </button>
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-2xl font-bold text-green-500">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-green-500">
                   {headToHeadData.stats?.player1Wins || 0}
                 </div>
-                <div className="text-sm text-text-secondary">{profile?.name} Wins</div>
+                <div className="text-xs sm:text-sm text-text-secondary truncate">{profile?.name}</div>
               </div>
-              <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-2xl font-bold text-text-primary">
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-text-primary">
                   {headToHeadData.stats?.totalMatches || 0}
                 </div>
-                <div className="text-sm text-text-secondary">Total Matches</div>
+                <div className="text-xs sm:text-sm text-text-secondary">Matches</div>
               </div>
-              <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-2xl font-bold text-blue-500">
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-blue-500">
                   {headToHeadData.stats?.player2Wins || 0}
                 </div>
-                <div className="text-sm text-text-secondary">{headToHeadData.players?.player2?.name} Wins</div>
+                <div className="text-xs sm:text-sm text-text-secondary truncate">{headToHeadData.players?.player2?.name}</div>
               </div>
             </div>
 
             {/* Match History */}
-            <h3 className="font-semibold mb-3">Match History</h3>
+            <h3 className="font-semibold mb-2 sm:mb-3">Match History</h3>
             {headToHeadData.matches?.length > 0 ? (
               <div className="space-y-2">
                 {headToHeadData.matches.slice(0, 10).map((match: any) => {
@@ -525,11 +525,11 @@ export default function ProfilePage() {
                   return (
                     <div
                       key={match.id}
-                      className={`p-3 rounded-lg flex items-center justify-between ${
+                      className={`p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${
                         isPlayer1Win ? 'bg-green-500/10' : 'bg-red-500/10'
                       }`}
                     >
-                      <div>
+                      <div className="text-sm sm:text-base">
                         <span className={isPlayer1Win ? 'text-green-500 font-bold' : 'text-red-500'}>
                           {isPlayer1Win ? profile?.name : headToHeadData.players?.player2?.name}
                         </span>
@@ -538,8 +538,8 @@ export default function ProfilePage() {
                           {isPlayer1Win ? headToHeadData.players?.player2?.name : profile?.name}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold">{match.player1Score}-{match.player2Score}</div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-sm sm:text-base">{match.player1Score}-{match.player2Score}</div>
                         <div className="text-xs text-text-secondary">
                           {new Date(match.date).toLocaleDateString()}
                         </div>
@@ -554,9 +554,9 @@ export default function ProfilePage() {
 
             {/* Largest Upset */}
             {headToHeadData.stats?.largestUpset && (
-              <div className="mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+              <div className="mt-4 sm:mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
                 <div className="text-sm text-yellow-500 font-semibold mb-1">🏆 Largest Upset</div>
-                <p>
+                <p className="text-sm sm:text-base">
                   {headToHeadData.stats.largestUpset.winner} beat {headToHeadData.stats.largestUpset.loser} 
                   {' '}by {headToHeadData.stats.largestUpset.eloDiff} ELO!
                 </p>

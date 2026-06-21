@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { ArrowLeft, Calendar, Sparkles, Users, Crown, Edit2, Save, X, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Calendar, Sparkles, Users, Crown, Edit2, Save, X, Image as ImageIcon, BarChart3, Swords } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface SeasonStat {
   id: string;
@@ -48,6 +49,12 @@ export default function TeamDetailPage() {
   const [editName, setEditName] = useState("");
   const [editImage, setEditImage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [eloHistory, setEloHistory] = useState<any[]>([]);
+  const [eloStats, setEloStats] = useState<any>(null);
+  const [headToHeadOpen, setHeadToHeadOpen] = useState(false);
+  const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
+  const [headToHeadData, setHeadToHeadData] = useState<any>(null);
+  const [recentOpponents, setRecentOpponents] = useState<any[]>([]);
 
   const teamId = params.id as string;
 
@@ -109,6 +116,44 @@ export default function TeamDetailPage() {
       setIsLoading(false);
     }
   }
+
+  async function fetchEloHistory() {
+    try {
+      const res = await fetch(`/api/teams/${teamId}/elo-history?limit=20`);
+      if (res.ok) {
+        const data = await res.json();
+        setEloHistory(data.history || []);
+        setEloStats(data.stats || null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch ELO history:", error);
+    }
+  }
+
+  // Fetch ELO history after team loads
+  useEffect(() => {
+    if (teamId && !isLoading) {
+      fetchEloHistory();
+    }
+  }, [teamId, isLoading]);
+
+  // Fetch head-to-head when modal opens
+  useEffect(() => {
+    if (headToHeadOpen && selectedOpponent && teamId) {
+      async function fetchHeadToHead() {
+        try {
+          const res = await fetch(`/api/teams/${teamId}/head-to-head?opponentId=${selectedOpponent.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setHeadToHeadData(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch head-to-head:", error);
+        }
+      }
+      fetchHeadToHead();
+    }
+  }, [headToHeadOpen, selectedOpponent, teamId]);
 
   async function saveTeamEdits() {
     setIsSaving(true);
@@ -386,7 +431,7 @@ export default function TeamDetailPage() {
                     ? Math.round((stat.wins / stat.matchesPlayed) * 100) 
                     : 0;
                   return (
-                    <div key={stat.id} className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
+                    <div key={stat.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-bg-secondary rounded-lg gap-4">
                       <div className="flex items-center gap-4">
                         {stat.season.isActive ? (
                           <Crown className="h-5 w-5 text-yellow-500"/>
@@ -400,7 +445,7 @@ export default function TeamDetailPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-6">
+                      <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                         <div className="text-center">
                           <p className="text-lg font-bold">{stat.seasonElo}</p>
                           <p className="text-xs text-text-muted">Season ELO</p>
@@ -423,8 +468,136 @@ export default function TeamDetailPage() {
             )}
           </Card>
 
+          {/* ELO History Chart */}
+          {eloHistory.length > 0 && (
+            <Card className="p-6 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-accent"/>Team ELO History
+                </h3>
+                {eloStats && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-green-500">↑ {eloStats.highestElo} High</span>
+                    <span className="text-red-500">↓ {eloStats.lowestElo} Low</span>
+                  </div>
+                )}
+              </div>
+              <div className="h-48 sm:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={eloHistory} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="createdAt" 
+                      stroke="#888"
+                      fontSize={12}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    />
+                    <YAxis 
+                      stroke="#888"
+                      fontSize={12}
+                      domain={['dataMin - 50', 'dataMax + 50']}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(0,0,0,0.8)', 
+                        border: 'none', 
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value) => [`${value} ELO`, 'Rating']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="eloAfter" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#8b5cf6', strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: '#8b5cf6' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
         </div>
       </div>
+
+      {/* Team Head-to-Head Modal */}
+      {headToHeadOpen && headToHeadData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                <Swords className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className="truncate">{teamDisplayName} vs {headToHeadData.teams?.team2?.name || 'Team'}</span>
+              </h2>
+              <button
+                onClick={() => setHeadToHeadOpen(false)}
+                className="text-text-secondary hover:text-text-primary p-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-green-500">
+                  {headToHeadData.stats?.team1Wins || 0}
+                </div>
+                <div className="text-xs sm:text-sm text-text-secondary truncate">{teamDisplayName}</div>
+              </div>
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-text-primary">
+                  {headToHeadData.stats?.totalMatches || 0}
+                </div>
+                <div className="text-xs sm:text-sm text-text-secondary">Matches</div>
+              </div>
+              <div className="text-center p-2 sm:p-4 bg-bg-secondary rounded-xl">
+                <div className="text-xl sm:text-2xl font-bold text-purple-500">
+                  {headToHeadData.stats?.team2Wins || 0}
+                </div>
+                <div className="text-xs sm:text-sm text-text-secondary truncate">{headToHeadData.teams?.team2?.name || 'Opponent'}</div>
+              </div>
+            </div>
+
+            {/* Match History */}
+            <h3 className="font-semibold mb-2 sm:mb-3">Match History</h3>
+            {headToHeadData.matches?.length > 0 ? (
+              <div className="space-y-2">
+                {headToHeadData.matches.slice(0, 10).map((match: any) => (
+                  <div
+                    key={match.id}
+                    className={`p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${
+                      match.team1Won ? 'bg-green-500/10' : 'bg-purple-500/10'
+                    }`}
+                  >
+                    <div className="text-sm sm:text-base">
+                      <span className={match.team1Won ? 'text-green-500 font-bold' : 'text-purple-500'}>
+                        {match.team1Won ? teamDisplayName : headToHeadData.teams?.team2?.name}
+                      </span>
+                      {' defeated '}
+                      <span className={match.team1Won ? 'text-purple-500' : 'text-green-500 font-bold'}>
+                        {match.team1Won ? headToHeadData.teams?.team2?.name : teamDisplayName}
+                      </span>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-bold text-sm sm:text-base">{match.team1Score}-{match.team2Score}</div>
+                      <div className="text-xs text-text-secondary">
+                        {new Date(match.date).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-text-secondary text-center py-4">No matches found</p>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 }

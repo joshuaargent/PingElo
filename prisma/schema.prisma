@@ -224,6 +224,7 @@ model Team {
   player1      User      @relation("TeamPlayer1", fields: [player1Id], references: [id])
   player2      User?     @relation("TeamPlayer2", fields: [player2Id], references: [id])
   seasonStats  TeamSeasonStats[]
+  eloHistory  TeamEloHistory[]
   tournamentParticipants TournamentParticipant[]
 
   // One team per partnership per season (prevent duplicates within a season)
@@ -322,6 +323,8 @@ model Match {
   activities    Activity[]
   // Challenge
   challenge     Challenge?
+  // Team ELO History
+  teamEloHistory TeamEloHistory[]
 
   @@index([player1Id])
   @@index([player2Id])
@@ -634,4 +637,34 @@ model MatchReaction {
   @@unique([matchId, userId, emoji])
   @@index([matchId])
   @@index([userId])
+}
+
+// ============================================
+// Team ELO History - Track team ELO changes over time
+// ============================================
+
+model TeamEloHistory {
+  id            String         @id @default(cuid())
+  teamId        String
+  matchId       String?        // Related match (if applicable)
+  changeType    EloChangeType
+
+  // ELO values
+  eloBefore     Int            // ELO before this change
+  eloAfter      Int            // ELO after this change
+  change        Int            // Change amount (positive or negative)
+
+  // Context
+  description   String?        // Human-readable description
+  metadata      Json?          // Additional context
+
+  // Timestamps
+  createdAt     DateTime       @default(now())
+
+  // Relationships
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  match         Match?         @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([createdAt])
 }
