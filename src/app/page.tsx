@@ -2,7 +2,11 @@ import Link from 'next/link';
 import { Hero } from '@/components/home/Hero';
 import { Leaderboard } from '@/components/elo/Leaderboard';
 import { Button } from '@/components/ui/Button';
-import { Trophy, TrendingUp, Users, ArrowRight } from 'lucide-react';
+import { SeasonCountdownWidget } from '@/components/ui/SeasonCountdownWidget';
+import { TopClimberWidget } from '@/components/ui/TopClimberWidget';
+import { ActivityFeed } from '@/components/ui/ActivityFeed';
+import { Card } from '@/components/ui/Card';
+import { Trophy, TrendingUp, Users, ArrowRight, Flame, Zap, Clock } from 'lucide-react';
 
 interface LeaderboardEntry {
   rank: number;
@@ -141,6 +145,37 @@ export default async function HomePage() {
               </Link>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Widgets Section - Top Climber, Season Countdown, Activity */}
+      <section className="py-16 bg-bg-secondary">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <h3 className="font-semibold">Top Climber</h3>
+              </div>
+              <TopClimberWidget />
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-accent" />
+                <h3 className="font-semibold">Season Countdown</h3>
+              </div>
+              <SeasonCountdownWidget />
+            </Card>
+            
+            <Card className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="h-5 w-5 text-yellow-500" />
+                <h3 className="font-semibold">Recent Activity</h3>
+              </div>
+              <ActivityFeed limit={3} compact />
+            </Card>
+          </div>
         </div>
       </section>
 
