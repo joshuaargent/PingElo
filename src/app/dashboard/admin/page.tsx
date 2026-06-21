@@ -794,68 +794,59 @@ export default function AdminDashboardPage() {
 
         {/* User Edit Modal */}
         {editingUser && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-text-primary">Edit User</h2>
-                <Button variant="ghost" size="icon" onClick={() => setEditingUser(null)}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-md bg-bg-primary rounded-xl shadow-2xl border border-border my-8 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between sm:px-6 sm:py-4">
+                <h2 className="text-lg font-bold text-text-primary">Edit User</h2>
+                <button 
+                  onClick={() => setEditingUser(null)}
+                  className="p-1.5 rounded-lg hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
+                >
                   <X className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
-              <div className="space-y-4">
+              
+              <div className="p-4 space-y-4 sm:p-6 sm:space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Name</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Name</label>
                   <Input
                     value={editingUser.name}
                     onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                    className="w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Avatar URL</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Avatar URL</label>
                   <Input
                     value={editingUser.image || ''}
                     onChange={(e) => setEditingUser({ ...editingUser, image: e.target.value })}
                     placeholder="https://..."
+                    className="w-full"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Forever ELO</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Singles ELO</label>
                     <Input
                       type="number"
                       value={editingUser.foreverElo}
                       onChange={(e) => setEditingUser({ ...editingUser, foreverElo: parseInt(e.target.value) || 0 })}
+                      className="w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Season ELO</label>
-                    <Input
-                      type="number"
-                      value={editingUser.foreverElo}
-                      onChange={(e) => setEditingUser({ ...editingUser, foreverElo: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Doubles Forever ELO</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Doubles ELO</label>
                     <Input
                       type="number"
                       value={(editingUser as any).doublesForeverElo || 1000}
                       onChange={(e) => setEditingUser({ ...editingUser, doublesForeverElo: parseInt(e.target.value) || 1000 } as any)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Doubles Season ELO</label>
-                    <Input
-                      type="number"
-                      value={(editingUser as any).doublesSeasonElo || 1000}
-                      onChange={(e) => setEditingUser({ ...editingUser, doublesSeasonElo: parseInt(e.target.value) || 1000 } as any)}
+                      className="w-full"
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              
+              <div className="px-4 py-3 border-t border-border flex gap-3 sm:px-6 sm:py-4">
                 <Button variant="outline" onClick={() => setEditingUser(null)} className="flex-1">
                   Cancel
                 </Button>
@@ -868,8 +859,7 @@ export default function AdminDashboardPage() {
                         name: editingUser.name,
                         image: editingUser.image || null,
                         foreverElo: editingUser.foreverElo,
-                        doublesForeverElo: (editingUser as any).doublesForeverElo,
-                        doublesSeasonElo: (editingUser as any).doublesSeasonElo
+                        doublesForeverElo: (editingUser as any).doublesForeverElo
                       })
                     });
                     if (res.ok) {
@@ -890,51 +880,56 @@ export default function AdminDashboardPage() {
                   Save
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Match Edit Modal */}
         {editingMatch && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-text-primary">Edit Match Score</h2>
-                <Button variant="ghost" size="icon" onClick={() => setEditingMatch(null)}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-sm bg-bg-primary rounded-xl shadow-2xl border border-border my-8 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between sm:px-6 sm:py-4">
+                <h2 className="text-lg font-bold text-text-primary">Edit Score</h2>
+                <button 
+                  onClick={() => setEditingMatch(null)}
+                  className="p-1.5 rounded-lg hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
+                >
                   <X className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
-              <div className="space-y-4">
-                <p className="text-center text-lg font-medium">
+              
+              <div className="p-4 sm:p-6">
+                <p className="text-center text-base font-medium text-text-primary mb-4">
                   {editingMatch.player1.name} vs {editingMatch.player2.name}
                 </p>
-                <div className="flex items-center justify-center gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1 text-center">{editingMatch.player1.name}</label>
+                <div className="flex items-center justify-center gap-3 sm:gap-4">
+                  <div className="flex-1 max-w-24">
+                    <label className="block text-xs font-medium text-text-secondary mb-1.5 text-center truncate">{editingMatch.player1.name}</label>
                     <Input
                       type="number"
                       min="0"
                       max="99"
                       value={editingMatch.player1Score}
                       onChange={(e) => setEditingMatch({ ...editingMatch, player1Score: parseInt(e.target.value) || 0 })}
-                      className="w-20 text-center text-lg"
+                      className="w-full text-center text-2xl font-bold py-3"
                     />
                   </div>
                   <span className="text-2xl text-text-muted mt-5">-</span>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1 text-center">{editingMatch.player2.name}</label>
+                  <div className="flex-1 max-w-24">
+                    <label className="block text-xs font-medium text-text-secondary mb-1.5 text-center truncate">{editingMatch.player2.name}</label>
                     <Input
                       type="number"
                       min="0"
                       max="99"
                       value={editingMatch.player2Score}
                       onChange={(e) => setEditingMatch({ ...editingMatch, player2Score: parseInt(e.target.value) || 0 })}
-                      className="w-20 text-center text-lg"
+                      className="w-full text-center text-2xl font-bold py-3"
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              
+              <div className="px-4 py-3 border-t border-border flex gap-3 sm:px-6 sm:py-4">
                 <Button variant="outline" onClick={() => setEditingMatch(null)} className="flex-1">
                   Cancel
                 </Button>
@@ -962,100 +957,101 @@ export default function AdminDashboardPage() {
                   Save
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Tournament Edit Modal */}
         {editingTournament && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-text-primary">Edit Tournament</h2>
-                <Button variant="ghost" size="icon" onClick={() => setEditingTournament(null)}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-md bg-bg-primary rounded-xl shadow-2xl border border-border my-8 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between sm:px-6 sm:py-4">
+                <h2 className="text-lg font-bold text-text-primary">Edit Tournament</h2>
+                <button 
+                  onClick={() => setEditingTournament(null)}
+                  className="p-1.5 rounded-lg hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
+                >
                   <X className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
-              <div className="space-y-4">
+              
+              <div className="p-4 space-y-4 sm:p-6 sm:space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Tournament Name</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Tournament Name</label>
                   <Input
                     value={editingTournament.name}
                     onChange={(e) => setEditingTournament({ ...editingTournament, name: e.target.value })}
+                    className="w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Description</label>
-                  <Input
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Description</label>
+                  <textarea
                     value={editingTournament.description || ''}
                     onChange={(e) => setEditingTournament({ ...editingTournament, description: e.target.value })}
                     placeholder="Optional description..."
+                    rows={2}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-bg-primary text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Entry Fee (ELO)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editingTournament.entryFee}
-                      onChange={(e) => setEditingTournament({ ...editingTournament, entryFee: parseInt(e.target.value) || 0 })}
-                    />
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Entry Fee</label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={editingTournament.entryFee}
+                        onChange={(e) => setEditingTournament({ ...editingTournament, entryFee: parseInt(e.target.value) || 0 })}
+                        className="w-full pr-10"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">ELO</span>
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Max Players</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Max Players</label>
                     <Input
                       type="number"
                       min="2"
                       value={editingTournament.maxParticipants}
                       onChange={(e) => setEditingTournament({ ...editingTournament, maxParticipants: parseInt(e.target.value) || 4 })}
+                      className="w-full"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Max Score (3-21)</label>
-                    <Input
-                      type="number"
-                      min="3"
-                      max="21"
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Play To</label>
+                    <select
                       value={editingTournament.maxScore}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value);
-                        if (!isNaN(val) && val >= 3 && val <= 21) {
-                          setEditingTournament({ ...editingTournament, maxScore: val });
-                        } else if (isNaN(val) || e.target.value === '') {
-                          setEditingTournament({ ...editingTournament, maxScore: val || 0 });
-                        }
-                      }}
-                    />
+                      onChange={(e) => setEditingTournament({ ...editingTournament, maxScore: parseInt(e.target.value) })}
+                      className="w-full h-10 px-3 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                    >
+                      <option value={7}>7 points</option>
+                      <option value={11}>11 points</option>
+                      <option value={15}>15 points</option>
+                      <option value={21}>21 points</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Start Date/Time</label>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">Start Time</label>
                     <Input
                       type="datetime-local"
                       value={editingTournament.startsAt?.slice(0, 16) || ''}
                       onChange={(e) => setEditingTournament({ ...editingTournament, startsAt: e.target.value || null })}
+                      className="w-full"
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              
+              <div className="px-4 py-3 border-t border-border flex gap-3 sm:px-6 sm:py-4">
                 <Button variant="outline" onClick={() => setEditingTournament(null)} className="flex-1">
                   Cancel
                 </Button>
                 <Button onClick={async () => {
-                  // Validate
                   if (!editingTournament.name.trim()) {
                     alert('Please enter a tournament name');
-                    return;
-                  }
-                  if (editingTournament.maxScore < 3 || editingTournament.maxScore > 21) {
-                    alert('Max Score must be between 3 and 21');
-                    return;
-                  }
-                  if (editingTournament.entryFee < 0) {
-                    alert('Entry Fee cannot be negative');
                     return;
                   }
                   try {
@@ -1084,48 +1080,45 @@ export default function AdminDashboardPage() {
                   Save
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Team Edit Modal */}
         {editingTeam && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-text-primary">Edit Team</h2>
-                <Button variant="ghost" size="icon" onClick={() => setEditingTeam(null)}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="w-full max-w-sm bg-bg-primary rounded-xl shadow-2xl border border-border my-8 overflow-hidden">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between sm:px-6 sm:py-4">
+                <h2 className="text-lg font-bold text-text-primary">Edit Team</h2>
+                <button 
+                  onClick={() => setEditingTeam(null)}
+                  className="p-1.5 rounded-lg hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
+                >
                   <X className="h-5 w-5" />
-                </Button>
+                </button>
               </div>
-              <div className="space-y-4">
+              
+              <div className="p-4 space-y-4 sm:p-6 sm:space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1">Team Name</label>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Team Name</label>
                   <Input
                     value={editingTeam.name}
                     onChange={(e) => setEditingTeam({ ...editingTeam, name: e.target.value })}
+                    className="w-full"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Doubles Forever ELO</label>
-                    <Input
-                      type="number"
-                      value={editingTeam.doublesForeverElo}
-                      onChange={(e) => setEditingTeam({ ...editingTeam, doublesForeverElo: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">Doubles Season ELO</label>
-                    <Input
-                      type="number"
-                      value={editingTeam.doublesSeasonElo}
-                      onChange={(e) => setEditingTeam({ ...editingTeam, doublesSeasonElo: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Doubles ELO</label>
+                  <Input
+                    type="number"
+                    value={editingTeam.doublesForeverElo}
+                    onChange={(e) => setEditingTeam({ ...editingTeam, doublesForeverElo: parseInt(e.target.value) || 0 })}
+                    className="w-full"
+                  />
                 </div>
               </div>
-              <div className="flex gap-3 mt-6">
+              
+              <div className="px-4 py-3 border-t border-border flex gap-3 sm:px-6 sm:py-4">
                 <Button variant="outline" onClick={() => setEditingTeam(null)} className="flex-1">
                   Cancel
                 </Button>
@@ -1153,7 +1146,7 @@ export default function AdminDashboardPage() {
                   Save
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </div>
