@@ -990,8 +990,8 @@ export default function TournamentDetailPage() {
 
       {/* Edit Tournament Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <Card className="w-full max-w-md p-6 my-8">
             <h2 className="text-xl font-bold text-text-primary mb-4"><span className="hidden sm:inline">Edit Tournament</span><span className="sm:hidden">Edit</span></h2>
             <div className="space-y-4">
               <div>
