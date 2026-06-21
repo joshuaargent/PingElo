@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { cn, formatNumber } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
@@ -85,15 +86,22 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {entries.map((entry) => (
-                <LeaderboardRow
+              {entries.map((entry, index) => (
+                <motion.tr
                   key={entry.userId}
-                  entry={entry}
-                  type={type}
-                  matchType={matchType}
-                  showSeasonElo={showSeasonElo}
-                  onClick={() => onEntryClick?.(entry)}
-                />
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.03, duration: 0.2 }}
+                  className="group cursor-pointer transition-colors hover:bg-bg-secondary"
+                >
+                  <LeaderboardRow
+                    entry={entry}
+                    type={type}
+                    matchType={matchType}
+                    showSeasonElo={showSeasonElo}
+                    onClick={() => onEntryClick?.(entry)}
+                  />
+                </motion.tr>
               ))}
             </tbody>
           </table>
@@ -123,9 +131,10 @@ interface LeaderboardRowProps {
   matchType?: 'singles' | 'doubles';
   showSeasonElo?: boolean;
   onClick?: () => void;
+  index?: number;
 }
 
-function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: LeaderboardRowProps) {
+function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick, index = 0 }: LeaderboardRowProps) {
   // Get the appropriate ELO based on match type and ELO type
   const getDisplayElo = () => {
     if (type === 'teams') {
@@ -150,13 +159,7 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: Lead
   const isTopThree = entry.rank <= 3;
 
   return (
-    <tr
-      onClick={onClick}
-      className={cn(
-        'group cursor-pointer transition-colors hover:bg-bg-secondary',
-        isTopThree && 'bg-primary/5'
-      )}
-    >
+    <>
       {/* Rank */}
       <td className="px-4 py-4">
         <div className="flex items-center gap-2">
@@ -259,7 +262,7 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: Lead
           )}
         </div>
       </td>
-    </tr>
+    </>
   );
 }
 

@@ -3,6 +3,7 @@ import { inter, lora, jetbrainsMono } from '@/lib/fonts';
 import { siteConfig, meta } from '@/lib/constants';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { PageTransition } from '@/components/layout/PageTemplate';
 import { Toaster } from '@/components/ui/Toaster';
 import { Providers } from '@/components/providers/Providers';
 import { Analytics } from '@vercel/analytics/react';
@@ -132,7 +133,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-accent/5 blur-[80px]" />
           </div>
           <Navbar />
-          <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
+          <PageTransition>
+            <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
+          </PageTransition>
           <Footer />
           <Toaster />
           <Analytics />
