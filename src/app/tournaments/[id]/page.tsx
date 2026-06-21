@@ -461,6 +461,30 @@ export default function TournamentDetailPage() {
     );
   };
 
+  // Check if current user has a pending match
+  const getUserPendingMatch = () => {
+    if (!session?.user || !tournament) return null;
+    const pending = getPendingMatches();
+    for (const bracket of pending) {
+      // Check if user is participant 1 or 2
+      if (bracket.player1Id === session.user.id || bracket.player2Id === session.user.id) {
+        return bracket;
+      }
+      // For doubles, check team members
+      if (tournament.matchType === 'DOUBLES') {
+        const p1 = tournament.participants.find(p => p.id === bracket.player1Id) as TeamParticipant | undefined;
+        const p2 = tournament.participants.find(p => p.id === bracket.player2Id) as TeamParticipant | undefined;
+        const userTeam1 = p1?.team;
+        const userTeam2 = p2?.team;
+        if ((userTeam1 && (userTeam1.player1.id === session.user.id || userTeam1.player2.id === session.user.id)) ||
+            (userTeam2 && (userTeam2.player1.id === session.user.id || userTeam2.player2.id === session.user.id))) {
+          return bracket;
+        }
+      }
+    }
+    return null;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -792,35 +816,70 @@ export default function TournamentDetailPage() {
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">
         <div className="mx-auto max-w-4xl">
-          {/* Pending Matches for Admin */}
-          {isAdmin && pendingMatches.length > 0 && tournament.status === 'IN_PROGRESS' && (
-            <Card className="p-6 mb-6 border-2 border-accent">
-              <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
-                <Target className="h-5 w-5 text-accent" />
-                Matches to Log ({pendingMatches.length})
-              </h2>
-              <div className="space-y-2">
-                {pendingMatches.map((bracket) => {
-                  const p1 = getParticipantName(bracket.player1Id);
-                  const p2 = getParticipantName(bracket.player2Id);
-                  return (
-                    <div 
-                      key={bracket.id}
-                      className="flex items-center justify-between p-3 bg-bg-secondary rounded-lg cursor-pointer hover:bg-bg-secondary/80"
-                      onClick={() => p1 && p2 && setLoggingMatch({ bracket, player1: p1, player2: p2 })}
-                    >
-                      <div className="flex items-center gap-4">
-                        <Badge variant="outline">R{bracket.round}</Badge>
-                        <span className="font-medium">{p1?.name}</span>
-                        <span className="text-text-muted">vs</span>
-                        <span className="font-medium">{p2?.name}</span>
+          {/* Pending Matches */}
+          {tournament.status === 'IN_PROGRESS' && (
+            <>
+              {/* Admin/Creator sees all pending matches */}
+              {isAdmin && pendingMatches.length > 0 && (
+                <Card className="p-6 mb-6 border-2 border-accent">
+                  <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-accent" />
+                    All Matches to Log ({pendingMatches.length})
+                  </h2>
+                  <div className="space-y-2">
+                    {pendingMatches.map((bracket) => {
+                      const p1 = getParticipantName(bracket.player1Id);
+                      const p2 = getParticipantName(bracket.player2Id);
+                      return (
+                        <div 
+                          key={bracket.id}
+                          className="flex items-center justify-between p-3 bg-bg-secondary rounded-lg cursor-pointer hover:bg-bg-secondary/80"
+                          onClick={() => p1 && p2 && setLoggingMatch({ bracket, player1: p1, player2: p2 })}
+                        >
+                          <div className="flex items-center gap-4">
+                            <Badge variant="outline">R{bracket.round}</Badge>
+                            <span className="font-medium">{p1?.name}</span>
+                            <span className="text-text-muted">vs</span>
+                            <span className="font-medium">{p2?.name}</span>
+                          </div>
+                          <Button size="sm" variant="outline">Log Result</Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+
+              {/* Participant sees only their own pending match */}
+              {!isAdmin && getUserPendingMatch() && (
+                <Card className="p-6 mb-6 border-2 border-accent">
+                  <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <Target className="h-5 w-5 text-accent" />
+                    Your Match
+                  </h2>
+                  {(() => {
+                    const myMatch = getUserPendingMatch();
+                    if (!myMatch) return null;
+                    const p1 = getParticipantName(myMatch.player1Id);
+                    const p2 = getParticipantName(myMatch.player2Id);
+                    return (
+                      <div 
+                        className="flex items-center justify-between p-3 bg-bg-secondary rounded-lg cursor-pointer hover:bg-bg-secondary/80"
+                        onClick={() => p1 && p2 && setLoggingMatch({ bracket: myMatch, player1: p1, player2: p2 })}
+                      >
+                        <div className="flex items-center gap-4">
+                          <Badge variant="outline">R{myMatch.round}</Badge>
+                          <span className="font-medium">{p1?.name}</span>
+                          <span className="text-text-muted">vs</span>
+                          <span className="font-medium">{p2?.name}</span>
+                        </div>
+                        <Button size="sm" variant="outline">Log Result</Button>
                       </div>
-                      <Button size="sm" variant="outline">Log Result</Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+                    );
+                  })()}
+                </Card>
+              )}
+            </>
           )}
 
           {/* Participants */}

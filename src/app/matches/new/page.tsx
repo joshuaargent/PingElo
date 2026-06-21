@@ -40,6 +40,7 @@ interface Team {
 export default function LogMatchPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isAdmin = (session?.user as any)?.role === 'ADMIN';
   const [matchType, setMatchType] = useState<MatchType>('SINGLES');
   const [doublesMode, setDoublesMode] = useState<DoublesMode>('teams');
   const [players, setPlayers] = useState<Player[]>([]);
@@ -362,6 +363,28 @@ export default function LogMatchPage() {
           <p className="text-text-secondary">Loading...</p>
         </div>
       </div>
+    );
+  }
+
+  // Show message for non-admins
+  if (!isAdmin) {
+    return (
+      <>
+        <PageHero
+          title="Log a Match"
+          description="Only admins can log casual matches"
+        />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="p-8 text-center max-w-md mx-auto">
+            <div className="text-4xl mb-4">🔒</div>
+            <h2 className="text-xl font-bold text-text-primary mb-2">Admin Access Required</h2>
+            <p className="text-text-secondary">
+              Only administrators can log casual matches. 
+              Tournament matches can be logged by participants through the tournament page.
+            </p>
+          </Card>
+        </div>
+      </>
     );
   }
 

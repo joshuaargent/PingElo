@@ -188,6 +188,14 @@ export async function POST(request: NextRequest) {
     if (response) return response;
 
     const userId = session!.user.id;
+    const userRole = (session!.user as any).role;
+
+    // Get user to check role
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    const isAdmin = user?.role === 'ADMIN';
 
     const body = await request.json();
     const {
@@ -205,6 +213,14 @@ export async function POST(request: NextRequest) {
       isTournamentMatch,
       tournamentId,
     } = body;
+
+    // Casual matches (not tournament) require admin
+    if (!isTournamentMatch && !isAdmin) {
+      return NextResponse.json(
+        { error: "Only admins can log casual matches" },
+        { status: 403 }
+      );
+    }
 
     // Validate scores
     if (player1Score < MIN_SCORE || player1Score > MAX_SCORE ||

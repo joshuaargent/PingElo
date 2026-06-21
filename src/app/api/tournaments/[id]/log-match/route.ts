@@ -13,8 +13,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { response } = await getSessionOrUnauthorized();
-    if (response) return response;
+    const { session, response: authResponse } = await getSessionOrUnauthorized();
+    if (authResponse) return authResponse;
+
+    const userId = session!.user.id;
 
     const { id: tournamentId } = await params;
     const body = await request.json();
@@ -36,7 +38,7 @@ export async function POST(
       );
     }
 
-    // Get tournament to check match type
+    // Get tournament to check match type and authorization
     const tournament = await prisma.tournament.findUnique({
       where: { id: tournamentId },
       include: {
@@ -68,6 +70,43 @@ export async function POST(
       return NextResponse.json(
         { error: "Tournament is not in progress" },
         { status: 400 }
+      );
+    }
+
+    // Check authorization: must be admin, creator, or a participant in this match
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    const isAdmin = user?.role === 'ADMIN';
+    const isCreator = tournament.creatorId === userId;
+    
+    // Check if user is one of the players in this match (for singles)
+    const isParticipant = player1Id === userId || player2Id === userId;
+    
+    // For doubles, check if user is on one of the teams in this match
+    let isTeamParticipant = false;
+    if (tournament.matchType === 'DOUBLES') {
+      // Find the participants for both teams in this match
+      const p1Participant = tournament.participants.find(p => p.id === player1Id);
+      const p2Participant = tournament.participants.find(p => p.id === player2Id);
+      
+      if (p1Participant?.team) {
+        isTeamParticipant = 
+          p1Participant.team.player1Id === userId || 
+          p1Participant.team.player2Id === userId;
+      }
+      if (p2Participant?.team) {
+        isTeamParticipant = isTeamParticipant ||
+          p2Participant.team.player1Id === userId || 
+          p2Participant.team.player2Id === userId;
+      }
+    }
+
+    if (!isAdmin && !isCreator && !isParticipant && !isTeamParticipant) {
+      return NextResponse.json(
+        { error: "Only admins, tournament creators, or match participants can log results" },
+        { status: 403 }
       );
     }
 
