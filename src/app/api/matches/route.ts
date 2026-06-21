@@ -605,7 +605,7 @@ export async function POST(request: NextRequest) {
       const p1EloBefore = player1.foreverElo;
         const p2EloBefore = player2.foreverElo;
         
-        match = await prisma.$transaction(async (tx) => {
+        const singlesResult = await prisma.$transaction(async (tx) => {
           const newMatch = await tx.match.create({
             data: {
               matchType: "SINGLES",
@@ -670,9 +670,9 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          // Create ELO history entries for both players
-          const p1EloAfter = p1EloBefore + eloResult.player1Change;
-          const p2EloAfter = p2EloBefore + eloResult.player2Change;
+          // Create ELO history entries for both players (including streak bonus in final ELO)
+          const p1EloAfter = p1EloBefore + eloResult.player1Change + p1StreakBonus;
+          const p2EloAfter = p2EloBefore + eloResult.player2Change + p2StreakBonus;
           
           await tx.eloHistory.create({
             data: {
@@ -691,6 +691,9 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
+                streakBonus: p1StreakBonus,
+                streakBefore: player1.currentStreak,
+                streakAfter: p1Streak.newStreak,
               },
             },
           });
@@ -712,15 +715,32 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
+                streakBonus: p2StreakBonus,
+                streakBefore: player2.currentStreak,
+                streakAfter: p2Streak.newStreak,
               },
             },
           });
 
-          return newMatch;
+          return {
+            match: newMatch,
+            streakBonus: { player1: p1StreakBonus, player2: p2StreakBonus },
+            newStreak: { player1: p1Streak.newStreak, player2: p2Streak.newStreak },
+          };
         });
+        
+        // Singles response with streak info
+        return NextResponse.json({ 
+          match: singlesResult.match, 
+          eloChange: eloChangeResult, 
+          matchType: "SINGLES",
+          streakBonus: singlesResult.streakBonus,
+          newStreak: singlesResult.newStreak,
+        }, { status: 201 });
     }
 
-    return NextResponse.json({ match, eloChange: eloChangeResult, matchType: matchType || "SINGLES" }, { status: 201 });
+    // Doubles response (no streak bonus for doubles)
+    return NextResponse.json({ match, eloChange: eloChangeResult, matchType: matchType || "DOUBLES" }, { status: 201 });
   } catch (error) {
     console.error("Error creating match:", error);
     return NextResponse.json({ error: "Failed to create match" }, { status: 500 });
