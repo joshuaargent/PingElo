@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EloBadge } from '@/components/elo/EloBadge';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
+import { AchievementBadge } from '@/components/ui/AchievementBadge';
 import { 
   Trophy, 
   TrendingUp, 
@@ -22,7 +23,8 @@ import {
   ArrowLeft,
   Medal,
   Users,
-  Crown
+  Crown,
+  Star
 } from 'lucide-react';
 
 interface UserProfile {
@@ -71,6 +73,7 @@ export default function ProfilePage() {
   const params = useParams();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recentMatches, setRecentMatches] = useState<Match[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const isOwnProfile = session?.user?.id === params.id;
@@ -103,8 +106,21 @@ export default function ProfilePage() {
       }
     }
 
+    async function fetchAchievements() {
+      try {
+        const res = await fetch(`/api/achievements/user/${params.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAchievements(data.achievements || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch achievements:', error);
+      }
+    }
+
     fetchProfile();
     fetchMatches();
+    fetchAchievements();
   }, [params.id]);
 
   if (isLoading) {
@@ -290,6 +306,30 @@ export default function ProfilePage() {
               </div>
             </div>
           </Card>
+
+          {/* Achievements */}
+          {achievements.length > 0 && (
+            <Card className="p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-text-primary flex items-center gap-2">
+                  <Star className="h-5 w-5 text-accent" />
+                  Achievements
+                </h2>
+                <span className="text-sm text-text-secondary">
+                  {achievements.length} unlocked
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {achievements.map((achievement) => (
+                  <AchievementBadge 
+                    key={achievement.id} 
+                    achievement={achievement} 
+                    size="lg"
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
 
           {/* Recent Matches */}
           <Card className="p-6">

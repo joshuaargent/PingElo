@@ -41,6 +41,7 @@ export const meta = {
 
 export const mainNav = [
   { label: 'Leaderboard', href: '/leaderboard', icon: 'trophy' },
+  { label: 'Challenges', href: '/challenges', icon: 'swords' },
   { label: 'Tournaments', href: '/tournaments', icon: 'flag' },
   { label: 'Teams', href: '/teams', icon: 'users' },
   { label: 'Log Match', href: '/matches/new', icon: 'plus' },

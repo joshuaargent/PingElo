@@ -1,11 +1,12 @@
 'use client';
 
-import { forwardRef } from 'react';
+import { forwardRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { cn, formatRelativeTime, formatNumber } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { MatchReactionButton } from '@/components/ui/MatchReactionButton';
 import { formatEloChange, getEloTierColor } from '@/lib/elo';
 import { Trophy, Users, Calendar, Flame } from 'lucide-react';
 
@@ -31,6 +32,7 @@ interface MatchCardProps {
   createdAt: Date | string;
   streakBonus?: { player1: number; player2: number };
   className?: string;
+  showReactions?: boolean;
 }
 
 interface MatchCardFromMatchProps {
@@ -71,6 +73,7 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
       createdAt,
       streakBonus,
       className,
+      showReactions = true,
     },
     ref
   ) => {
@@ -236,6 +239,16 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
               </div>
             </div>
           </div>
+
+          {/* Reactions */}
+          {showReactions && (
+            <div className="mt-4 pt-3 border-t border-border">
+              <MatchReactionButton 
+                matchId={id}
+                compact={true}
+              />
+            </div>
+          )}
         </div>
       </Card>
     );

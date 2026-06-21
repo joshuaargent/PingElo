@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EloBadge } from '@/components/elo/EloBadge';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
+import { SeasonCountdownWidget } from '@/components/ui/SeasonCountdownWidget';
+import { TopClimberWidget } from '@/components/ui/TopClimberWidget';
+import { ActivityFeed } from '@/components/ui/ActivityFeed';
+import { ChallengeCard } from '@/components/ui/ChallengeCard';
 
 import { 
   TrendingUp, 
@@ -20,7 +24,8 @@ import {
   ArrowRight,
   Zap,
   Calendar,
-  Users
+  Users,
+  Swords
 } from 'lucide-react';
 
 // ============================================
@@ -32,6 +37,7 @@ export default function DashboardPage() {
   const [userStats, setUserStats] = useState<any>(null);
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -87,6 +93,13 @@ export default function DashboardPage() {
         if (tournamentsRes.ok) {
           const tournamentsData = await tournamentsRes.json();
           setUpcomingTournaments(tournamentsData.tournaments || []);
+        }
+
+        // Fetch pending challenges
+        const challengesRes = await fetch('/api/challenges?status=PENDING');
+        if (challengesRes.ok) {
+          const challengesData = await challengesRes.json();
+          setChallenges(challengesData.challenges || []);
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -183,6 +196,44 @@ export default function DashboardPage() {
               <p className="text-sm font-medium text-text-primary">Match History</p>
             </Card>
           </Link>
+        </div>
+
+        {/* Widgets Row */}
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <SeasonCountdownWidget />
+          <TopClimberWidget currentUserId={session.user.id} />
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Swords className="h-5 w-5 text-accent" />
+                Challenges
+              </h3>
+              <Link href="/challenges">
+                <Button variant="ghost" size="sm">View All</Button>
+              </Link>
+            </div>
+            {challenges.length > 0 ? (
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {challenges.slice(0, 2).map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    currentUserId={session.user.id}
+                    onUpdate={() => {
+                      // Refresh challenges
+                      fetch('/api/challenges?status=PENDING')
+                        .then(res => res.json())
+                        .then(data => setChallenges(data.challenges || []));
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-text-secondary text-center py-4">
+                No pending challenges
+              </p>
+            )}
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -326,6 +377,9 @@ export default function DashboardPage() {
               </div>
             )}
           </Card>
+
+          {/* Activity Feed */}
+          <ActivityFeed limit={5} title="Recent Activity" />
         </div>
       </div>
     </>
