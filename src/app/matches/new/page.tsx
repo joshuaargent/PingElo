@@ -682,7 +682,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  First to {maxScore} points wins (must win by 2)
+                  Highest score wins
                 </p>
               </Card>
             </div>
@@ -811,7 +811,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  First to {maxScore} points wins (must win by 2)
+                  Highest score wins
                 </p>
               </Card>
             </div>
@@ -1020,7 +1020,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  First to {maxScore} points wins (must win by 2)
+                  Highest score wins
                 </p>
               </Card>
             </div>

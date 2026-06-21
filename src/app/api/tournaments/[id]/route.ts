@@ -216,12 +216,13 @@ export async function PATCH(
       updateData.description = sanitizedDesc;
     }
 
-    // Validate maxScore
+    // Validate maxScore (must be 7, 11, 15, or 21)
     if (body.maxScore !== undefined) {
       const maxScore = Number(body.maxScore);
-      if (isNaN(maxScore) || maxScore < MIN_SCORE || maxScore > MAX_SCORE) {
+      const validScores = [7, 11, 15, 21];
+      if (isNaN(maxScore) || !validScores.includes(maxScore)) {
         return NextResponse.json(
-          { error: `Max score must be between ${MIN_SCORE} and ${MAX_SCORE}` },
+          { error: "Max score must be 7, 11, 15, or 21" },
           { status: 400 }
         );
       }

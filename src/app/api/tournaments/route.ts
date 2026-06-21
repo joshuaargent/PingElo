@@ -184,11 +184,15 @@ export async function POST(request: NextRequest) {
       finalMaxParticipants = Math.min(Math.max(maxParticipants || 8, MIN_PARTICIPANTS), MAX_PARTICIPANTS / 2);
     }
 
-    // Validate max score (must be between MIN_SCORE and MAX_SCORE)
-    const validatedMaxScore = Math.min(
-      Math.max(maxScore || 21, MIN_SCORE),
-      MAX_SCORE
-    );
+    // Validate max score (must be 7, 11, 15, or 21)
+    const validScores = [7, 11, 15, 21];
+    const validatedMaxScore = validScores.includes(maxScore || 21) ? (maxScore || 21) : 21;
+    if (maxScore !== undefined && !validScores.includes(maxScore)) {
+      return NextResponse.json(
+        { error: "Max score must be 7, 11, 15, or 21" },
+        { status: 400 }
+      );
+    }
 
     // Validate status if provided (only allow DRAFT or REGISTRATION_OPEN for creation)
     const validatedStatus = (status === "DRAFT" || status === "REGISTRATION_OPEN") 
