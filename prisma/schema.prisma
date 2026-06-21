@@ -112,6 +112,8 @@ model User {
   eloHistory     EloHistory[]
   // Weekly Activity
   weeklyActivity WeeklyActivity[]
+  // Achievements
+  achievements   Achievement[]
 }
 
 model Account {
@@ -467,4 +469,27 @@ model WeeklyActivity {
   @@index([userId])
   @@index([weekStart])
   @@index([isQualified])
+}
+
+// ============================================
+// Achievements
+// ============================================
+
+model Achievement {
+  id        String   @id @default(cuid())
+  slug      String   // e.g., "first_blood", "hot_streak"
+  name      String   // Display name
+  desc      String   // Description
+  icon      String   // Emoji or icon
+  tier      String   @default("bronze") // bronze, silver, gold, platinum
+  
+  unlockedAt DateTime @default(now())
+  
+  // Relationships
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([slug])
 }

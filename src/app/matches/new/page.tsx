@@ -72,6 +72,7 @@ export default function LogMatchPage() {
     newStreak: number;
     milestone: number | null;
     tier: { name: string; emoji: string; color: string } | null;
+    newAchievements?: { slug: string; name: string; icon: string; tier: string }[];
   } | null>(null);
 
   useEffect(() => {
@@ -250,10 +251,49 @@ export default function LogMatchPage() {
           }, 400);
         }
         
+        // Check for new achievements
+        try {
+          const opponentElo = data.match?.player1Id === userId 
+            ? (data.match?.player2EloBefore || 0)
+            : (data.match?.player1EloBefore || 0);
+          const playerScore = data.match?.player1Id === userId ? data.match?.player1Score : data.match?.player2Score;
+          const opponentScore = data.match?.player1Id === userId ? data.match?.player2Score : data.match?.player1Score;
+          
+          const achRes = await fetch('/api/achievements/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              matchWon: won,
+              opponentElo,
+              wasDown5Points: (opponentScore - playerScore) >= 5,
+              wasShutout: playerScore === 21 && opponentScore === 0,
+            }),
+          });
+          
+          if (achRes.ok) {
+            const achData = await achRes.json();
+            if (achData.newAchievements?.length > 0) {
+              setMatchResult(prev => prev ? { ...prev, newAchievements: achData.newAchievements } : null);
+              
+              // Achievement unlock confetti
+              setTimeout(() => {
+                confetti({
+                  particleCount: 200,
+                  spread: 360,
+                  origin: { y: 0.5 },
+                  colors: ['#fbbf24', '#f59e0b', '#d97706', '#fef3c7'],
+                });
+              }, 600);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check achievements:', e);
+        }
+        
         // Redirect after showing celebration
         setTimeout(() => {
           router.push('/dashboard');
-        }, 2000);
+        }, 3000);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to log match');
@@ -346,6 +386,24 @@ export default function LogMatchPage() {
                        matchResult.tier.name === 'Grandmaster' ? 'Elite status achieved!' :
                        'Rank up! Keep climbing!'}
                     </p>
+                  </div>
+                )}
+                {matchResult.newAchievements && matchResult.newAchievements.length > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400 mb-3">
+                      🏆 Achievement{matchResult.newAchievements.length > 1 ? 's' : ''} Unlocked!
+                    </p>
+                    <div className="space-y-2">
+                      {matchResult.newAchievements.map((ach) => (
+                        <div key={ach.slug} className="flex items-center gap-3">
+                          <span className="text-2xl">{ach.icon}</span>
+                          <div>
+                            <p className="font-semibold text-text-primary">{ach.name}</p>
+                            <p className="text-xs text-text-secondary">{ach.tier}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 <p className="text-text-secondary mt-4">

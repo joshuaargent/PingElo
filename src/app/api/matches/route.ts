@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor, calculateStreak, calculateStreakBonus, getPlayerTier, checkTierCrossing } from "@/lib/elo";
+import { checkAchievements, checkSpecialAchievements, getAchievementDef, ACHIEVEMENTS } from "@/lib/achievements";
 
 // Validation constants
 const MIN_SCORE = 3;
