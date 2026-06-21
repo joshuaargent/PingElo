@@ -835,7 +835,7 @@ export default function HowItWorksPage() {
                   <li>• 7-point games: Must reach exactly 7 and win by 2 (e.g., 7-5, 7-4)</li>
                   <li>• 11-point games: Must reach exactly 11 and win by 2 (e.g., 11-9)</li>
                   <li>• 15-point games: Must reach exactly 15 and win by 2 (e.g., 15-13)</li>
-                  <li>• 21-point games: Must reach at least 21 and win by 2 (deuce allowed: 23-21, 25-23)</li>
+                  <li>• 21-point games: Must reach exactly 21 and win by 2 (e.g., 21-19)</li>
                 </ul>
               </div>
               <p className="mt-4 text-sm text-text-secondary">
