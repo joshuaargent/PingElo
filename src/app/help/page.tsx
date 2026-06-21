@@ -124,6 +124,7 @@ export default function HelpPage() {
                 <li>For doubles: pick any 4 players (no team registration needed)</li>
                 <li>Score margin bonuses apply (1.25x for clear wins, 1.5x for dominance)</li>
                 <li>90% of ELO change counts toward season ELO</li>
+                <li>Higher score wins (no win-by-2 required)</li>
               </ul>
               <p className="mt-3"><strong>Tournament Matches:</strong></p>
               <ul className="list-disc list-inside ml-4 space-y-1">
@@ -131,6 +132,7 @@ export default function HelpPage() {
                 <li>Doubles: must use registered teams from current season</li>
                 <li>No score margin bonus (1.0x multiplier)</li>
                 <li>Full ELO change counts toward season ELO</li>
+                <li>Must win by 2 with exact target score (7, 11, 15, or 21)</li>
               </ul>
             </div>
           </Card>
@@ -216,7 +218,7 @@ export default function HelpPage() {
           <Card className="p-6">
             <h3 className="font-semibold mb-2">How are tournament prizes distributed?</h3>
             <div className="text-sm text-text-secondary space-y-1 mb-3">
-              <p>The platform adds 500 ELO to each tournament prize pool:</p>
+              <p>The platform adds <strong>50 ELO</strong> to each tournament prize pool:</p>
               <ul className="list-disc list-inside">
                 <li><strong>1st place:</strong> 50% of prize pool</li>
                 <li><strong>2nd place:</strong> 35% of prize pool</li>

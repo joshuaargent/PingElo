@@ -387,6 +387,17 @@ export default function TournamentDetailPage() {
 
     const p1Score = parseInt(scores.player1);
     const p2Score = parseInt(scores.player2);
+
+    // Validate winner matches the highest score
+    if (winner === 'player1' && p1Score < p2Score) {
+      alert('Winner must have the highest score. If Player 2 has the higher score, select Player 2 as winner.');
+      return;
+    }
+    if (winner === 'player2' && p2Score < p1Score) {
+      alert('Winner must have the highest score. If Player 1 has the higher score, select Player 1 as winner.');
+      return;
+    }
+
     const winnerId = winner === 'player1' ? loggingMatch.player1.id : loggingMatch.player2.id;
 
     try {
@@ -585,27 +596,33 @@ export default function TournamentDetailPage() {
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     {loggingMatch.player1.name} Score
+                    {winner === 'player1' && <span className="text-accent ml-1">(Winner - {tournament.maxScore || 21})</span>}
                   </label>
                   <Input
                     type="number"
                     min="0"
                     max="21"
                     value={scores.player1}
-                    onChange={(e) => setScores({ ...scores, player1: e.target.value })}
-                    placeholder="0"
+                    onChange={(e) => winner !== 'player1' && setScores({ ...scores, player1: e.target.value })}
+                    placeholder={winner === 'player1' ? String(tournament.maxScore || 21) : "0"}
+                    disabled={winner === 'player1'}
+                    className={winner === 'player1' ? 'bg-accent/10 border-accent' : ''}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
                     {loggingMatch.player2.name} Score
+                    {winner === 'player2' && <span className="text-accent ml-1">(Winner - {tournament.maxScore || 21})</span>}
                   </label>
                   <Input
                     type="number"
                     min="0"
                     max="21"
                     value={scores.player2}
-                    onChange={(e) => setScores({ ...scores, player2: e.target.value })}
-                    placeholder="0"
+                    onChange={(e) => winner !== 'player2' && setScores({ ...scores, player2: e.target.value })}
+                    placeholder={winner === 'player2' ? String(tournament.maxScore || 21) : "0"}
+                    disabled={winner === 'player2'}
+                    className={winner === 'player2' ? 'bg-accent/10 border-accent' : ''}
                   />
                 </div>
               </div>
@@ -615,7 +632,10 @@ export default function TournamentDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
-                    onClick={() => setWinner('player1')}
+                    onClick={() => {
+                      setWinner('player1');
+                      setScores({ ...scores, player1: String(tournament.maxScore || 21) });
+                    }}
                     className={`p-4 rounded-lg border-2 transition-colors ${
                       winner === 'player1'
                         ? 'border-accent bg-accent/20'
@@ -647,7 +667,10 @@ export default function TournamentDetailPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setWinner('player2')}
+                    onClick={() => {
+                      setWinner('player2');
+                      setScores({ ...scores, player2: String(tournament.maxScore || 21) });
+                    }}
                     className={`p-4 rounded-lg border-2 transition-colors ${
                       winner === 'player2'
                         ? 'border-accent bg-accent/20'
