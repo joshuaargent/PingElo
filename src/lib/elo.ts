@@ -676,10 +676,9 @@ export function calculateDoublesEntryFee(player1Elo: number, player2Elo: number)
  * Gets the ELO tier label for a player
  */
 export function getEloTierLabel(elo: number): string {
-  if (elo < 800) return "Beginner (Free Entry)";
-  if (elo < 1000) return "Intermediate (10 ELO entry)";
-  if (elo < 1200) return "Advanced (20 ELO entry)";
-  return "Expert (50 ELO entry)";
+  // Returns the skill tier name for display
+  const tier = getPlayerTier(elo);
+  return tier.name;
 }
 
 // ============================================

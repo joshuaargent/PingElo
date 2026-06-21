@@ -136,7 +136,7 @@ export async function PATCH(
           data: { foreverElo: { increment: challenge.stakeAmount } },
         });
         
-        // Record refund in ELO history
+        // Record refund in ELO history for challenger
         await prisma.eloHistory.create({
           data: {
             userId: challenge.challengerId,
@@ -174,7 +174,7 @@ export async function PATCH(
           data: { foreverElo: { increment: challenge.stakeAmount } },
         });
         
-        // Record refund in ELO history
+        // Record refund in ELO history for challenger
         await prisma.eloHistory.create({
           data: {
             userId: challenge.challengerId,
@@ -185,6 +185,25 @@ export async function PATCH(
             description: `Challenge cancelled - stake refunded`,
           },
         });
+
+        // If challenge was ACCEPTED, also refund the challenged player's stake
+        if (challenge.status === "ACCEPTED") {
+          const challengedBefore = await prisma.user.update({
+            where: { id: challenge.challengedId },
+            data: { foreverElo: { increment: challenge.stakeAmount } },
+          });
+          
+          await prisma.eloHistory.create({
+            data: {
+              userId: challenge.challengedId,
+              changeType: 'ADMIN_ADJUSTMENT',
+              eloBefore: challengedBefore.foreverElo - challenge.stakeAmount,
+              eloAfter: challengedBefore.foreverElo,
+              change: challenge.stakeAmount,
+              description: `Challenge cancelled - stake refunded`,
+            },
+          });
+        }
 
         const updated = await prisma.challenge.update({
           where: { id },
