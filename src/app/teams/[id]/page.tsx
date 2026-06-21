@@ -477,11 +477,13 @@ export default function TeamDetailPage() {
                   <BarChart3 className="h-5 w-5 text-accent"/>Team ELO History
                 </h3>
                 {/* Timeframe filters */}
-                <div className="inline-flex h-8 items-center rounded-lg bg-bg-secondary p-1">
+                <div className="inline-flex h-8 items-center rounded-lg bg-bg-secondary p-1" role="group" aria-label="ELO history timeframe filter">
                   {(['week', 'month', 'season', 'all'] as const).map((tf) => (
                     <button
                       key={tf}
                       onClick={() => setEloTimeframe(tf)}
+                      aria-pressed={eloTimeframe === tf}
+                      aria-label={`Show ${tf === 'week' ? 'last 7 days' : tf === 'month' ? 'last 30 days' : tf === 'season' ? 'current season' : 'all time'} matches`}
                       className={`px-2 sm:px-3 py-1 text-xs font-medium rounded-md transition-all ${
                         eloTimeframe === tf
                           ? 'bg-bg-primary text-text-primary shadow-sm'

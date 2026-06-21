@@ -121,9 +121,10 @@ export default function MatchHistoryPage() {
 
           {/* Filter */}
           <div className="flex justify-center mb-8">
-            <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1">
+            <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1" role="group" aria-label="Filter matches">
               <button
                 onClick={() => setFilter('all')}
+                aria-pressed={filter === 'all'}
                 className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                   filter === 'all'
                     ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -134,6 +135,7 @@ export default function MatchHistoryPage() {
               </button>
               <button
                 onClick={() => setFilter('wins')}
+                aria-pressed={filter === 'wins'}
                 className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                   filter === 'wins'
                     ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -144,6 +146,7 @@ export default function MatchHistoryPage() {
               </button>
               <button
                 onClick={() => setFilter('losses')}
+                aria-pressed={filter === 'losses'}
                 className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
                   filter === 'losses'
                     ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -166,16 +169,21 @@ export default function MatchHistoryPage() {
               
               {/* Pagination */}
               {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
+                <nav className="flex items-center justify-center gap-2 mt-8" aria-label="Pagination">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page <= 1}
+                    aria-label="Previous page"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm text-text-secondary px-4">
+                  <span 
+                    className="text-sm text-text-secondary px-4" 
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
                   <Button
@@ -183,10 +191,11 @@ export default function MatchHistoryPage() {
                     size="sm"
                     onClick={() => setPage(p => p + 1)}
                     disabled={page >= pagination.totalPages}
+                    aria-label="Next page"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                </div>
+                </nav>
               )}
             </>
           ) : (

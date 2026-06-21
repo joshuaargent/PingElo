@@ -55,27 +55,31 @@ export const Leaderboard = forwardRef<HTMLDivElement, LeaderboardProps>(
       <div ref={ref} className={cn('w-full', className)}>
         <div className="overflow-hidden rounded-xl border border-border bg-bg-primary">
           <table className="w-full">
+            <caption className="sr-only">
+              {matchType === 'doubles' ? 'Doubles ' : ''}{type === 'forever' ? 'Forever' : 'Season'} Leaderboard - 
+              {entries.length} {entries.length === 1 ? 'player' : 'players'}
+            </caption>
             <thead>
               <tr className="border-b border-border bg-bg-secondary">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">
+                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">
                   Rank
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">
+                <th scope="col" className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">
                   Player
                 </th>
-                <th className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary sm:table-cell">
+                <th scope="col" className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary sm:table-cell">
                   {matchType === 'doubles' 
                     ? (type === 'forever' ? 'Doubles Forever ELO' : 'Doubles Season ELO')
                     : (type === 'forever' ? 'Forever ELO' : 'Season ELO')
                   }
                 </th>
-                <th className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary md:table-cell">
+                <th scope="col" className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary md:table-cell">
                   Record
                 </th>
-                <th className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary lg:table-cell">
+                <th scope="col" className="hidden px-4 py-3 text-right text-sm font-semibold text-text-secondary lg:table-cell">
                   Win Rate
                 </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-text-secondary">
+                <th scope="col" className="px-4 py-3 text-center text-sm font-semibold text-text-secondary">
                   Status
                 </th>
               </tr>

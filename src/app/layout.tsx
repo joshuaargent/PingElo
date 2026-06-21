@@ -117,6 +117,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col antialiased">
+        {/* Skip to main content link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-accent focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-white"
+        >
+          Skip to main content
+        </a>
         <Providers>
           {/* Decorative Background - applies to all pages */}
           <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -125,7 +132,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-accent/5 blur-[80px]" />
           </div>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
           <Footer />
           <Toaster />
           <Analytics />
