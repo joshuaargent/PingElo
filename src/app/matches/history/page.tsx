@@ -5,8 +5,9 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { PageHero } from '@/components/layout/PageHero';
+import { Button } from '@/components/ui/Button';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
-import { Clock, Filter, Trophy } from 'lucide-react';
+import { Clock, Filter, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Match {
   id: string;
@@ -21,6 +22,13 @@ interface Match {
   tournament?: { id: string; name: string };
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 // ============================================
 // Match History Page
 // ============================================
@@ -30,6 +38,8 @@ export default function MatchHistoryPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'wins' | 'losses'>('all');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -44,10 +54,11 @@ export default function MatchHistoryPage() {
       
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/matches?userId=${session.user.id}&limit=50`);
+        const res = await fetch(`/api/matches?userId=${session.user.id}&page=${page}&limit=20`);
         if (res.ok) {
           const data = await res.json();
           setMatches(data.matches || []);
+          setPagination(data.pagination || null);
         }
       } catch (error) {
         console.error('Failed to fetch matches:', error);
@@ -59,7 +70,7 @@ export default function MatchHistoryPage() {
     if (session?.user?.id) {
       fetchMatches();
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, page]);
 
   const filteredMatches = matches.filter((match) => {
     if (filter === 'all') return true;
@@ -146,11 +157,38 @@ export default function MatchHistoryPage() {
 
           {/* Match List */}
           {filteredMatches.length > 0 ? (
-            <div className="space-y-4">
-              {filteredMatches.map((match) => (
-                <MatchCardFromMatch key={match.id} match={match} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-4">
+                {filteredMatches.map((match) => (
+                  <MatchCardFromMatch key={match.id} match={match} />
+                ))}
+              </div>
+              
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-text-secondary px-4">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={page >= pagination.totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <Card className="p-6 sm:p-12 text-center">
               <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />

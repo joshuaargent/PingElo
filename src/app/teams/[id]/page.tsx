@@ -120,8 +120,7 @@ export default function TeamDetailPage() {
 
   async function fetchEloHistory() {
     try {
-      const limit = eloTimeframe === 'week' ? 10 : eloTimeframe === 'month' ? 30 : eloTimeframe === 'season' ? 50 : 100;
-      const res = await fetch(`/api/teams/${teamId}/elo-history?limit=${limit}`);
+      const res = await fetch(`/api/teams/${teamId}/elo-history?timeframe=${eloTimeframe}`);
       if (res.ok) {
         const data = await res.json();
         setEloHistory(data.history || []);

@@ -129,8 +129,7 @@ export default function ProfilePage() {
 
     async function fetchEloHistory() {
       try {
-        const limit = eloTimeframe === 'week' ? 10 : eloTimeframe === 'month' ? 30 : eloTimeframe === 'season' ? 50 : 100;
-        const res = await fetch(`/api/users/${params.id}/elo-history?limit=${limit}`);
+        const res = await fetch(`/api/users/${params.id}/elo-history?timeframe=${eloTimeframe}`);
         if (res.ok) {
           const data = await res.json();
           setEloHistory(data.history || []);

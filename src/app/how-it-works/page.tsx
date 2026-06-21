@@ -101,15 +101,15 @@ export default function HowItWorksPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                     <div className="p-2 bg-bg-secondary rounded text-center">
                       <div className="font-semibold">Week</div>
-                      <div className="text-xs text-text-muted">Last 10 matches</div>
+                      <div className="text-xs text-text-muted">Last 7 days</div>
                     </div>
                     <div className="p-2 bg-bg-secondary rounded text-center">
                       <div className="font-semibold">Month</div>
-                      <div className="text-xs text-text-muted">Last 30 matches</div>
+                      <div className="text-xs text-text-muted">Last 30 days</div>
                     </div>
                     <div className="p-2 bg-bg-secondary rounded text-center">
                       <div className="font-semibold">Season</div>
-                      <div className="text-xs text-text-muted">Last 50 matches</div>
+                      <div className="text-xs text-text-muted">Current season</div>
                     </div>
                     <div className="p-2 bg-bg-secondary rounded text-center">
                       <div className="font-semibold">All Time</div>

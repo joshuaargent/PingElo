@@ -15,11 +15,49 @@ export async function GET(
 
     const { id } = await params;
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
+    
+    // Pagination params
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const perPage = Math.min(50, Math.max(5, parseInt(searchParams.get('perPage') || '20')));
+    const cursor = searchParams.get('cursor'); // ISO date string for cursor pagination
+    
+    // Timeframe filter
+    const timeframe = searchParams.get('timeframe') || 'all'; // week, month, season, all
     const type = searchParams.get('type') || 'singles'; // singles, doubles, team
 
-    // Get user's ELO history based on type
-    let eloHistory: any[] = [];
+    // Calculate date range based on timeframe
+    const now = new Date();
+    let dateFrom: Date | undefined;
+    
+    switch (timeframe) {
+      case 'week':
+        dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'season':
+        // Get current season start
+        const currentSeason = await prisma.season.findFirst({
+          where: { isActive: true },
+          orderBy: { startDate: 'desc' },
+        });
+        if (currentSeason) {
+          dateFrom = new Date(currentSeason.startDate);
+        }
+        break;
+      case 'all':
+      default:
+        dateFrom = undefined;
+    }
+
+    // Build where clause
+    const whereClause: any = {};
+    if (dateFrom) {
+      whereClause.createdAt = { gte: dateFrom };
+    }
+
+    // For stats, we need to query separately
     let stats = {
       totalMatches: 0,
       wins: 0,
@@ -28,6 +66,7 @@ export async function GET(
       highestElo: 0,
       lowestElo: 0,
       winRate: 0,
+      timeframeMatches: 0,
     };
 
     if (type === 'team') {
@@ -45,10 +84,12 @@ export async function GET(
       const teamIds = teams.map(t => t.id);
       
       if (teamIds.length > 0) {
-        eloHistory = await prisma.teamEloHistory.findMany({
-          where: { teamId: { in: teamIds } },
+        const teamWhere = { teamId: { in: teamIds }, ...whereClause };
+        
+        // Get total count for stats
+        const allHistory = await prisma.teamEloHistory.findMany({
+          where: teamWhere,
           orderBy: { createdAt: 'desc' },
-          take: limit,
           select: {
             id: true,
             eloBefore: true,
@@ -61,58 +102,123 @@ export async function GET(
           },
         });
         
-        const wins = eloHistory.filter(h => h.change > 0).length;
-        const losses = eloHistory.filter(h => h.change < 0).length;
-        const netChange = eloHistory.reduce((sum, h) => sum + h.change, 0);
-        const eloValues = eloHistory.map(h => h.eloAfter);
+        stats.timeframeMatches = allHistory.length;
+        const wins = allHistory.filter(h => h.change > 0).length;
+        const losses = allHistory.filter(h => h.change < 0).length;
+        const eloValues = allHistory.map(h => h.eloAfter);
         
         stats = {
-          totalMatches: eloHistory.length,
+          ...stats,
+          totalMatches: allHistory.length,
           wins,
           losses,
-          netChange,
+          netChange: allHistory.reduce((sum, h) => sum + h.change, 0),
           highestElo: eloValues.length > 0 ? Math.max(...eloValues) : 0,
           lowestElo: eloValues.length > 0 ? Math.min(...eloValues) : 0,
-          winRate: eloHistory.length > 0 ? Math.round((wins / eloHistory.length) * 100) : 0,
+          winRate: allHistory.length > 0 ? Math.round((wins / allHistory.length) * 100) : 0,
         };
-      } else {
-        eloHistory = [];
+        
+        // Apply cursor pagination
+        const paginatedHistory = await prisma.teamEloHistory.findMany({
+          where: teamWhere,
+          orderBy: { createdAt: 'desc' },
+          take: perPage + 1, // Take one extra to check if there's a next page
+          ...(cursor && { skip: 1, cursor: { id: cursor } }),
+          select: {
+            id: true,
+            eloBefore: true,
+            eloAfter: true,
+            change: true,
+            changeType: true,
+            description: true,
+            createdAt: true,
+            teamId: true,
+          },
+        });
+        
+        // Determine if there's a next page
+        let nextCursor: string | undefined;
+        if (paginatedHistory.length > perPage) {
+          const nextItem = paginatedHistory.pop();
+          nextCursor = nextItem?.id;
+        }
+        
+        return NextResponse.json({
+          history: paginatedHistory.reverse(), // Oldest first for charts
+          stats,
+          pagination: {
+            page,
+            perPage,
+            hasMore: !!nextCursor,
+            nextCursor,
+          },
+        });
       }
-    } else {
-      eloHistory = await prisma.eloHistory.findMany({
-        where: { userId: id },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        select: {
-          id: true,
-          eloBefore: true,
-          eloAfter: true,
-          change: true,
-          changeType: true,
-          description: true,
-          createdAt: true,
-        },
-      });
-
-      const wins = eloHistory.filter(h => h.change > 0).length;
-      const losses = eloHistory.filter(h => h.change < 0).length;
-      const netChange = eloHistory.reduce((sum, h) => sum + h.change, 0);
-      const eloValues = eloHistory.map(h => h.eloAfter);
       
-      stats = {
-        totalMatches: eloHistory.length,
-        wins,
-        losses,
-        netChange,
-        highestElo: eloValues.length > 0 ? Math.max(...eloValues) : 0,
-        lowestElo: eloValues.length > 0 ? Math.min(...eloValues) : 0,
-        winRate: eloHistory.length > 0 ? Math.round((wins / eloHistory.length) * 100) : 0,
-      };
+      return NextResponse.json({
+        history: [],
+        stats,
+        pagination: { page, perPage, hasMore: false, nextCursor: undefined },
+      });
     }
-
+    
+    // Singles/doubles ELO history
+    whereClause.userId = id;
+    
+    // Get all for stats calculation
+    const allHistory = await prisma.eloHistory.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+    });
+    
+    stats.timeframeMatches = allHistory.length;
+    const wins = allHistory.filter(h => h.change > 0).length;
+    const losses = allHistory.filter(h => h.change < 0).length;
+    const eloValues = allHistory.map(h => h.eloAfter);
+    
+    stats = {
+      ...stats,
+      totalMatches: allHistory.length,
+      wins,
+      losses,
+      netChange: allHistory.reduce((sum, h) => sum + h.change, 0),
+      highestElo: eloValues.length > 0 ? Math.max(...eloValues) : 0,
+      lowestElo: eloValues.length > 0 ? Math.min(...eloValues) : 0,
+      winRate: allHistory.length > 0 ? Math.round((wins / allHistory.length) * 100) : 0,
+    };
+    
+    // Paginated query
+    const paginatedHistory = await prisma.eloHistory.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      take: perPage + 1,
+      ...(cursor && { skip: 1, cursor: { id: cursor } }),
+      select: {
+        id: true,
+        eloBefore: true,
+        eloAfter: true,
+        change: true,
+        changeType: true,
+        description: true,
+        createdAt: true,
+      },
+    });
+    
+    let nextCursor: string | undefined;
+    if (paginatedHistory.length > perPage) {
+      const nextItem = paginatedHistory.pop();
+      nextCursor = nextItem?.id;
+    }
+    
     return NextResponse.json({
-      history: eloHistory.reverse(), // Oldest first for charts
+      history: paginatedHistory.reverse(), // Oldest first for charts
       stats,
+      pagination: {
+        page,
+        perPage,
+        hasMore: !!nextCursor,
+        nextCursor,
+      },
     });
   } catch (error) {
     console.error('Error fetching ELO history:', error);

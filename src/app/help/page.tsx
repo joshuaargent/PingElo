@@ -295,9 +295,9 @@ export default function HelpPage() {
               Visit your profile page to see your ELO history chart. You can filter by timeframe:
             </p>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-              <li><strong>Week</strong> - Last 10 matches</li>
-              <li><strong>Month</strong> - Last 30 matches</li>
-              <li><strong>Season</strong> - Last 50 matches</li>
+              <li><strong>Week</strong> - Matches from the last 7 days</li>
+              <li><strong>Month</strong> - Matches from the last 30 days</li>
+              <li><strong>Season</strong> - Matches from the current season</li>
               <li><strong>All</strong> - Your entire ELO history</li>
             </ul>
           </Card>
