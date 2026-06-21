@@ -222,15 +222,15 @@ export default function DashboardPage() {
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-3 bg-bg-secondary rounded-xl">
-                  <div className="text-2xl font-bold text-text-primary">{stats.matchesPlayed}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-text-primary">{stats.matchesPlayed}</div>
                   <div className="text-sm text-text-secondary">Matches</div>
                 </div>
                 <div className="p-3 bg-bg-secondary rounded-xl">
-                  <div className="text-2xl font-bold text-green-500">{stats.wins}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-green-500">{stats.wins}</div>
                   <div className="text-sm text-text-secondary">Wins</div>
                 </div>
                 <div className="p-3 bg-bg-secondary rounded-xl">
-                  <div className="text-2xl font-bold text-red-500">{stats.losses}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-red-500">{stats.losses}</div>
                   <div className="text-sm text-text-secondary">Losses</div>
                 </div>
               </div>

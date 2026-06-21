@@ -132,7 +132,7 @@ export default async function HomePage() {
               showSeasonElo
             />
           ) : (
-            <div className="rounded-xl bg-bg-card p-12 text-center border border-border">
+            <div className="rounded-xl border border-border p-6 sm:p-12 text-center border border-border">
               <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-text-primary mb-2">No Players Yet</h3>
               <p className="text-text-secondary mb-4">Be the first to log a match!</p>

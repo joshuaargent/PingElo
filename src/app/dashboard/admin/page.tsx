@@ -615,7 +615,7 @@ export default function AdminDashboardPage() {
               ))}
             </div>
             {tournaments.length === 0 && (
-              <Card className="p-12 text-center">
+              <Card className="p-6 sm:p-12 text-center">
                 <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-text-primary mb-2">No Tournaments</h3>
               </Card>

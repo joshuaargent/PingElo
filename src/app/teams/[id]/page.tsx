@@ -189,7 +189,7 @@ export default function TeamDetailPage() {
         <PageHero title="Team Not Found" description="This team doesn't exist or you don't have access" />
         <div className="container mx-auto px-4 pb-16">
           <div className="mx-auto max-w-4xl">
-            <Card className="p-12 text-center">
+            <Card className="p-6 sm:p-12 text-center">
               <Users className="h-16 w-16 mx-auto text-text-muted mb-4"/>
               <h3 className="text-lg font-semibold text-text-primary mb-2">{error || "Team not found"}</h3>
               <Link href="/teams">

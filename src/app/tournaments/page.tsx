@@ -247,7 +247,7 @@ export default function TournamentsPage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-12 md:py-16 lg:py-20">
+      <section className="relative overflow-hidden py-8 md:py-12 lg:py-16">
         <div className="container">
           <div className="mx-auto max-w-4xl text-center">
             {/* Badge */}
@@ -355,12 +355,12 @@ export default function TournamentsPage() {
 
         {/* Loading or Tournament Grid */}
         {isLoading ? (
-          <Card className="p-12 text-center">
+          <Card className="p-6 sm:p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
             <p className="text-text-secondary">Loading tournaments...</p>
           </Card>
         ) : filteredTournaments.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-6 sm:p-12 text-center">
             <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-text-primary mb-2">No Tournaments Yet</h3>
             <p className="text-text-secondary mb-4">Create the first tournament!</p>

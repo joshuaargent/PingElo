@@ -184,7 +184,7 @@ export default function SettingsPage() {
               Back to Dashboard
             </Link>
 
-            <h1 className="text-text-primary text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+            <h1 className="text-text-primary text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
               Settings
             </h1>
             <p className="text-text-secondary mx-auto mt-4 max-w-2xl text-lg">
@@ -293,21 +293,21 @@ export default function SettingsPage() {
 
                 <div className="pt-6 border-t border-border">
                   <h3 className="font-medium text-text-primary mb-4">Your Stats</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
                     <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                      <p className="text-2xl font-bold text-text-primary">{userStats?.foreverElo ?? '—'}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-text-primary">{userStats?.foreverElo ?? '—'}</p>
                       <p className="text-sm text-text-secondary">Forever ELO</p>
                     </div>
                     <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                      <p className="text-2xl font-bold text-text-primary">{userStats?.seasonElo ?? '—'}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-text-primary">{userStats?.seasonElo ?? '—'}</p>
                       <p className="text-sm text-text-secondary">Season ELO</p>
                     </div>
                     <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                      <p className="text-2xl font-bold text-text-primary">{userStats?.matchesPlayed ?? 0}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-text-primary">{userStats?.matchesPlayed ?? 0}</p>
                       <p className="text-sm text-text-secondary">Matches</p>
                     </div>
                     <div className="p-4 bg-bg-secondary rounded-xl text-center">
-                      <p className="text-2xl font-bold text-text-primary">{userStats?.winRate ?? 0}%</p>
+                      <p className="text-lg sm:text-2xl font-bold text-text-primary">{userStats?.winRate ?? 0}%</p>
                       <p className="text-sm text-text-secondary">Win Rate</p>
                     </div>
                   </div>
@@ -385,7 +385,7 @@ export default function SettingsPage() {
               <p className="text-text-secondary mb-6">
                 Customize how PingElo looks for you.
               </p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 <button
                   onClick={() => handleThemeChange('light')}
                   className={`p-4 rounded-xl border-2 transition-colors ${

@@ -145,7 +145,7 @@ export default function ProfilePage() {
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-bold text-text-primary">
+                    <h1 className="text-xl sm:text-3xl font-bold text-text-primary">
                       {profile.name}
                     </h1>
                     {profile.isActive && (
@@ -223,27 +223,27 @@ export default function ProfilePage() {
               <Trophy className="h-5 w-5 text-accent" />
               Match Statistics
             </h2>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-3xl font-bold text-text-primary mb-1">
+                <div className="text-xl sm:text-3xl font-bold text-text-primary mb-1">
                   {profile.matchesPlayed}
                 </div>
                 <div className="text-sm text-text-secondary">Matches</div>
               </div>
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-3xl font-bold text-green-500 mb-1">
+                <div className="text-xl sm:text-3xl font-bold text-green-500 mb-1">
                   {profile.wins}
                 </div>
                 <div className="text-sm text-text-secondary">Wins</div>
               </div>
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-3xl font-bold text-red-500 mb-1">
+                <div className="text-xl sm:text-3xl font-bold text-red-500 mb-1">
                   {profile.losses}
                 </div>
                 <div className="text-sm text-text-secondary">Losses</div>
               </div>
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
-                <div className="text-3xl font-bold text-text-primary mb-1">
+                <div className="text-xl sm:text-3xl font-bold text-text-primary mb-1">
                   {profile.winRate}%
                 </div>
                 <div className="text-sm text-text-secondary">Win Rate</div>

@@ -223,7 +223,7 @@ export default function TeamsPage() {
         <PageHero title="My Teams" description="Your doubles partnership history" />
         <div className="container mx-auto px-4 pb-16">
           <div className="mx-auto max-w-4xl">
-            <Card className="p-12 text-center">
+            <Card className="p-6 sm:p-12 text-center">
               <Calendar className="h-16 w-16 mx-auto text-text-muted mb-4"/>
               <h3 className="text-lg font-semibold text-text-primary mb-2">No Active Season</h3>
               <p className="text-text-secondary mb-6">
@@ -287,25 +287,25 @@ export default function TeamsPage() {
           )}
 
           {stats && stats.totalTeams > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
               <Card className="p-4 text-center">
                 <Trophy className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
-                <p className="text-2xl font-bold text-text-primary">{stats.totalWins}</p>
+                <p className="text-lg sm:text-2xl font-bold text-text-primary">{stats.totalWins}</p>
                 <p className="text-xs text-text-secondary">Total Wins</p>
               </Card>
               <Card className="p-4 text-center">
                 <Target className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold text-text-primary">{stats.overallWinRate}%</p>
+                <p className="text-lg sm:text-2xl font-bold text-text-primary">{stats.overallWinRate}%</p>
                 <p className="text-xs text-text-secondary">Win Rate</p>
               </Card>
               <Card className="p-4 text-center">
                 <Flame className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold text-text-primary">{stats.bestWinRate}%</p>
+                <p className="text-lg sm:text-2xl font-bold text-text-primary">{stats.bestWinRate}%</p>
                 <p className="text-xs text-text-secondary">Best Win Rate</p>
               </Card>
               <Card className="p-4 text-center">
                 <Clock className="h-6 w-6 mx-auto mb-2 text-purple-500" />
-                <p className="text-2xl font-bold text-text-primary">{stats.seasonsParticipated}</p>
+                <p className="text-lg sm:text-2xl font-bold text-text-primary">{stats.seasonsParticipated}</p>
                 <p className="text-xs text-text-secondary">Seasons</p>
               </Card>
             </div>
@@ -343,7 +343,7 @@ export default function TeamsPage() {
           </div>
 
           {teams.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="p-6 sm:p-12 text-center">
               <Users className="h-16 w-16 mx-auto text-text-muted mb-4"/>
               <h3 className="text-lg font-semibold text-text-primary mb-2">
                 {showHistory ? "No Team History Yet" : "No Teams This Season"}

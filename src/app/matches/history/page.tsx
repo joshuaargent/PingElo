@@ -93,17 +93,17 @@ export default function MatchHistoryPage() {
       <div className="container mx-auto px-4 pb-16">
         <div className="mx-auto max-w-4xl">
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-3 gap-3 mb-8">
             <Card className="p-4 text-center">
-              <p className="text-3xl font-bold text-text-primary">{matches.length}</p>
+              <p className="text-xl sm:text-3xl font-bold text-text-primary">{matches.length}</p>
               <p className="text-sm text-text-secondary">Total Matches</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-3xl font-bold text-green-500">{wins}</p>
+              <p className="text-xl sm:text-3xl font-bold text-green-500">{wins}</p>
               <p className="text-sm text-text-secondary">Wins</p>
             </Card>
             <Card className="p-4 text-center">
-              <p className="text-3xl font-bold text-red-500">{losses}</p>
+              <p className="text-xl sm:text-3xl font-bold text-red-500">{losses}</p>
               <p className="text-sm text-text-secondary">Losses</p>
             </Card>
           </div>
@@ -152,7 +152,7 @@ export default function MatchHistoryPage() {
               ))}
             </div>
           ) : (
-            <Card className="p-12 text-center">
+            <Card className="p-6 sm:p-12 text-center">
               <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-text-primary mb-2">No Matches Yet</h3>
               <p className="text-text-secondary">Start logging your matches!</p>
