@@ -297,6 +297,9 @@ model Match {
   team1Player2  User?     @relation("Team1Player2", fields: [team1Player2Id], references: [id])
   team2Player1  User?     @relation("Team2Player1", fields: [team2Player1Id], references: [id])
   team2Player2  User?     @relation("Team2Player2", fields: [team2Player2Id], references: [id])
+  
+  // Reactions
+  reactions     MatchReaction[]
 
   @@index([player1Id])
   @@index([player2Id])
@@ -517,4 +520,21 @@ model Achievement {
   @@unique([userId, slug])
   @@index([userId])
   @@index([slug])
+}
+
+// ============================================
+// Match Reactions
+// ============================================
+
+model MatchReaction {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String   // fire, ripple, clap, etc.
+  createdAt DateTime @default(now())
+  
+  @@unique([matchId, userId, emoji])
+  @@index([matchId])
+  @@index([userId])
 }
