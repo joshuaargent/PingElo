@@ -310,7 +310,7 @@ export default function TeamDetailPage() {
                 ) : (
                   <>
                     <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-bold text-text-primary">{teamDisplayName}</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold text-text-primary">{teamDisplayName}</h2>
                       {isCreator && (
                         <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
                           <Edit2 className="h-4 w-4"/>
@@ -338,7 +338,7 @@ export default function TeamDetailPage() {
                       <div className="flex items-center gap-2">
                         <Badge className="text-lg px-3 py-1">{team.foreverElo} ELO</Badge>
                       </div>
-                      <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                         <div><p className="text-xl font-bold text-yellow-500">{w}</p><p className="text-xs text-text-muted">Wins</p></div>
                         <div><p className="text-xl font-bold text-red-400">{l}</p><p className="text-xs text-text-muted">Losses</p></div>
                         <div><p className="text-xl font-bold text-accent">{winRate}%</p><p className="text-xs text-text-muted">Rate</p></div>

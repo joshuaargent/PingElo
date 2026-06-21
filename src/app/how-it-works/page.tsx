@@ -17,7 +17,7 @@ export default function HowItWorksPage() {
 
       {/* ELO System Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">The ELO Rating System</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">The ELO Rating System</h2>
         
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           <Card className="p-6">
@@ -55,7 +55,7 @@ export default function HowItWorksPage() {
 
       {/* Dynamic K-Factor Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Dynamic K-Factor</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Dynamic K-Factor</h2>
         <p className="text-text-secondary mb-6">
           New players adjust quickly while veterans maintain stable ratings. The K-factor determines
           how much your ELO can change per match.
@@ -106,7 +106,7 @@ export default function HowItWorksPage() {
 
       {/* Score Margin Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Score Margin Bonus</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Score Margin Bonus</h2>
         <p className="text-text-secondary mb-6">
           In all matches (casual and tournament), dominating wins earn a bonus multiplier. 
           This rewards playing well, not just winning. Both winner AND loser are affected— 
@@ -140,7 +140,7 @@ export default function HowItWorksPage() {
 
       {/* Seasons Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Monthly Seasons</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Monthly Seasons</h2>
         
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="p-6">
@@ -170,7 +170,7 @@ export default function HowItWorksPage() {
 
       {/* Forever vs Season ELO */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Understanding Your ELO</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Understanding Your ELO</h2>
         
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6 border-2 border-blue-500/30">
@@ -269,7 +269,7 @@ export default function HowItWorksPage() {
 
       {/* Doubles Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Doubles Teams</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Doubles Teams</h2>
         
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
@@ -366,7 +366,7 @@ export default function HowItWorksPage() {
 
       {/* Tournaments Section */}
       <section className="mb-16">
-        <h2 className="text-2xl font-bold text-text-primary mb-6">Tournaments</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Tournaments</h2>
         
         <Card className="p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
@@ -422,18 +422,18 @@ export default function HowItWorksPage() {
         <h3 className="text-lg font-semibold mb-4">Prize Distribution</h3>
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-500 mb-1">1st</div>
-            <p className="text-2xl font-bold text-text-primary">50%</p>
+            <div className="text-xl sm:text-2xl font-bold text-yellow-500 mb-1">1st</div>
+            <p className="text-xl sm:text-2xl font-bold text-text-primary">50%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-400 mb-1">2nd</div>
-            <p className="text-2xl font-bold text-text-primary">35%</p>
+            <div className="text-xl sm:text-2xl font-bold text-gray-400 mb-1">2nd</div>
+            <p className="text-xl sm:text-2xl font-bold text-text-primary">35%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
           <Card className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-400 mb-1">3rd</div>
-            <p className="text-2xl font-bold text-text-primary">15%</p>
+            <div className="text-xl sm:text-2xl font-bold text-orange-400 mb-1">3rd</div>
+            <p className="text-xl sm:text-2xl font-bold text-text-primary">15%</p>
             <p className="text-xs text-text-secondary">of prize pool</p>
           </Card>
         </div>

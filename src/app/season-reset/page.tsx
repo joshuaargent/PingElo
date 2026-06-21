@@ -198,9 +198,9 @@ export default function SeasonResetPage() {
   if (status === 'error') {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <Card className="max-w-md p-8 text-center">
+        <Card className="max-w-md p-6 sm:p-8 text-center">
           <div className="text-6xl mb-4">😕</div>
-          <h1 className="text-2xl font-bold text-text-primary mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary mb-4">
             Something went wrong
           </h1>
           <p className="text-text-secondary mb-6">
@@ -238,7 +238,7 @@ export default function SeasonResetPage() {
 
         {/* User's Season Stats */}
         {userStats && (
-          <Card className="p-8 mb-8 text-left bg-gradient-to-br from-bg-primary to-bg-secondary">
+          <Card className="p-6 sm:p-8 mb-6 text-left bg-gradient-to-br from-bg-primary to-bg-secondary">
             <div className="flex items-center gap-4 mb-6">
               <Avatar
                 src={userStats.image || undefined}
@@ -262,27 +262,27 @@ export default function SeasonResetPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 gap-4 mb-6">
               <div className="p-4 bg-bg-secondary rounded-xl text-center">
                 <TrendingUp className={`h-6 w-6 mx-auto mb-2 ${userStats.seasonGains >= 0 ? 'text-green-500' : 'text-red-500'}`} />
-                <p className="text-2xl font-bold text-text-primary">
+                <p className="text-xl sm:text-2xl font-bold text-text-primary">
                   {userStats.seasonGains >= 0 ? '+' : ''}{userStats.seasonGains}
                 </p>
                 <p className="text-sm text-text-secondary">Season Gains</p>
               </div>
               <div className="p-4 bg-bg-secondary rounded-xl text-center">
                 <Target className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold text-text-primary">{userStats.seasonMatches}</p>
+                <p className="text-xl sm:text-2xl font-bold text-text-primary">{userStats.seasonMatches}</p>
                 <p className="text-sm text-text-secondary">Matches</p>
               </div>
               <div className="p-4 bg-bg-secondary rounded-xl text-center">
                 <Flame className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold text-text-primary">{userStats.winRate}%</p>
+                <p className="text-xl sm:text-2xl font-bold text-text-primary">{userStats.winRate}%</p>
                 <p className="text-sm text-text-secondary">Win Rate</p>
               </div>
               <div className="p-4 bg-bg-secondary rounded-xl text-center">
                 <Zap className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
-                <p className="text-2xl font-bold text-text-primary">Top {100 - userStats.percentile}%</p>
+                <p className="text-xl sm:text-2xl font-bold text-text-primary">Top {100 - userStats.percentile}%</p>
                 <p className="text-sm text-text-secondary">Percentile</p>
               </div>
             </div>

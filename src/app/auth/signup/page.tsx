@@ -85,13 +85,13 @@ export default function SignUpPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-accent">
             <Pin className="h-10 w-10" />
-            <span className="text-2xl font-bold">PingElo</span>
+            <span className="text-xl sm:text-2xl font-bold">PingElo</span>
           </Link>
         </div>
 
-        <Card className="p-8">
+        <Card className="p-6 sm:p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-text-primary mb-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">
               Create Your Account
             </h1>
             <p className="text-text-secondary">

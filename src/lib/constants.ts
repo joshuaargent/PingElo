@@ -52,10 +52,18 @@ export const footerNav = {
     { label: 'Home', href: '/' },
     { label: 'Leaderboard', href: '/leaderboard' },
     { label: 'Tournaments', href: '/tournaments' },
+    { label: 'Teams', href: '/teams' },
+    { label: 'Log Match', href: '/matches/new' },
+    { label: 'Match History', href: '/matches/history' },
   ],
   content: [
     { label: 'How It Works', href: '/how-it-works' },
-    { label: 'Help', href: '/help' },
+    { label: 'Help & FAQ', href: '/help' },
+    { label: 'Contact Us', href: '/contact' },
+  ],
+  legal: [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Season Reset', href: '/season-reset' },
   ],
   social: [
     { label: 'GitHub', href: siteConfig.links.github },
