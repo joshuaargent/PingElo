@@ -463,6 +463,23 @@ export async function POST(
     // Auto-complete challenges
     await handleTournamentMatchAutoComplete(isDoubles, winnerId, loser.id, player1Id, player2Id, match.id);
 
+    // Log activity for tournament match (non-blocking)
+    prisma.activity.create({
+      data: {
+        type: 'TOURNAMENT_MATCH',
+        message: `Tournament match completed`,
+        metadata: { 
+          matchId: match.id, 
+          tournamentId: tournamentId,
+          winnerId,
+          loserId: loser.id,
+          isDoubles 
+        },
+        userId: player1Id,
+        matchId: match.id,
+      },
+    }).catch(() => {});
+
     return NextResponse.json({
       success: true,
       match,

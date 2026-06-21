@@ -362,15 +362,21 @@ export default function HowItWorksPage() {
                 <Card className="p-4 bg-green-500/10 border-green-500/30">
                   <h4 className="font-semibold mb-2">🏆 ELO Leader</h4>
                   <p className="text-sm text-text-secondary">
-                    The player who gains the most ELO during the week wins!
+                    The player who gains the most ELO during the week earns recognition and bragging rights!
                   </p>
                 </Card>
                 <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
                   <h4 className="font-semibold mb-2">🔥 Wins Leader</h4>
                   <p className="text-sm text-text-secondary">
-                    Most wins during the week earns bonus recognition.
+                    Most wins during the week also earns recognition and a featured spot on the leaderboard.
                   </p>
                 </Card>
+              </div>
+
+              <div className="mt-4 p-3 bg-accent/10 rounded-lg">
+                <p className="text-sm text-text-secondary">
+                  <strong>Top Climber follows season reset.</strong> Your weekly ELO gains reset when a new season begins, giving everyone a fresh chance to climb the ranks!
+                </p>
               </div>
             </Card>
 

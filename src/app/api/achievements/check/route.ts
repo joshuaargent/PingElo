@@ -107,6 +107,16 @@ export async function POST(request: NextRequest) {
           },
         });
         awardedAchievements.push(def);
+        
+        // Log activity for achievement unlock (non-blocking)
+        prisma.activity.create({
+          data: {
+            type: 'ACHIEVEMENT',
+            message: `Unlocked ${def.name}!`,
+            metadata: { achievementSlug: def.slug, achievementName: def.name },
+            userId,
+          },
+        }).catch(() => {});
       }
     }
 

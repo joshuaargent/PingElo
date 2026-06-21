@@ -842,6 +842,17 @@ export async function POST(request: NextRequest) {
           'SINGLES'
         );
         
+        // Log activity for match (non-blocking)
+        prisma.activity.create({
+          data: {
+            type: 'MATCH',
+            message: `Match completed`,
+            metadata: { matchId: singlesResult.match.id, player1Id, player2Id, winnerId },
+            userId: userId,
+            matchId: singlesResult.match.id,
+          },
+        }).catch(() => {});
+        
         return NextResponse.json({ 
           match: singlesResult.match, 
           eloChange: eloChangeResult, 
@@ -871,6 +882,24 @@ export async function POST(request: NextRequest) {
       );
       await updateTeamStreaks(team1Id, team2Id);
     }
+    
+    // Log activity for match (non-blocking)
+    const winner = player1Score > player2Score ? player1Id : player2Id;
+    const loser = winner === player1Id ? player2Id : player1Id;
+    const activityData = match.matchType === 'DOUBLES' ? {
+      type: 'DOUBLES_MATCH',
+      message: `Doubles match completed`,
+      metadata: { matchId: match.id, team1Id, team2Id, winnerId: doublesWinnerId },
+      userId: userId,
+      matchId: match.id,
+    } : {
+      type: 'MATCH',
+      message: `Match completed`,
+      metadata: { matchId: match.id, player1Id, player2Id, winnerId: winner },
+      userId: userId,
+      matchId: match.id,
+    };
+    prisma.activity.create({ data: activityData }).catch(() => {});
     
     return NextResponse.json({ match, eloChange: eloChangeResult, matchType: matchType || "DOUBLES" }, { status: 201 });
   } catch (error) {
