@@ -14,7 +14,7 @@ This document outlines all planned engagement features to increase user retentio
 - ✅ Add milestone check in `calculateStreak()` function
 - ✅ Return `milestoneHit` flag with milestone number
 - ✅ Confetti animation in match result UI
-- ⚠️ Toast notification: "🔥 7-Day Streak! You're on fire!" - **NOT YET UI**
+- ✅ Tier announcement toast (tier-ups also show toast)
 
 **Files modified:**
 - `src/lib/elo.ts` - ✅ Add milestone detection
@@ -136,20 +136,22 @@ This document outlines all planned engagement features to increase user retentio
 
 ---
 
-### 2.3 Match Reactions ❌ NOT IMPLEMENTED
+### 2.3 Match Reactions ✅ IMPLEMENTED
 **Trigger:** After viewing a match
 
 **Implementation:**
 - ✅ Add `MatchReaction` model (userId, matchId, emoji)
-- ❌ Show reaction picker on MatchCard (🔥 👏 😎 💪 🎉)
-- ❌ Display reaction count per emoji
-- ❌ Limit 1 reaction per user per match
+- ✅ Show reaction picker on MatchCard (🔥 👏 😎 💪 🎉)
+- ✅ Display reaction count per emoji
+- ✅ Limit 1 reaction per user per match
+- ✅ Fetch reactions on mount, optimistic updates
 
-**Files to create/modify:**
+**Files created/modified:**
 - `prisma/schema.prisma` - ✅ Add MatchReaction model
-- `src/app/api/matches/[id]/reactions/route.ts` - ❌ NOT CREATED
-- `src/components/elo/MatchCard.tsx` - ❌ Add reaction UI
-- `src/app/matches/history/page.tsx` - ❌ Enable reactions
+- `src/app/api/matches/reactions/route.ts` - ✅ API implementation
+- `src/components/ui/MatchReactionButton.tsx` - ✅ Reaction UI component
+- `src/components/elo/MatchCard.tsx` - ✅ Add reaction UI
+- `src/app/matches/history/page.tsx` - ✅ Enable reactions
 
 ---
 
@@ -234,10 +236,10 @@ This document outlines all planned engagement features to increase user retentio
 ## Database Schema Additions
 
 ```prisma
-// Tier announcement tracking (NOT YET ADDED)
+// Tier announcement tracking ✅ IMPLEMENTED
 model User {
   // ... existing fields ...
-  lastAnnouncedTier String?  // ⚠️ NOT YET ADDED
+  lastAnnouncedTier String?  // ✅ Tracks last announced tier for announcements
   lastKnownRank Int?  // ✅ ADDED
   lastRankUpdate DateTime?  // ✅ ADDED
   weeklySinglesEloGained Int @default(0)  // ✅ ADDED
@@ -259,7 +261,7 @@ model Achievement {
   @@unique([userId, slug])
 }
 
-// Match reactions ✅ MODEL EXISTS, API NOT IMPLEMENTED
+// Match reactions ✅ IMPLEMENTED
 model MatchReaction {
   id String @id @default(cuid())
   userId String
@@ -312,12 +314,12 @@ model Challenge {
 | Feature | Status |
 |---------|--------|
 | 1.1 Streak Milestone Celebrations | ✅ Implemented |
-| 1.2 ELO Tier Announcements | ✅ Implemented (now persisted) |
+| 1.2 ELO Tier Announcements | ✅ Implemented (persisted + toast) |
 | 1.3 Win Animation Upgrade | ✅ Implemented |
 | 1.4 Leaderboard Rank Changes | ✅ Implemented |
 | 2.1 Achievement System | ✅ Implemented |
 | 2.2 Weekly Top Climber | ✅ Implemented (10% per mode, resets weekly) |
-| 2.3 Match Reactions | ⚠️ API Created, UI Not Implemented |
+| 2.3 Match Reactions | ✅ Implemented (UI + API) |
 | 2.4 Season Countdown | ✅ Implemented |
 | 3.1 Activity Feed | ✅ Implemented |
 | 3.2 Tournament Brackets | ✅ Implemented (all formats) |
@@ -361,9 +363,7 @@ model Challenge {
 
 ## Remaining Work
 
-1. **Match Reactions UI** - API created, need to add reaction buttons to MatchCard/History page
-2. **Tier announcement toast UI** - Backend sends tier crossing data, need to show toast in UI
-3. **Documentation animations** - Add celebration animations to How-It-Works page
+None! All planned features are implemented.
 
 ---
 
