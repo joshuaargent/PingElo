@@ -136,7 +136,7 @@ export default function TournamentDetailPage() {
   const [showTeamSelect, setShowTeamSelect] = useState(false);
   const [loggingMatch, setLoggingMatch] = useState<{ bracket: Bracket; player1: any; player2: any } | null>(null);
   const [scores, setScores] = useState({ player1: '', player2: '' });
-  const [winner, setWinner] = useState<'player1' | 'player2' | ''>('');
+
 
   const isAdmin = (session?.user as any)?.role === 'ADMIN';
   const isCreator = tournament?.creatorId === session?.user?.id;
@@ -380,25 +380,16 @@ export default function TournamentDetailPage() {
   };
 
   const handleLogMatch = async () => {
-    if (!loggingMatch || !scores.player1 || !scores.player2 || !winner) {
-      alert('Please enter both scores and select a winner');
+    if (!loggingMatch || !scores.player2 || !tournament) {
+      alert('Please enter Player 2\'s score');
       return;
     }
 
-    const p1Score = parseInt(scores.player1);
     const p2Score = parseInt(scores.player2);
+    const p1Score = tournament.maxScore || 21;
 
-    // Validate winner matches the highest score
-    if (winner === 'player1' && p1Score < p2Score) {
-      alert('Winner must have the highest score. If Player 2 has the higher score, select Player 2 as winner.');
-      return;
-    }
-    if (winner === 'player2' && p2Score < p1Score) {
-      alert('Winner must have the highest score. If Player 1 has the higher score, select Player 1 as winner.');
-      return;
-    }
-
-    const winnerId = winner === 'player1' ? loggingMatch.player1.id : loggingMatch.player2.id;
+    // Player 1 always wins
+    const winnerId = loggingMatch.player1.id;
 
     try {
       const res = await fetch(`/api/tournaments/${params.id}/log-match`, {
@@ -418,7 +409,6 @@ export default function TournamentDetailPage() {
       if (res.ok) {
         setLoggingMatch(null);
         setScores({ player1: '', player2: '' });
-        setWinner('');
         await refreshTournament();
       } else {
         const data = await res.json();
@@ -595,113 +585,36 @@ export default function TournamentDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
-                    {loggingMatch.player1.name} Score
-                    {winner === 'player1' && <span className="text-accent ml-1">(Winner - {tournament.maxScore || 21})</span>}
+                    {loggingMatch.player1.name} <span className="text-accent">(Winner)</span>
                   </label>
                   <Input
                     type="number"
                     min="0"
-                    max="21"
-                    value={scores.player1}
-                    onChange={(e) => winner !== 'player1' && setScores({ ...scores, player1: e.target.value })}
-                    placeholder={winner === 'player1' ? String(tournament.maxScore || 21) : "0"}
-                    disabled={winner === 'player1'}
-                    className={winner === 'player1' ? 'bg-accent/10 border-accent' : ''}
+                    max={tournament.maxScore || 21}
+                    value={tournament.maxScore || 21}
+                    disabled
+                    className="text-center text-2xl font-bold bg-accent/10 border-accent"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">
-                    {loggingMatch.player2.name} Score
-                    {winner === 'player2' && <span className="text-accent ml-1">(Winner - {tournament.maxScore || 21})</span>}
+                    {loggingMatch.player2.name}
                   </label>
                   <Input
                     type="number"
                     min="0"
-                    max="21"
+                    max={(tournament.maxScore || 21) - 1}
                     value={scores.player2}
-                    onChange={(e) => winner !== 'player2' && setScores({ ...scores, player2: e.target.value })}
-                    placeholder={winner === 'player2' ? String(tournament.maxScore || 21) : "0"}
-                    disabled={winner === 'player2'}
-                    className={winner === 'player2' ? 'bg-accent/10 border-accent' : ''}
+                    onChange={(e) => setScores({ ...scores, player2: e.target.value })}
+                    placeholder="0"
+                    className="text-center text-2xl font-bold"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Select Winner</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWinner('player1');
-                      setScores({ ...scores, player1: String(tournament.maxScore || 21) });
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-colors ${
-                      winner === 'player1'
-                        ? 'border-accent bg-accent/20'
-                        : 'border-border hover:border-accent/50'
-                    }`}
-                  >
-                    {tournament.matchType === 'DOUBLES' ? (
-                      <div className="text-center">
-                        <div className="flex justify-center gap-1 mb-2">
-                          <Avatar
-                            src={loggingMatch.player1.team?.player1?.image || undefined}
-                            alt=""
-                            fallback={loggingMatch.player1.team?.player1?.name?.charAt(0) || '?'}
-                            size="sm"
-                          />
-                          <span className="text-text-muted">&</span>
-                          <Avatar
-                            src={loggingMatch.player1.team?.player2?.image || undefined}
-                            alt=""
-                            fallback={loggingMatch.player1.team?.player2?.name?.charAt(0) || '?'}
-                            size="sm"
-                          />
-                        </div>
-                        <p className="font-medium text-text-primary">{loggingMatch.player1.name}</p>
-                      </div>
-                    ) : (
-                      <p className="font-medium text-text-primary">{loggingMatch.player1.name}</p>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWinner('player2');
-                      setScores({ ...scores, player2: String(tournament.maxScore || 21) });
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-colors ${
-                      winner === 'player2'
-                        ? 'border-accent bg-accent/20'
-                        : 'border-border hover:border-accent/50'
-                    }`}
-                  >
-                    {tournament.matchType === 'DOUBLES' ? (
-                      <div className="text-center">
-                        <div className="flex justify-center gap-1 mb-2">
-                          <Avatar
-                            src={loggingMatch.player2.team?.player1?.image || undefined}
-                            alt=""
-                            fallback={loggingMatch.player2.team?.player1?.name?.charAt(0) || '?'}
-                            size="sm"
-                          />
-                          <span className="text-text-muted">&</span>
-                          <Avatar
-                            src={loggingMatch.player2.team?.player2?.image || undefined}
-                            alt=""
-                            fallback={loggingMatch.player2.team?.player2?.name?.charAt(0) || '?'}
-                            size="sm"
-                          />
-                        </div>
-                        <p className="font-medium text-text-primary">{loggingMatch.player2.name}</p>
-                      </div>
-                    ) : (
-                      <p className="font-medium text-text-primary">{loggingMatch.player2.name}</p>
-                    )}
-                  </button>
-                </div>
-              </div>
+              <p className="text-center text-sm text-text-muted mt-4">
+                Player 1 wins by default. Enter Player 2's score (must be {(tournament.maxScore || 21) - 1} or less)
+              </p>
 
               <div className="flex gap-4 pt-4">
                 <Button variant="outline" onClick={() => setLoggingMatch(null)} className="flex-1">

@@ -656,38 +656,25 @@ export default function LogMatchPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer1Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
-                    <p className="text-sm text-text-secondary mb-2">{player1?.name || 'Player 1'}</p>
+                    <p className="text-sm text-text-secondary mb-2">
+                      {player1?.name || 'Player 1'} <span className="text-accent">(Winner)</span>
+                    </p>
                     <Input
                       type="number"
                       min="0"
                       max={maxScore}
-                      placeholder="0"
-                      value={player1Score}
-                      onChange={(e) => setPlayer1Score(e.target.value)}
-                      className="text-center text-2xl font-bold h-16"
+                      value={String(maxScore)}
+                      disabled
+                      className="text-center text-2xl font-bold h-16 bg-accent/10 border-accent"
                     />
                   </div>
                   <div className="text-center text-text-muted text-2xl">-</div>
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer2Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
                     <p className="text-sm text-text-secondary mb-2">{player2?.name || 'Player 2'}</p>
                     <Input
                       type="number"
                       min="0"
-                      max={maxScore}
+                      max={maxScore - 1}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -696,7 +683,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  Highest score wins
+                  Player 1 wins by default. Enter Player 2's score (must be {maxScore - 1} or less)
                 </p>
               </Card>
             </div>
@@ -795,42 +782,27 @@ export default function LogMatchPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer1Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
                     <p className="text-sm text-text-secondary mb-2">
-                      {team1 ? (team1.name || `${team1.player1.name.split(' ')[0]} & ${team1.player2.name.split(' ')[0]}`) : 'Team 1'}
+                      {team1 ? (team1.name || `${team1.player1.name.split(' ')[0]} & ${team1.player2.name.split(' ')[0]}`) : 'Team 1'} <span className="text-accent">(Winner)</span>
                     </p>
                     <Input
                       type="number"
                       min="0"
                       max={maxScore}
-                      placeholder="0"
-                      value={player1Score}
-                      onChange={(e) => setPlayer1Score(e.target.value)}
-                      className="text-center text-2xl font-bold h-16"
+                      value={String(maxScore)}
+                      disabled
+                      className="text-center text-2xl font-bold h-16 bg-accent/10 border-accent"
                     />
                   </div>
                   <div className="text-center text-text-muted text-2xl">-</div>
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer2Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
                     <p className="text-sm text-text-secondary mb-2">
                       {team2 ? (team2.name || `${team2.player1.name.split(' ')[0]} & ${team2.player2.name.split(' ')[0]}`) : 'Team 2'}
                     </p>
                     <Input
                       type="number"
                       min="0"
-                      max={maxScore}
+                      max={maxScore - 1}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -839,7 +811,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  Highest score wins
+                  Team 1 wins by default. Enter Team 2's score (must be {maxScore - 1} or less)
                 </p>
               </Card>
             </div>
@@ -1014,37 +986,22 @@ export default function LogMatchPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4 items-center">
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer1Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
                     <p className="text-sm text-text-secondary mb-2">
                       {team1Player1 && team1Player2 
                         ? `${team1Player1.name.split(' ')[0]} & ${team1Player2.name.split(' ')[0]}` 
-                        : 'Team 1'}
+                        : 'Team 1'} <span className="text-accent">(Winner)</span>
                     </p>
                     <Input
                       type="number"
                       min="0"
                       max={maxScore}
-                      placeholder="0"
-                      value={player1Score}
-                      onChange={(e) => setPlayer1Score(e.target.value)}
-                      className="text-center text-2xl font-bold h-16"
+                      value={String(maxScore)}
+                      disabled
+                      className="text-center text-2xl font-bold h-16 bg-accent/10 border-accent"
                     />
                   </div>
                   <div className="text-center text-text-muted text-2xl">-</div>
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setPlayer2Score(String(maxScore))}
-                      className="mb-2 px-3 py-1 text-xs bg-accent/20 hover:bg-accent/30 text-accent rounded-lg transition-colors"
-                    >
-                      Mark Winner
-                    </button>
                     <p className="text-sm text-text-secondary mb-2">
                       {team2Player1 && team2Player2 
                         ? `${team2Player1.name.split(' ')[0]} & ${team2Player2.name.split(' ')[0]}` 
@@ -1053,7 +1010,7 @@ export default function LogMatchPage() {
                     <Input
                       type="number"
                       min="0"
-                      max={maxScore}
+                      max={maxScore - 1}
                       placeholder="0"
                       value={player2Score}
                       onChange={(e) => setPlayer2Score(e.target.value)}
@@ -1062,7 +1019,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  Highest score wins
+                  Team 1 wins by default. Enter Team 2's score (must be {maxScore - 1} or less)
                 </p>
               </Card>
             </div>
