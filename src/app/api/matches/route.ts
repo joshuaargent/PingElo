@@ -214,12 +214,39 @@ export async function POST(request: NextRequest) {
       tournamentId,
     } = body;
 
-    // Casual matches (not tournament) require admin
+    // Casual matches (not tournament) - must be admin OR a participant
     if (!isTournamentMatch && !isAdmin) {
-      return NextResponse.json(
-        { error: "Only admins can log casual matches" },
-        { status: 403 }
-      );
+      // Check if user is a participant in this match
+      let isParticipant = false;
+      
+      if (matchType === "SINGLES") {
+        isParticipant = userId === player1Id || userId === player2Id;
+      } else if (matchType === "DOUBLES") {
+        // Check team mode or adhoc mode
+        if (team1Id || team2Id) {
+          // Team mode - check if user is on either team
+          const userTeams = await prisma.team.findMany({
+            where: {
+              id: { in: [team1Id, team2Id].filter(Boolean) },
+              OR: [
+                { player1Id: userId },
+                { player2Id: userId },
+              ],
+            },
+          });
+          isParticipant = userTeams.length > 0;
+        } else {
+          // Ad-hoc mode - check if user is any of the 4 players
+          isParticipant = [team1Player1Id, team1Player2Id, team2Player1Id, team2Player2Id].includes(userId);
+        }
+      }
+      
+      if (!isParticipant) {
+        return NextResponse.json(
+          { error: "You must be a participant in the match to log it" },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate scores
@@ -618,8 +645,40 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Create Team ELO history entries
+        // Update team ELO (not individual players) for team matches
         if (usedTeam1Id) {
+          // Update team forever ELO
+          await tx.team.update({
+            where: { id: usedTeam1Id },
+            data: { 
+              foreverElo: team1EloBefore + eloResult.team1Change,
+              lastMatchDate: new Date(),
+            },
+          });
+          
+          // Update team season ELO
+          if (currentSeason) {
+            await tx.teamSeasonStats.updateMany({
+              where: { teamId: usedTeam1Id, seasonId: currentSeason.id },
+              data: { 
+                seasonElo: { increment: eloResult.team1Change },
+              },
+            }).catch(() => {
+              // Season stats might not exist yet, create them
+              return tx.teamSeasonStats.create({
+                data: {
+                  teamId: usedTeam1Id,
+                  seasonId: currentSeason.id,
+                  seasonElo: 1000 + eloResult.team1Change,
+                  matchesPlayed: 1,
+                  wins: team1Won ? 1 : 0,
+                  losses: team1Won ? 0 : 1,
+                },
+              });
+            });
+          }
+          
+          // Create Team ELO history entry
           await tx.teamEloHistory.create({
             data: {
               teamId: usedTeam1Id,
@@ -643,6 +702,38 @@ export async function POST(request: NextRequest) {
         }
         
         if (usedTeam2Id) {
+          // Update team forever ELO
+          await tx.team.update({
+            where: { id: usedTeam2Id },
+            data: { 
+              foreverElo: team2EloBefore + eloResult.team2Change,
+              lastMatchDate: new Date(),
+            },
+          });
+          
+          // Update team season ELO
+          if (currentSeason) {
+            await tx.teamSeasonStats.updateMany({
+              where: { teamId: usedTeam2Id, seasonId: currentSeason.id },
+              data: { 
+                seasonElo: { increment: eloResult.team2Change },
+              },
+            }).catch(() => {
+              // Season stats might not exist yet, create them
+              return tx.teamSeasonStats.create({
+                data: {
+                  teamId: usedTeam2Id,
+                  seasonId: currentSeason.id,
+                  seasonElo: 1000 + eloResult.team2Change,
+                  matchesPlayed: 1,
+                  wins: !team1Won ? 1 : 0,
+                  losses: !team1Won ? 0 : 1,
+                },
+              });
+            });
+          }
+          
+          // Create Team ELO history entry
           await tx.teamEloHistory.create({
             data: {
               teamId: usedTeam2Id,

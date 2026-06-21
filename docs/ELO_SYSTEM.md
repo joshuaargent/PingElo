@@ -49,20 +49,37 @@ The K-factor determines how much your ELO can change per match. Higher K = bigge
 - Season ELO uses season K-factor
 - Forever ELO uses lifetime K-factor
 
-### Doubles Matches (2v2)
-- Each player's ELO changes based on their **team's** match history
-- Both teammates receive the same ELO change
-- Season ELO uses average of both players' season matches for K-factor
-- Forever ELO uses average of both players' lifetime matches for K-factor
+### Doubles Matches (2v2) - Team Mode
+- **Teams have their own ELO** separate from individual players
+- Team ELO changes are calculated based on:
+  - Team's match history (not individual players)
+  - Team's K-factor based on team matches played
+- **Team Forever ELO**: Accumulates across all team matches
+- **Team Season ELO**: Resets each season, tracks team performance within season
+- Individual players' ELO is **not affected** by team matches (except participation tracking)
+
+### Ad-Hoc Doubles Matches
+- When players form temporary teams without registering:
+- Each player's individual doubles ELO is updated
+- No team ELO tracking occurs
+- K-factor based on each player's personal doubles history
 
 ### Tournaments
-- Entry fee deducted from each player's ELO
+#### Singles Tournaments
+- Entry fee deducted from player's individual ELO
+- Prizes added to player's individual ELO
+
+#### Doubles Tournaments (Team Mode)
+- Entry fee deducted from **team ELO** (not individual players)
+- Prizes go to **team ELO** (not individual players)
+- Team has its own K-factor based on team matches played
+
+#### Prize Distribution
 - House adds 50 ELO to prize pool
-- Prize distribution:
+- Distribution:
   - 1st place: 50%
   - 2nd place: 35%
   - 3rd place: 15%
-- ELO changes from tournament matches **only affect Forever ELO** (season ELO is not changed)
 
 ---
 
@@ -116,6 +133,13 @@ Players earn an ELO bonus for consecutive daily play.
 ---
 
 ## Team System
+
+### Team ELO
+Teams maintain their own ELO separate from individual players:
+- **Team Forever ELO**: Lifetime team rating
+- **Team Season ELO**: Season-specific team rating
+- Both reset/change independently of individual player ELO
+- Team K-factor based on team matches played (not individual)
 
 ### Team Creation Rules
 - Each person can **create 1 team** per season
@@ -197,18 +221,28 @@ Admins can delete matches via `/api/admin/delete-match`.
   - New Player gains: ~64 × (1 - 0.1) × 1.25 ≈ 72 ELO
   - Veteran loses: ~24 × (0 - 0.9) × 1.25 ≈ -27 ELO
 
-### Scenario 2: Doubles Match
-- Team A (p1: 50 games, p2: 20 games) vs Team B (p1: 100 games, p2: 150 games)
-- Team A average: 35 games → K = 32
-- Team B average: 125 games → K = 24
-- Both Team A players receive the same ELO change
+### Scenario 2: Doubles Match (Team Mode)
+- Team A has 10 matches played → K = 64 (new team)
+- Team B has 50 matches played → K = 32 (established team)
+- If Team A upsets Team B and wins by 5+ points:
+  - Team A gains: ~64 × (1 - 0.2) × 1.25 ≈ 64 ELO
+  - Team B loses: ~32 × (0 - 0.8) × 1.25 ≈ -32 ELO
+- **Both individual players' ELO are NOT affected** - only team ELO changes
 
-### Scenario 3: Tournament Prize
+### Scenario 3: Singles Tournament Prize
 - Tournament with 10 players, 100 ELO entry fee each
 - Prize pool = (10 × 100) + 50 house = 1050 ELO
-- Winner gets: 1050 × 0.50 = 525 ELO bonus
+- Winner gets: 1050 × 0.50 = 525 ELO bonus (to individual ELO)
 - Runner-up gets: 1050 × 0.35 = 367 ELO bonus
 - Third place gets: 1050 × 0.15 = 157 ELO bonus
+
+### Scenario 4: Doubles Tournament Prize (Team Mode)
+- Tournament with 8 teams, 100 ELO entry fee per team
+- Prize pool = (8 × 100) + 50 house = 850 ELO
+- Winning team gets: 850 × 0.50 = 425 ELO bonus (to team ELO)
+- Runner-up team gets: 850 × 0.35 = 297 ELO bonus
+- Third place team gets: 850 × 0.15 = 127 ELO bonus
+- **Individual player ELO is NOT affected** - only team ELO changes
 
 ---
 

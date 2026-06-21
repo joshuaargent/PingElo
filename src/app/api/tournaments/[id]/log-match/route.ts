@@ -249,7 +249,7 @@ export async function POST(
             where: { id: pid! },
             data: {
               weeklyDoublesMatches: { increment: 1 },
-              weeklyDoublesEloGained: { increment: Math.max(0, winnerChange) },
+              // Note: ELO changes are tracked on team, not individual players
             },
           });
         }
@@ -260,7 +260,6 @@ export async function POST(
             where: { id: pid! },
             data: {
               weeklyDoublesMatches: { increment: 1 },
-              weeklyDoublesEloGained: { increment: Math.max(0, loserChange) },
             },
           });
         }
@@ -426,63 +425,22 @@ export async function POST(
                 });
               }
             } else {
-              // For doubles:
-              // 1. Give each player their individual reward (half of placement prize each)
-              // 2. Give team the total of both players' rewards
+              // For doubles: prizes go to team ELO only (not individual players)
               const firstPlacePrize = Math.floor(prizePool * first);
               const secondPlacePrize = Math.floor(prizePool * second);
-              // Use Math.ceil for one player, Math.floor for other to avoid losing ELO from odd division
-              const firstPerPlayer = Math.ceil(firstPlacePrize / 2);
-              const secondPerPlayer = Math.floor(firstPlacePrize / 2);
-              const secondPlaceFirst = Math.ceil(secondPlacePrize / 2);
-              const secondPlaceSecond = Math.floor(secondPlacePrize / 2);
 
-              // Get winning team and players
-              const firstTeam = await prisma.team.findUnique({
+              // Give first place team the prize
+              await prisma.team.update({
                 where: { id: firstPlaceId },
-                include: { player1: true, player2: true }
+                data: { foreverElo: { increment: firstPlacePrize } },
               });
-              if (firstTeam) {
-                // Give each player their individual reward (ceil for one, floor for other)
-                await prisma.user.update({
-                  where: { id: firstTeam.player1Id },
-                  data: { doublesForeverElo: { increment: firstPerPlayer } },
-                });
-                if (firstTeam.player2Id) {
-                  await prisma.user.update({
-                    where: { id: firstTeam.player2Id },
-                    data: { doublesForeverElo: { increment: secondPerPlayer } },
-                  });
-                }
-                // Give team the total
-                await prisma.team.update({
-                  where: { id: firstPlaceId },
-                  data: { foreverElo: { increment: firstPlacePrize } },
-                });
-              }
 
-              // Same for second place
+              // Give second place team the prize
               if (secondPlaceId) {
-                const secondTeam = await prisma.team.findUnique({
+                await prisma.team.update({
                   where: { id: secondPlaceId },
-                  include: { player1: true, player2: true }
+                  data: { foreverElo: { increment: secondPlacePrize } },
                 });
-                if (secondTeam) {
-                  await prisma.user.update({
-                    where: { id: secondTeam.player1Id },
-                    data: { doublesForeverElo: { increment: secondPlaceFirst } },
-                  });
-                  if (secondTeam.player2Id) {
-                    await prisma.user.update({
-                      where: { id: secondTeam.player2Id },
-                      data: { doublesForeverElo: { increment: secondPlaceSecond } },
-                    });
-                  }
-                  await prisma.team.update({
-                    where: { id: secondPlaceId },
-                    data: { foreverElo: { increment: secondPlacePrize } },
-                  });
-                }
               }
             }
             
@@ -504,31 +462,12 @@ export async function POST(
                     data: { foreverElo: { increment: Math.floor(prizePool * third) } },
                   });
                 } else {
-                  // Doubles 3rd place: players + team
+                  // Doubles 3rd place: prize goes to team ELO only
                   const thirdPlacePrize = Math.floor(prizePool * third);
-                  // Use ceil for one player, floor for other to avoid losing ELO
-                  const perPlayer1 = Math.ceil(thirdPlacePrize / 2);
-                  const perPlayer2 = Math.floor(thirdPlacePrize / 2);
-                  const thirdTeam = await prisma.team.findUnique({
+                  await prisma.team.update({
                     where: { id: thirdPlaceId },
-                    include: { player1: true, player2: true }
+                    data: { foreverElo: { increment: thirdPlacePrize } },
                   });
-                  if (thirdTeam) {
-                    await prisma.user.update({
-                      where: { id: thirdTeam.player1Id },
-                      data: { doublesForeverElo: { increment: perPlayer1 } },
-                    });
-                    if (thirdTeam.player2Id) {
-                      await prisma.user.update({
-                        where: { id: thirdTeam.player2Id },
-                        data: { doublesForeverElo: { increment: perPlayer2 } },
-                      });
-                    }
-                    await prisma.team.update({
-                      where: { id: thirdPlaceId },
-                      data: { foreverElo: { increment: thirdPlacePrize } },
-                    });
-                  }
                 }
               }
             }

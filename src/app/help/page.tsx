@@ -50,6 +50,44 @@ export default function HelpPage() {
         </h2>
 
         <div className="space-y-4">
+          <Card className="p-6 bg-accent/10 border-accent/20">
+            <h3 className="font-semibold mb-2">How is ELO calculated? 📊</h3>
+            <p className="text-text-secondary text-sm mb-4">
+              ELO changes are calculated using this formula:
+            </p>
+            <div className="bg-bg-secondary p-3 rounded-lg font-mono text-sm mb-4 text-center">
+              <span className="text-accent">ELO Change</span> = <span className="text-yellow-400">K</span> × (<span className="text-green-400">Actual Score</span> - <span className="text-blue-400">Expected Score</span>) × <span className="text-purple-400">Margin</span>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <h4 className="font-medium text-text-primary mb-2">Expected Score (your chance to win)</h4>
+                <p className="text-text-secondary text-xs mb-2">Based on ELO difference:</p>
+                <ul className="space-y-1 text-text-secondary">
+                  <li>• Same ELO: ~50% chance</li>
+                  <li>• 200 ELO higher: ~76% chance</li>
+                  <li>• 200 ELO lower: ~24% chance</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium text-text-primary mb-2">Score Margin Bonus</h4>
+                <ul className="space-y-1 text-text-secondary">
+                  <li>• <strong>Close</strong> (1-4 pts): 1.0x</li>
+                  <li>• <strong>Clear</strong> (5-9 pts): 1.25x</li>
+                  <li>• <strong>Dominance</strong> (10+ pts): 1.5x</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-green-500/10 rounded-lg">
+              <h4 className="font-medium text-text-primary mb-2">💡 Example: You (1000) beat Higher Player (1200) by 7 points</h4>
+              <p className="text-sm text-text-secondary">
+                Expected = 24% | Actual = 100% (win) | K = 32 | Margin = 1.25x<br/>
+                <strong>Result: +30 ELO</strong> (big reward for the upset!)
+              </p>
+            </div>
+          </Card>
+
           <Card className="p-6">
             <h3 className="font-semibold mb-2">Why did my ELO change by that amount?</h3>
             <p className="text-text-secondary text-sm mb-3">
@@ -62,6 +100,34 @@ export default function HelpPage() {
             </ul>
             <p className="text-sm text-text-secondary">
               View any match to see a full breakdown of the calculation.
+            </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">What is the K-Factor?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              The K-factor determines how much your ELO can change per match. Higher K = bigger swings.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="font-bold text-accent">64</div>
+                <div className="text-xs text-text-muted">New (0-10 games)</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="font-bold text-yellow-400">48</div>
+                <div className="text-xs text-text-muted">Learning (11-30)</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="font-bold text-green-400">32</div>
+                <div className="text-xs text-text-muted">Established (31-100)</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="font-bold text-blue-400">24</div>
+                <div className="text-xs text-text-muted">Veteran (100+)</div>
+              </div>
+            </div>
+            <p className="text-xs text-text-muted mt-3">
+              New players/teams get higher K so ratings converge faster. Veterans change slowly.
             </p>
           </Card>
 
@@ -147,16 +213,40 @@ export default function HelpPage() {
         </h2>
 
         <div className="space-y-4">
+          <Card className="p-6 bg-accent/10 border-accent/20">
+            <h3 className="font-semibold mb-2">How does Team ELO work?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              Teams have their own separate ELO rating, independent from individual players. This 
+              tracks the team's performance as a doubles partnership.
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1 mb-3">
+              <li><strong>Team ELO</strong> is separate from individual player ELO</li>
+              <li><strong>Team Forever ELO</strong> accumulates across all team matches</li>
+              <li><strong>Team Season ELO</strong> resets each season</li>
+              <li>Team has its own K-factor based on team matches played</li>
+              <li>Individual player ELO is NOT affected by team matches</li>
+            </ul>
+            <div className="p-3 bg-bg-secondary rounded-lg text-sm">
+              <p className="text-text-primary font-medium mb-1">💡 Example:</p>
+              <p className="text-text-secondary">
+                If your team has a match, the team's ELO goes up/down—but your personal 
+                singles and doubles ELO stays the same. Tournament prizes go to the team's 
+                ELO, not individual players.
+              </p>
+            </div>
+          </Card>
+
           <Card className="p-6">
-            <h3 className="font-semibold mb-2">How do teams work?</h3>
+            <h3 className="font-semibold mb-2">How do I use teams?</h3>
             <p className="text-text-secondary text-sm mb-3">
               Teams are for doubles partnerships. When you play doubles with a registered team, 
               the team's stats (wins, losses) are tracked together.
             </p>
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-              <li>Team ELO is the average of both players' doubles ELO</li>
+              <li>Create a team with your doubles partner</li>
               <li>Teams accumulate wins and losses together</li>
-              <li>Both players see the team stats on their profiles</li>
+              <li>Both players see the team stats</li>
+              <li>Join team tournaments and challenges with your team</li>
             </ul>
           </Card>
 

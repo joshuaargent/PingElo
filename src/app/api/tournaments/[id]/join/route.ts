@@ -98,14 +98,16 @@ export async function POST(
         }, { status: 400 });
       }
 
-      // Both players pay the same fee based on team average ELO
-      const feePerPlayer = calculateDoublesEntryFee(team.player1.foreverElo, team.player2?.foreverElo || team.player1.foreverElo);
-      const totalEntryFee = feePerPlayer * 2;
+      // Calculate entry fee based on team ELO, not individual singles ELO
+      // The team ELO represents the team's doubles skill level
+      const teamElo = team.foreverElo; // This is the team's doubles ELO
+      const feePerTeam = calculateEntryFee(teamElo);
+      const totalEntryFee = feePerTeam; // One fee for the whole team
 
-      // Check if each player has enough ELO
-      if (team.player1.foreverElo < feePerPlayer || (team.player2?.foreverElo || team.player1.foreverElo) < feePerPlayer) {
+      // Check if team has enough ELO
+      if (teamElo < feePerTeam) {
         return NextResponse.json({ 
-          error: `Insufficient ELO. Both players need ${feePerPlayer} ELO each` 
+          error: `Insufficient team ELO (${teamElo}). Need at least ${feePerTeam} ELO to enter` 
         }, { status: 400 });
       }
 
@@ -118,51 +120,37 @@ export async function POST(
           });
         }
 
-        // Deduct each player's fee from their individual ELO
-        if (feePerPlayer > 0) {
-          await tx.user.update({
-            where: { id: team.player1Id },
-            data: { foreverElo: team.player1.foreverElo - feePerPlayer },
+        // Deduct team ELO (not individual player ELO)
+        if (feePerTeam > 0) {
+          // Get fresh team data for accurate ELO tracking
+          const freshTeam = await tx.team.findUnique({ where: { id: teamId } });
+          const teamEloBefore = freshTeam?.foreverElo || teamElo;
+          
+          await tx.team.update({
+            where: { id: teamId },
+            data: { foreverElo: teamEloBefore - feePerTeam },
           });
-          await tx.eloHistory.create({
+          
+          // Record ELO history for the team
+          await tx.teamEloHistory.create({
             data: {
-              userId: team.player1Id,
+              teamId,
               changeType: 'TOURNAMENT_ENTRY',
-              eloBefore: team.player1.foreverElo,
-              eloAfter: team.player1.foreverElo - feePerPlayer,
-              change: -feePerPlayer,
+              eloBefore: teamEloBefore,
+              eloAfter: teamEloBefore - feePerTeam,
+              change: -feePerTeam,
               description: `Entry fee for tournament: ${tournament.name}`,
-              metadata: { tournamentId, teamId, playerFee: feePerPlayer },
+              metadata: { tournamentId, isTeamEntry: true },
             },
           });
-          if (team.player2Id) {
-            const p2Elo = team.player2?.foreverElo || team.player1.foreverElo;
-            await tx.user.update({
-              where: { id: team.player2Id },
-              data: { foreverElo: p2Elo - feePerPlayer },
-            });
-            await tx.eloHistory.create({
-              data: {
-                userId: team.player2Id,
-                changeType: 'TOURNAMENT_ENTRY',
-                eloBefore: p2Elo,
-                eloAfter: p2Elo - feePerPlayer,
-                change: -feePerPlayer,
-                description: `Entry fee for tournament: ${tournament.name}`,
-                metadata: { tournamentId, teamId, playerFee: feePerPlayer },
-              },
-            });
-          }
         }
 
         return tx.tournamentParticipant.create({
           data: {
             tournamentId,
             teamId,
-            eloAtEntry: team.player1.foreverElo + (team.player2?.foreverElo || 0),
-            player1EloAtEntry: team.player1.foreverElo,
-            player2EloAtEntry: team.player2?.foreverElo,
-            paidEntry: totalEntryFee === 0 || totalEntryFee > 0,
+            eloAtEntry: teamElo, // Use team ELO for tournament
+            paidEntry: true,
           },
           include: {
             team: {
@@ -178,8 +166,7 @@ export async function POST(
       return NextResponse.json({
         participant,
         entryFee: totalEntryFee,
-        feePerPlayer,
-        message: totalEntryFee > 0 ? `Team paid ${totalEntryFee} ELO to join (${feePerPlayer} each)` : "Team joined for free",
+        message: totalEntryFee > 0 ? `Team paid ${totalEntryFee} ELO to join` : "Team joined for free",
       }, { status: 201 });
     }
 
