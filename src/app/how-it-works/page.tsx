@@ -268,7 +268,7 @@ export default function HowItWorksPage() {
             <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
               <li>Used for the season leaderboard</li>
               <li>Resets monthly (every 1st of the month)</li>
-              <li>90% of gains count toward season (10% goes to forever)</li>
+              <li>100% of gains count toward season (plus streak bonus)</li>
               <li>Season winner gets bonus added to their Forever ELO</li>
             </ul>
           </Card>

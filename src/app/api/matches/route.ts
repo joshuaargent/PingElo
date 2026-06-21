@@ -512,23 +512,23 @@ export async function POST(request: NextRequest) {
           });
 
           if (currentSeason) {
-            const seasonChange = isTournamentMatch ? update.change : Math.round(update.change * 0.9);
             await tx.user.update({
               where: { id: update.id },
-              data: { doublesSeasonElo: update.seasonEloBefore + seasonChange },
+              data: { doublesSeasonElo: update.seasonEloBefore + update.change + streakBonus },
             });
           }
         }
 
         // Create ELO history entries for all 4 players
-        for (const player of team1Players) {
+        for (const player of allUpdates) {
+          const streakBonus = calculateStreakBonus(player.streak.newStreak);
           await tx.eloHistory.create({
             data: {
               userId: player.id,
               matchId: newMatch.id,
               changeType: 'MATCH',
               eloBefore: player.eloBefore,
-              eloAfter: player.eloBefore + player.change,
+              eloAfter: player.eloBefore + player.change + streakBonus,
               change: player.change,
               description: isTournamentMatch ? `Doubles match (Tournament)` : 'Doubles match',
               metadata: {
@@ -540,6 +540,9 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
+                streakBonus: streakBonus,
+                streakBefore: player.streak.newStreak - 1,
+                streakAfter: player.streak.newStreak,
               },
             },
           });
@@ -662,11 +665,11 @@ export async function POST(request: NextRequest) {
           if (currentSeason) {
             await tx.user.update({
               where: { id: player1Id },
-              data: { seasonElo: player1.seasonElo + (isTournamentMatch ? eloResult.player1Change : Math.round(eloResult.player1Change * 0.9)) },
+              data: { seasonElo: player1.seasonElo + eloResult.player1Change + p1StreakBonus },
             });
             await tx.user.update({
               where: { id: player2Id },
-              data: { seasonElo: player2.seasonElo + (isTournamentMatch ? eloResult.player2Change : Math.round(eloResult.player2Change * 0.9)) },
+              data: { seasonElo: player2.seasonElo + eloResult.player2Change + p2StreakBonus },
             });
           }
 
