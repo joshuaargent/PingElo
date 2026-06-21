@@ -165,26 +165,31 @@ export async function GET(
     // Singles/doubles ELO history
     whereClause.userId = id;
     
-    // Get all for stats calculation
+    // Get all for stats calculation (only actual matches)
+    const matchTypes = ['MATCH', 'TOURNAMENT_WIN', 'CHALLENGE_WIN'];
     const allHistory = await prisma.eloHistory.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
     });
     
-    stats.timeframeMatches = allHistory.length;
-    const wins = allHistory.filter(h => h.change > 0).length;
-    const losses = allHistory.filter(h => h.change < 0).length;
-    const eloValues = allHistory.map(h => h.eloAfter);
+    // Separate matches from other ELO changes
+    const matches = allHistory.filter(h => matchTypes.includes(h.changeType));
+    const otherChanges = allHistory.filter(h => !matchTypes.includes(h.changeType));
+    
+    stats.timeframeMatches = matches.length;
+    const wins = matches.filter(h => h.change > 0).length;
+    const losses = matches.filter(h => h.change < 0).length;
+    const eloValues = matches.map(h => h.eloAfter);
     
     stats = {
       ...stats,
-      totalMatches: allHistory.length,
+      totalMatches: matches.length,
       wins,
       losses,
-      netChange: allHistory.reduce((sum, h) => sum + h.change, 0),
+      netChange: matches.reduce((sum, h) => sum + h.change, 0) + otherChanges.reduce((sum, h) => sum + h.change, 0),
       highestElo: eloValues.length > 0 ? Math.max(...eloValues) : 0,
       lowestElo: eloValues.length > 0 ? Math.min(...eloValues) : 0,
-      winRate: allHistory.length > 0 ? Math.round((wins / allHistory.length) * 100) : 0,
+      winRate: matches.length > 0 ? Math.round((wins / matches.length) * 100) : 0,
     };
     
     // Paginated query
