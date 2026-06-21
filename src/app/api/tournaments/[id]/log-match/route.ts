@@ -81,22 +81,23 @@ export async function POST(
       );
     }
 
-    // Validate scores
-    if (player1Score < 0 || player2Score < 0 || player1Score > 21 || player2Score > 21) {
+    // Validate scores - max is tournament's maxScore (capped at 21)
+    const tourneyMaxScore = tournament.maxScore || 21;
+    const maxAllowedScore = Math.min(tourneyMaxScore + 2, 21);
+    if (player1Score < 0 || player2Score < 0 || player1Score > maxAllowedScore || player2Score > maxAllowedScore) {
       return NextResponse.json(
         { error: "Invalid scores" },
         { status: 400 }
       );
     }
 
-    // Validate win condition
+    // Validate win condition - must win by 2 with at least maxScore points
     const winnerScore = winnerId === player1Id ? player1Score : player2Score;
     const loserScore = winnerId === player1Id ? player2Score : player1Score;
-    const maxScore = Math.max(player1Score, player2Score);
     
-    if (winnerScore < 11 || winnerScore - loserScore < 2 || maxScore !== winnerScore) {
+    if (winnerScore < tourneyMaxScore || winnerScore - loserScore < 2) {
       return NextResponse.json(
-        { error: "Invalid winning score. Must win by 2 with at least 11 points." },
+        { error: `Must win by 2 with at least ${tourneyMaxScore} points.` },
         { status: 400 }
       );
     }
