@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const challengerId = (session!.user as { id: string }).id;
     const body = await request.json();
-    const { challengedId, stakeAmount = 5 } = body;
+    const { challengedId, stakeAmount = 5, isTeamChallenge = false, team1Id, team2Id } = body;
 
     if (!challengedId) {
       return NextResponse.json({ error: "Challenged user ID required" }, { status: 400 });
@@ -86,6 +86,13 @@ export async function POST(request: NextRequest) {
     }
     if (stakeAmount > MAX_STAKE) {
       return NextResponse.json({ error: `Maximum stake is ${MAX_STAKE} ELO` }, { status: 400 });
+    }
+
+    // For team challenges, require team IDs
+    if (isTeamChallenge) {
+      if (!team1Id || !team2Id) {
+        return NextResponse.json({ error: "Team IDs required for team challenges" }, { status: 400 });
+      }
     }
 
     // Check challenger has enough ELO for the stake
@@ -123,6 +130,8 @@ export async function POST(request: NextRequest) {
         challengedId,
         status: "PENDING",
         expiresAt: { gte: new Date() },
+        isTeamChallenge,
+        ...(isTeamChallenge ? { team1Id, team2Id } : {}),
       },
     });
 
@@ -158,6 +167,8 @@ export async function POST(request: NextRequest) {
         challengedId,
         stakeAmount,
         expiresAt,
+        isTeamChallenge,
+        ...(isTeamChallenge && { team1Id, team2Id }),
       },
       include: {
         challenger: {
