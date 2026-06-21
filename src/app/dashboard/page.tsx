@@ -219,6 +219,23 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* Streak */}
+              <div className="p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-500/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                    <span className="text-text-secondary">Daily Streak</span>
+                  </div>
+                  <span className="text-lg font-bold text-orange-500">{stats.currentStreak} days</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-text-secondary">
+                  <span>Best: {stats.bestStreak} days</span>
+                  {stats.currentStreak >= 3 && (
+                    <span className="text-orange-500 font-medium">+2 ELO bonus!</span>
+                  )}
+                </div>
+              </div>
+
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-3 bg-bg-secondary rounded-xl">

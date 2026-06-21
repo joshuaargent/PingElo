@@ -36,6 +36,8 @@ interface UserProfile {
   losses: number;
   winRate: number;
   rank: number;
+  currentStreak: number;
+  longestStreak: number;
   isRusty: boolean;
   isActive: boolean;
   createdAt: string;
@@ -223,7 +225,7 @@ export default function ProfilePage() {
               <Trophy className="h-5 w-5 text-accent" />
               Match Statistics
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               <div className="text-center p-4 bg-bg-secondary rounded-xl">
                 <div className="text-xl sm:text-3xl font-bold text-text-primary mb-1">
                   {profile.matchesPlayed}
@@ -247,6 +249,13 @@ export default function ProfilePage() {
                   {profile.winRate}%
                 </div>
                 <div className="text-sm text-text-secondary">Win Rate</div>
+              </div>
+              <div className="text-center p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-500/20 col-span-2 sm:col-span-1">
+                <div className="text-xl sm:text-3xl font-bold text-orange-500 mb-1 flex items-center justify-center gap-1">
+                  <Flame className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {profile.currentStreak}
+                </div>
+                <div className="text-sm text-text-secondary">Streak</div>
               </div>
             </div>
           </Card>
