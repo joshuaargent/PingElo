@@ -826,9 +826,18 @@ export default function HowItWorksPage() {
               <ul className="list-disc list-inside space-y-2 text-sm text-text-secondary">
                 <li>Report the actual final score, not the starting scores</li>
                 <li>Both players should agree on the result before logging</li>
-                <li>Scores must be between 3 and 21 points</li>
-                <li>The winner must have at least 11 points and won by 2</li>
+                <li>Casual matches: Higher score wins (no win-by-2 required)</li>
+                <li>Tournaments: Win by 2 with reaching the target score</li>
               </ul>
+              <div className="mt-4 p-3 bg-bg-secondary rounded-lg">
+                <p className="text-sm font-medium text-text-primary mb-2">Tournament Scoring:</p>
+                <ul className="text-xs text-text-secondary space-y-1">
+                  <li>• 7-point games: Must reach exactly 7 and win by 2 (e.g., 7-5, 7-4)</li>
+                  <li>• 11-point games: Must reach exactly 11 and win by 2 (e.g., 11-9)</li>
+                  <li>• 15-point games: Must reach exactly 15 and win by 2 (e.g., 15-13)</li>
+                  <li>• 21-point games: Must reach at least 21 and win by 2 (deuce allowed: 23-21, 25-23)</li>
+                </ul>
+              </div>
               <p className="mt-4 text-sm text-text-secondary">
                 Admins can review and adjust matches if needed.
               </p>

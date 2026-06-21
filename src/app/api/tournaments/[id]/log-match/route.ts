@@ -83,23 +83,36 @@ export async function POST(
 
     // Validate scores - max is tournament's maxScore (capped at 21)
     const tourneyMaxScore = tournament.maxScore || 21;
-    const maxAllowedScore = Math.min(tourneyMaxScore + 2, 21);
-    if (player1Score < 0 || player2Score < 0 || player1Score > maxAllowedScore || player2Score > maxAllowedScore) {
+    if (player1Score < 0 || player2Score < 0 || player1Score > 21 || player2Score > 21) {
       return NextResponse.json(
         { error: "Invalid scores" },
         { status: 400 }
       );
     }
 
-    // Validate win condition - must win by 2 with at least maxScore points
+    // Validate win condition
     const winnerScore = winnerId === player1Id ? player1Score : player2Score;
     const loserScore = winnerId === player1Id ? player2Score : player1Score;
     
-    if (winnerScore < tourneyMaxScore || winnerScore - loserScore < 2) {
-      return NextResponse.json(
-        { error: `Must win by 2 with at least ${tourneyMaxScore} points.` },
-        { status: 400 }
-      );
+    // Must reach maxScore to win, and win by 2
+    // For 21-point games, allow deuce (23-21, 25-23, etc.)
+    // For shorter games (7, 11, 15), must win exactly at threshold
+    if (tourneyMaxScore === 21) {
+      // 21-point: win by 2, but no upper cap (deuce allowed)
+      if (winnerScore < 21 || winnerScore - loserScore < 2) {
+        return NextResponse.json(
+          { error: "Must win by 2 with at least 21 points." },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Shorter games (7, 11, 15): must reach EXACTLY that score
+      if (winnerScore !== tourneyMaxScore || winnerScore - loserScore < 2) {
+        return NextResponse.json(
+          { error: `Must win by 2 with exactly ${tourneyMaxScore} points.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Get player data based on match type
