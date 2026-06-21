@@ -68,6 +68,8 @@ model User {
   currentStreak        Int       @default(0)  // Consecutive days with matches
   longestStreak        Int       @default(0)   // All-time best streak
   lastMatchDate        DateTime?
+  todayStreakBonus     Int       @default(0)  // Streak bonus earned today (resets each day)
+  lastBonusResetDate   DateTime?            // Last date when daily bonus was reset
 
   // Season achievements (badges)
   totalSinglesSeasonWins   Int       @default(0)  // Times won singles season

@@ -823,14 +823,29 @@ export function formatEloChange(change: number): string {
 
 /** Streak bonus configuration */
 export const STREAK_CONFIG = {
-  /** Days in a row to get bonus */
-  STREAK_THRESHOLD: 3,
-  /** Extra ELO per match when on streak */
-  STREAK_BONUS: 2,
-  /** Maximum streak bonus per day */
-  MAX_DAILY_BONUS: 10, // 5 matches @ 2 ELO each
   /** Days without play to reset streak */
   STREAK_GRACE_PERIOD: 2, // Can miss 2 days before losing streak
+  /** Tier thresholds for streak bonus (days) */
+  TIER_THRESHOLDS: {
+    TIER1: 3,   // 3+ days: +1/match, max 5/day
+    TIER2: 7,   // 7+ days: +2/match, max 10/day
+    TIER3: 14,  // 14+ days: +3/match, max 15/day
+    TIER4: 30,  // 30+ days: +5/match, max 25/day
+  },
+  /** Streak bonus per match per tier */
+  TIER_BONUS: {
+    TIER1: 1,  // +1 ELO per match
+    TIER2: 2,  // +2 ELO per match
+    TIER3: 3,  // +3 ELO per match
+    TIER4: 5,  // +5 ELO per match
+  },
+  /** Max daily streak bonus per tier */
+  TIER_MAX_DAILY: {
+    TIER1: 5,   // Max 5 ELO per day
+    TIER2: 10,  // Max 10 ELO per day
+    TIER3: 15,  // Max 15 ELO per day
+    TIER4: 25,  // Max 25 ELO per day
+  },
 } as const;
 
 /** Milestone streaks that trigger celebrations */
@@ -922,12 +937,60 @@ export function calculateStreak(
 }
 
 /**
- * Calculates the streak bonus ELO for a match
+ * Get the tier for a given streak
  */
-export function calculateStreakBonus(currentStreak: number): number {
-  if (currentStreak < STREAK_CONFIG.STREAK_THRESHOLD) {
-    return 0;
+function getStreakTier(streak: number): 'TIER1' | 'TIER2' | 'TIER3' | 'TIER4' {
+  if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER4) return 'TIER4';
+  if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER3) return 'TIER3';
+  if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER2) return 'TIER2';
+  if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER1) return 'TIER1';
+  return 'NONE';
+}
+
+/**
+ * Calculates the streak bonus ELO for a match using tiered system
+ * Returns { bonus: number, newDailyTotal: number, resetDaily: boolean, tier: string }
+ */
+export function calculateStreakBonus(
+  currentStreak: number,
+  todayStreakBonus: number = 0,
+  lastBonusResetDate: Date | null = null
+): { bonus: number; newDailyTotal: number; resetDaily: boolean; tier: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Check if we need to reset daily bonus
+  const lastReset = lastBonusResetDate ? new Date(lastBonusResetDate) : null;
+  const shouldResetDaily = !lastReset || lastReset.getTime() !== today.getTime();
+  
+  if (shouldResetDaily) {
+    // Reset daily tracking
+    return {
+      bonus: 0,
+      newDailyTotal: 0,
+      resetDaily: true,
+      tier: getStreakTier(currentStreak),
+    };
   }
-  // 2 ELO per match, up to max daily bonus
-  return Math.min(STREAK_CONFIG.STREAK_BONUS, STREAK_CONFIG.MAX_DAILY_BONUS);
+  
+  // Check if streak qualifies for bonus (need 3+ days)
+  if (currentStreak < STREAK_CONFIG.TIER_THRESHOLDS.TIER1) {
+    return { bonus: 0, newDailyTotal: todayStreakBonus, resetDaily: false, tier: 'NONE' };
+  }
+  
+  // Get current tier and associated values
+  const tier = getStreakTier(currentStreak);
+  const bonusPerMatch = STREAK_CONFIG.TIER_BONUS[tier];
+  const maxDaily = STREAK_CONFIG.TIER_MAX_DAILY[tier];
+  
+  // Check if daily cap reached for this tier
+  if (todayStreakBonus >= maxDaily) {
+    return { bonus: 0, newDailyTotal: todayStreakBonus, resetDaily: false, tier };
+  }
+  
+  // Calculate bonus (up to max daily for this tier)
+  const newDailyTotal = todayStreakBonus + bonusPerMatch;
+  const bonus = Math.min(bonusPerMatch, maxDaily - todayStreakBonus);
+  
+  return { bonus, newDailyTotal: Math.min(newDailyTotal, maxDaily), resetDaily: false, tier };
 }

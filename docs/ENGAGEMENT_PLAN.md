@@ -203,10 +203,21 @@ This document outlines all planned engagement features to increase user retentio
 
 ### 3.3 Challenge System
 **Implementation:**
-- Add Challenge model (challengerId, challengedId, stakes, status, deadline)
+- Add Challenge model (challengerId, challengedId, stakeAmount, status, deadline)
 - Create challenge API endpoints
 - Show pending challenges on dashboard
-- Challenge mode: winner gets bonus ELO (5-10% extra)
+- **Stakes-based system:**
+  - Challenger stakes 5-25 ELO (deducted on create)
+  - Challenged must match stake (deducted on accept)
+  - Winner takes all (gets both stakes back + opponent's stake)
+  - Loser's stake goes to winner
+
+**Challenge Flow:**
+1. Challenger creates challenge → 5-25 ELO deducted (escrow)
+2. Challenged accepts → Must also stake matching amount
+3. Match played → Either player marks complete
+4. Winner → Gets 2x their stake (own + opponent's)
+5. Decline/Cancel → Challenger's stake refunded
 
 **Files to create/modify:**
 - `prisma/schema.prisma` - Add Challenge model
@@ -268,10 +279,11 @@ model Challenge {
   id String @id @default(cuid())
   challengerId String
   challengedId String
-  stakes Int @default(5)  // Bonus ELO percentage
-  status String @default("pending")  // pending, accepted, declined, completed
-  deadline DateTime
+  stakeAmount Int @default(5)  // ELO stake (5-25)
+  status ChallengeStatus @default(PENDING)  // PENDING, ACCEPTED, DECLINED, COMPLETED
+  expiresAt DateTime @default(now())  // Auto-expire after 7 days
   winnerId String?
+  matchId String?  // Optional link to match
   createdAt DateTime @default(now())
 }
 ```

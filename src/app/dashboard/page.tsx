@@ -46,26 +46,45 @@ export default function DashboardPage() {
       redirect('/auth/signin');
     }
     
-    // Check if user has seen this season's intro (redirect to season page if not)
-    async function checkSeasonIntro() {
+    // Get current week key
+    function getWeekKey(): string {
+      const now = new Date();
+      const year = now.getFullYear();
+      const oneJan = new Date(year, 0, 1);
+      const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+      const weekNumber = Math.ceil((numberOfDays + oneJan.getDay() + 1) / 7);
+      return `${year}-W${weekNumber}`;
+    }
+    
+    // Check if user has seen this week's intro (redirect to weekly page if not)
+    async function checkWeeklyIntro() {
       try {
-        const res = await fetch('/api/seasons/current');
-        if (res.ok) {
-          const data = await res.json();
-          const currentSeasonName = data.season?.name || 'Current Season';
-          const lastSeenSeason = localStorage.getItem('lastSeenSeason');
-          
-          // Redirect to season page if user hasn't seen this season yet
-          if (lastSeenSeason !== currentSeasonName) {
-            window.location.href = '/season-reset';
+        const currentWeekKey = getWeekKey();
+        const lastSeenWeek = localStorage.getItem('lastSeenWeek');
+        
+        // Redirect to weekly page if user hasn't seen this week yet
+        if (lastSeenWeek !== currentWeekKey) {
+          window.location.href = '/weekly-reset';
+        } else {
+          // Check season intro after weekly
+          const res = await fetch('/api/seasons/current');
+          if (res.ok) {
+            const data = await res.json();
+            const currentSeasonName = data.season?.name || 'Current Season';
+            const lastSeenSeason = localStorage.getItem('lastSeenSeason');
+            
+            // Redirect to season page if user hasn't seen this season yet
+            if (lastSeenSeason !== currentSeasonName) {
+              window.location.href = '/season-reset';
+            }
           }
         }
       } catch (error) {
-        console.error('Failed to check season:', error);
+        console.error('Failed to check weekly:', error);
       }
     }
     
-    checkSeasonIntro();
+    checkWeeklyIntro();
   }, [session, status]);
 
   useEffect(() => {
@@ -281,8 +300,17 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-text-secondary">
                   <span>Best: {stats.bestStreak} days</span>
-                  {stats.currentStreak >= 3 && (
-                    <span className="text-green-500 font-medium">+2 ELO/match (up to +10/day!)</span>
+                  {stats.currentStreak >= 3 && stats.currentStreak < 7 && (
+                    <span className="text-green-500 font-medium">+1 ELO/match (max +5/day)</span>
+                  )}
+                  {stats.currentStreak >= 7 && stats.currentStreak < 14 && (
+                    <span className="text-green-500 font-medium">+2 ELO/match (max +10/day)</span>
+                  )}
+                  {stats.currentStreak >= 14 && stats.currentStreak < 30 && (
+                    <span className="text-green-500 font-medium">+3 ELO/match (max +15/day)</span>
+                  )}
+                  {stats.currentStreak >= 30 && (
+                    <span className="text-green-500 font-medium">+5 ELO/match (max +25/day!)</span>
                   )}
                 </div>
               </div>

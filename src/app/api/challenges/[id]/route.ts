@@ -87,12 +87,35 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge has expired" }, { status: 400 });
         }
 
+        // Deduct stake ELO from challenged user (they must also put up matching stake)
+        await prisma.user.update({
+          where: { id: challenge.challengedId },
+          data: { foreverElo: { decrement: challenge.stakeAmount } },
+        });
+
+        // Record in ELO history
+        const challengedBefore = await prisma.user.findUnique({
+          where: { id: challenge.challengedId },
+          select: { foreverElo: true },
+        });
+        
+        await prisma.eloHistory.create({
+          data: {
+            userId: challenge.challengedId,
+            changeType: 'ADMIN_ADJUSTMENT',
+            eloBefore: (challengedBefore?.foreverElo || 0) + challenge.stakeAmount,
+            eloAfter: challengedBefore?.foreverElo || 0,
+            change: -challenge.stakeAmount,
+            description: `Challenge accepted vs ${challenge.challengerId}`,
+          },
+        });
+
         const updated = await prisma.challenge.update({
           where: { id },
           data: { status: "ACCEPTED" },
           include: {
-            challenger: { select: { id: true, name: true } },
-            challenged: { select: { id: true, name: true } },
+            challenger: { select: { id: true, name: true, foreverElo: true } },
+            challenged: { select: { id: true, name: true, foreverElo: true } },
           },
         });
         return NextResponse.json({ challenge: updated });
@@ -107,12 +130,30 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge is not pending" }, { status: 400 });
         }
 
+        // Refund stake ELO to challenger
+        const challengerBefore = await prisma.user.update({
+          where: { id: challenge.challengerId },
+          data: { foreverElo: { increment: challenge.stakeAmount } },
+        });
+        
+        // Record refund in ELO history
+        await prisma.eloHistory.create({
+          data: {
+            userId: challenge.challengerId,
+            changeType: 'ADMIN_ADJUSTMENT',
+            eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
+            eloAfter: challengerBefore.foreverElo,
+            change: challenge.stakeAmount,
+            description: `Challenge declined - stake refunded`,
+          },
+        });
+
         const updated = await prisma.challenge.update({
           where: { id },
           data: { status: "DECLINED" },
           include: {
-            challenger: { select: { id: true, name: true } },
-            challenged: { select: { id: true, name: true } },
+            challenger: { select: { id: true, name: true, foreverElo: true } },
+            challenged: { select: { id: true, name: true, foreverElo: true } },
           },
         });
         return NextResponse.json({ challenge: updated });
@@ -127,12 +168,30 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge cannot be cancelled" }, { status: 400 });
         }
 
+        // Refund stake ELO to challenger
+        const challengerBefore = await prisma.user.update({
+          where: { id: challenge.challengerId },
+          data: { foreverElo: { increment: challenge.stakeAmount } },
+        });
+        
+        // Record refund in ELO history
+        await prisma.eloHistory.create({
+          data: {
+            userId: challenge.challengerId,
+            changeType: 'ADMIN_ADJUSTMENT',
+            eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
+            eloAfter: challengerBefore.foreverElo,
+            change: challenge.stakeAmount,
+            description: `Challenge cancelled - stake refunded`,
+          },
+        });
+
         const updated = await prisma.challenge.update({
           where: { id },
           data: { status: "CANCELLED" },
           include: {
-            challenger: { select: { id: true, name: true } },
-            challenged: { select: { id: true, name: true } },
+            challenger: { select: { id: true, name: true, foreverElo: true } },
+            challenged: { select: { id: true, name: true, foreverElo: true } },
           },
         });
         return NextResponse.json({ challenge: updated });
@@ -147,12 +206,45 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge must be accepted first" }, { status: 400 });
         }
 
+        // Get the match winner from the request body
+        const body = await request.clone().json();
+        const { winnerId } = body;
+
+        if (!winnerId || (winnerId !== challenge.challengerId && winnerId !== challenge.challengedId)) {
+          return NextResponse.json({ error: "Valid winner ID required" }, { status: 400 });
+        }
+
+        // Pay out stake to winner (stake is in escrow, so winner gets their stake back + opponent's stake)
+        const loserId = winnerId === challenge.challengerId ? challenge.challengedId : challenge.challengerId;
+        const totalPayout = challenge.stakeAmount * 2; // Winner gets both stakes
+
+        // Update winner's ELO (they get their stake back + opponent's stake)
+        const winnerBefore = await prisma.user.update({
+          where: { id: winnerId },
+          data: { foreverElo: { increment: totalPayout } },
+        });
+
+        // Record payout in ELO history for winner
+        await prisma.eloHistory.create({
+          data: {
+            userId: winnerId,
+            changeType: 'TOURNAMENT_WIN',
+            eloBefore: winnerBefore.foreverElo - totalPayout,
+            eloAfter: winnerBefore.foreverElo,
+            change: totalPayout,
+            description: `Challenge won against ${winnerId === challenge.challengerId ? challenge.challengedId : challenge.challengerId}`,
+          },
+        });
+
         const updated = await prisma.challenge.update({
           where: { id },
-          data: { status: "COMPLETED" },
+          data: { 
+            status: "COMPLETED",
+            winnerId: winnerId,
+          },
           include: {
-            challenger: { select: { id: true, name: true } },
-            challenged: { select: { id: true, name: true } },
+            challenger: { select: { id: true, name: true, foreverElo: true } },
+            challenged: { select: { id: true, name: true, foreverElo: true } },
             match: true,
           },
         });

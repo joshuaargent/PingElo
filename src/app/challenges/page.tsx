@@ -44,9 +44,10 @@ export default function ChallengesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'completed'>('all');
   const [showChallengeModal, setShowChallengeModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [stakeAmount, setStakeAmount] = useState(5);
+  const [selectedUserForChallenge, setSelectedUserForChallenge] = useState<any>(null);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -102,12 +103,12 @@ export default function ChallengesPage() {
   const pendingCount = challenges.filter(c => c.status === 'PENDING').length;
   const acceptedCount = challenges.filter(c => c.status === 'ACCEPTED').length;
 
-  const handleChallenge = async (userId: string) => {
+  const handleChallenge = async (userId: string, stake: number) => {
     try {
       const res = await fetch('/api/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ challengedId: userId, stakeAmount: 0 }),
+        body: JSON.stringify({ challengedId: userId, stakeAmount: stake }),
       });
       
       if (res.ok) {
@@ -118,7 +119,10 @@ export default function ChallengesPage() {
           setChallenges(data.challenges || []);
         }
         setShowChallengeModal(false);
-        setSelectedUser(null);
+        setSelectedUserForChallenge(null);
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to create challenge');
       }
     } catch (error) {
       console.error('Failed to create challenge:', error);
@@ -263,57 +267,114 @@ export default function ChallengesPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Swords className="h-5 w-5 text-accent" />
-                Challenge a Player
+                {selectedUserForChallenge ? 'Set the Stakes' : 'Challenge a Player'}
               </h2>
               <button 
-                onClick={() => setShowChallengeModal(false)}
+                onClick={() => { setShowChallengeModal(false); setSelectedUserForChallenge(null); setStakeAmount(5); }}
                 className="text-text-secondary hover:text-text-primary"
               >
                 ✕
               </button>
             </div>
 
-            <input
-              type="text"
-              placeholder="Search players..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border bg-bg-secondary text-text-primary mb-4 focus:outline-none focus:border-accent"
-            />
+            {!selectedUserForChallenge ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search players..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-bg-secondary text-text-primary mb-4 focus:outline-none focus:border-accent"
+                />
 
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {filteredUsers.map((user) => (
-                <div 
-                  key={user.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-bg-secondary hover:bg-bg-secondary/80 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {filteredUsers.map((user) => (
+                    <div 
+                      key={user.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-bg-secondary hover:bg-bg-secondary/80 transition-colors cursor-pointer"
+                      onClick={() => setSelectedUserForChallenge(user)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={user.image}
+                          alt={user.name}
+                          fallback={user.name?.charAt(0) || '?'}
+                          size="sm"
+                        />
+                        <div>
+                          <p className="font-medium text-text-primary">{user.name}</p>
+                          <p className="text-xs text-text-secondary">{user.foreverElo} ELO</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="ghost">
+                        Select
+                      </Button>
+                    </div>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <p className="text-center text-text-secondary py-4">
+                      {searchQuery ? 'No players found' : 'No players available'}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-4 p-4 bg-bg-secondary rounded-lg">
+                  <p className="text-sm text-text-secondary mb-1">Challenging:</p>
+                  <div className="flex items-center gap-2">
                     <Avatar
-                      src={user.image}
-                      alt={user.name}
-                      fallback={user.name?.charAt(0) || '?'}
+                      src={selectedUserForChallenge.image}
+                      alt={selectedUserForChallenge.name}
+                      fallback={selectedUserForChallenge.name?.charAt(0) || '?'}
                       size="sm"
                     />
-                    <div>
-                      <p className="font-medium text-text-primary">{user.name}</p>
-                      <p className="text-xs text-text-secondary">{user.foreverElo} ELO</p>
-                    </div>
+                    <span className="font-semibold">{selectedUserForChallenge.name}</span>
+                    <span className="text-sm text-text-secondary">({selectedUserForChallenge.foreverElo} ELO)</span>
                   </div>
-                  <Button 
-                    size="sm"
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Select your stake (both players put up this amount):
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[5, 10, 15, 20, 25].map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => setStakeAmount(amount)}
+                        className={`p-3 rounded-lg border-2 font-semibold transition-colors ${
+                          stakeAmount === amount 
+                            ? 'border-accent bg-accent/10 text-accent' 
+                            : 'border-border bg-bg-secondary text-text-secondary hover:border-accent/50'
+                        }`}
+                      >
+                        {amount}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-text-secondary mt-2">
+                    Winner takes all! You risk {stakeAmount} ELO, but can win {stakeAmount * 2} ELO.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
                     variant="outline"
-                    onClick={() => handleChallenge(user.id)}
+                    onClick={() => setSelectedUserForChallenge(null)}
+                    className="flex-1"
                   >
-                    Challenge
+                    Back
+                  </Button>
+                  <Button
+                    onClick={() => handleChallenge(selectedUserForChallenge.id, stakeAmount)}
+                    className="flex-1"
+                  >
+                    Challenge for {stakeAmount} ELO!
                   </Button>
                 </div>
-              ))}
-              {filteredUsers.length === 0 && (
-                <p className="text-center text-text-secondary py-4">
-                  {searchQuery ? 'No players found' : 'No players available'}
-                </p>
-              )}
-            </div>
+              </>
+            )}
           </Card>
         </div>
       )}

@@ -222,17 +222,17 @@ export default function HowItWorksPage() {
               
               <div className="grid md:grid-cols-4 gap-4">
                 <Card className="p-4 text-center bg-orange-500/10">
-                  <div className="text-2xl font-bold text-orange-500 mb-1">3+ days</div>
+                  <div className="text-2xl font-bold text-orange-500 mb-1">3-6 days</div>
                   <div className="text-sm text-text-secondary">+1 ELO/match</div>
                   <div className="text-xs text-text-muted mt-1">(max +5/day)</div>
                 </Card>
                 <Card className="p-4 text-center bg-orange-500/10">
-                  <div className="text-2xl font-bold text-orange-500 mb-1">7+ days</div>
+                  <div className="text-2xl font-bold text-orange-500 mb-1">7-13 days</div>
                   <div className="text-sm text-text-secondary">+2 ELO/match</div>
                   <div className="text-xs text-text-muted mt-1">(max +10/day)</div>
                 </Card>
                 <Card className="p-4 text-center bg-orange-500/10">
-                  <div className="text-2xl font-bold text-orange-500 mb-1">14+ days</div>
+                  <div className="text-2xl font-bold text-orange-500 mb-1">14-29 days</div>
                   <div className="text-sm text-text-secondary">+3 ELO/match</div>
                   <div className="text-xs text-text-muted mt-1">(max +15/day)</div>
                 </Card>
@@ -245,7 +245,7 @@ export default function HowItWorksPage() {
 
               <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg">
                 <p className="text-sm text-text-secondary">
-                  <strong>Note:</strong> If you miss a day, your streak resets to 0. Keep playing to build your streak!
+                  <strong>Note:</strong> Missing one day resets your streak to 0! You can miss up to 2 days and still maintain your streak with the grace period feature.
                 </p>
               </div>
             </Card>
@@ -272,10 +272,10 @@ export default function HowItWorksPage() {
                   <Badge variant="success" size="sm">Match</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>🏆 First Blood - Win your first match</li>
-                  <li>🎯 Getting Started - Play 10 matches</li>
-                  <li>🔥 Veteran - Play 100 matches</li>
-                  <li>⭐ Centurion - Play 500 matches</li>
+                  <li>⚔️ First Blood - Win your first match</li>
+                  <li>👋 Getting Started - Play 10 matches</li>
+                  <li>💯 Century Club - Play 100 matches</li>
+                  <li>🎯 Five Hundred - Play 500 matches</li>
                 </ul>
               </Card>
 
@@ -284,10 +284,10 @@ export default function HowItWorksPage() {
                   <Badge variant="warning" size="sm">Win</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>🏅 First Win - Win your first match</li>
-                  <li>💪 Winning Streak - Win 5 in a row</li>
-                  <li>⚡ On Fire - Win 10 in a row</li>
-                  <li>🔥 Unstoppable - Win 20 in a row</li>
+                  <li>🏆 Centurion - Get 100 wins</li>
+                  <li>⚡ Half K Hero - Get 500 wins</li>
+                  <li>👑 Champion - Get 1,000 wins</li>
+                  <li>🤝 Doubles Rookie - Complete first doubles match</li>
                 </ul>
               </Card>
 
@@ -296,9 +296,10 @@ export default function HowItWorksPage() {
                   <Badge variant="performance" size="sm">Streak</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>🔥 Week Warrior - 7-day streak</li>
-                  <li>💎 Diamond Streak - 30-day streak</li>
-                  <li>👑 Legend Streak - 100-day streak</li>
+                  <li>🔥 Hot Streak - 7-day streak</li>
+                  <li>💥 Blazing - 30-day streak</li>
+                  <li>⚡ Unstoppable - 90-day streak</li>
+                  <li>🌟 Legendary Streak - 365-day streak</li>
                 </ul>
               </Card>
 
@@ -307,11 +308,10 @@ export default function HowItWorksPage() {
                   <Badge variant="code" size="sm">ELO</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>📈 Rising Star - Reach 1100 ELO</li>
-                  <li>🎖️ Competent - Reach 1200 ELO</li>
-                  <li>🏆 Expert - Reach 1400 ELO</li>
-                  <li>👑 Master - Reach 1600 ELO</li>
-                  <li>💎 Legend - Reach 1800 ELO</li>
+                  <li>⭐ Rising Star - Reach Gold tier (1300 ELO)</li>
+                  <li>💎 Elite Player - Reach Platinum tier (1500 ELO)</li>
+                  <li>⚡ Master - Reach Master tier (1900 ELO)</li>
+                  <li>👊 Goliath Killer - Beat 200+ ELO above you</li>
                 </ul>
               </Card>
 
@@ -320,19 +320,21 @@ export default function HowItWorksPage() {
                   <Badge variant="psychology" size="sm">Season</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>🏆 Season Champion - Win a season</li>
-                  <li>👑 Season Master - Win 5 seasons</li>
+                  <li>🏆 Season Champion - Win a singles season</li>
+                  <li>👑 Season King - Win 3 seasons</li>
+                  <li>👥 Team Player - Complete first team season</li>
+                  <li>🏅 Team Champion - Win a team season</li>
                 </ul>
               </Card>
 
               <Card className="p-4">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Badge variant="faith" size="sm">Special</Badge>
+                  <Badge variant="info" size="sm">Special</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
-                  <li>⚡ Speed Demon - Play 5 matches in one day</li>
-                  <li>🎯 Sharpshooter - Win by 10+ points</li>
-                  <li>🔄 Comeback Kid - Win after being down 5+</li>
+                  <li>💪 Comeback Kid - Win after being down 5+ points</li>
+                  <li>🔱 Dominant - Win 11-0 (shutout)</li>
+                  <li>⚡ Quick Draw - Win in under 2 minutes</li>
                 </ul>
               </Card>
             </div>
@@ -462,7 +464,7 @@ export default function HowItWorksPage() {
               </div>
               <p className="text-text-secondary text-sm mb-4">
                 Want to prove you&apos;re better than a friend? Issue a challenge! Challenges let you
-                set up official matchups with optional ELO stakes.
+                set up official matchups with ELO stakes. Put your ELO on the line!
               </p>
 
               <div className="grid md:grid-cols-2 gap-4 mb-4">
@@ -472,7 +474,8 @@ export default function HowItWorksPage() {
                     <li>Go to the <Link href="/challenges" className="text-accent hover:underline">Challenges page</Link></li>
                     <li>Click &quot;New Challenge&quot;</li>
                     <li>Select a player to challenge</li>
-                    <li>Wait for them to accept</li>
+                    <li>Choose your stake (5-25 ELO)</li>
+                    <li>Wait for them to accept & match</li>
                   </ol>
                 </Card>
                 <Card className="p-4 bg-green-500/10 border-green-500/30">
@@ -482,15 +485,42 @@ export default function HowItWorksPage() {
                     <li>🟢 <strong>Accepted</strong> - Ready to play!</li>
                     <li>🔴 <strong>Declined</strong> - Challenge rejected</li>
                     <li>⚪ <strong>Expired</strong> - Too much time passed</li>
-                    <li>🔵 <strong>Completed</strong> - Match recorded</li>
+                    <li>🔵 <strong>Completed</strong> - Winner decided</li>
                   </ul>
                 </Card>
               </div>
 
+              {/* Stakes Section */}
+              <Card className="p-4 bg-red-500/10 border-red-500/30 mb-4">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  How Stakes Work
+                </h4>
+                <p className="text-sm text-text-secondary mb-3">
+                  When you challenge someone, both players put up ELO stakes:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+                  {[5, 10, 15, 20, 25].map((stake) => (
+                    <div key={stake} className="p-2 bg-bg-secondary rounded-lg text-center">
+                      <p className="font-bold text-text-primary">{stake} ELO</p>
+                    </div>
+                  ))}
+                </div>
+                <ul className="text-sm text-text-secondary space-y-1">
+                  <li>• <strong>Challenger</strong> stakes first (deducted immediately)</li>
+                  <li>• <strong>Challenged</strong> must match stake (deducted on accept)</li>
+                  <li>• <strong>Winner takes all</strong> - gets both players&apos; stakes!</li>
+                  <li>• <strong>Decline/Cancel</strong> - Challenger&apos;s stake refunded</li>
+                </ul>
+                <p className="text-sm text-accent mt-3">
+                  <strong>Example:</strong> 10 ELO stake → Winner gets 20 ELO (their 10 back + opponent&apos;s 10)
+                </p>
+              </Card>
+
               <Card className="p-4 bg-accent/10">
                 <p className="text-sm text-text-secondary">
                   <strong>Note:</strong> Challenges expire after 7 days if not accepted. Once accepted,
-                  record your match results and the challenge will be marked complete!
+                  both players must have enough ELO to cover the stake.
                 </p>
               </Card>
             </Card>

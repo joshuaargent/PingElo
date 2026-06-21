@@ -660,55 +660,59 @@ export async function POST(request: NextRequest) {
               createdById: userId,
             },
             include: {
-              player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true } },
-              player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true } },
+              player1: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true, todayStreakBonus: true, lastBonusResetDate: true } },
+              player2: { select: { id: true, name: true, image: true, foreverElo: true, seasonElo: true, currentStreak: true, longestStreak: true, lastMatchDate: true, todayStreakBonus: true, lastBonusResetDate: true } },
             },
           });
 
-          // Calculate streak for player 1
+          // Calculate streak for player 1 with daily tracking
           const p1Streak = calculateStreak(player1.lastMatchDate, player1.currentStreak, player1.longestStreak);
-          const p1StreakBonus = calculateStreakBonus(p1Streak.newStreak);
+          const p1StreakResult = calculateStreakBonus(p1Streak.newStreak, player1.todayStreakBonus, player1.lastBonusResetDate);
           
           await tx.user.update({
             where: { id: player1Id },
             data: { 
-              foreverElo: player1.foreverElo + eloResult.player1Change + p1StreakBonus, 
+              foreverElo: player1.foreverElo + eloResult.player1Change + p1StreakResult.bonus, 
               matchesPlayed: { increment: 1 },
               currentStreak: p1Streak.newStreak,
               longestStreak: p1Streak.newLongestStreak,
               lastMatchDate: new Date(),
+              todayStreakBonus: p1StreakResult.resetDaily ? 0 : p1StreakResult.newDailyTotal,
+              lastBonusResetDate: new Date(),
             },
           });
 
-          // Calculate streak for player 2
+          // Calculate streak for player 2 with daily tracking
           const p2Streak = calculateStreak(player2.lastMatchDate, player2.currentStreak, player2.longestStreak);
-          const p2StreakBonus = calculateStreakBonus(p2Streak.newStreak);
+          const p2StreakResult = calculateStreakBonus(p2Streak.newStreak, player2.todayStreakBonus, player2.lastBonusResetDate);
           
           await tx.user.update({
             where: { id: player2Id },
             data: { 
-              foreverElo: player2.foreverElo + eloResult.player2Change + p2StreakBonus, 
+              foreverElo: player2.foreverElo + eloResult.player2Change + p2StreakResult.bonus, 
               matchesPlayed: { increment: 1 },
               currentStreak: p2Streak.newStreak,
               longestStreak: p2Streak.newLongestStreak,
               lastMatchDate: new Date(),
+              todayStreakBonus: p2StreakResult.resetDaily ? 0 : p2StreakResult.newDailyTotal,
+              lastBonusResetDate: new Date(),
             },
           });
 
           if (currentSeason) {
             await tx.user.update({
               where: { id: player1Id },
-              data: { seasonElo: player1.seasonElo + eloResult.player1Change + p1StreakBonus },
+              data: { seasonElo: player1.seasonElo + eloResult.player1Change + p1StreakResult.bonus },
             });
             await tx.user.update({
               where: { id: player2Id },
-              data: { seasonElo: player2.seasonElo + eloResult.player2Change + p2StreakBonus },
+              data: { seasonElo: player2.seasonElo + eloResult.player2Change + p2StreakResult.bonus },
             });
           }
 
           // Create ELO history entries for both players (including streak bonus in final ELO)
-          const p1EloAfter = p1EloBefore + eloResult.player1Change + p1StreakBonus;
-          const p2EloAfter = p2EloBefore + eloResult.player2Change + p2StreakBonus;
+          const p1EloAfter = p1EloBefore + eloResult.player1Change + p1StreakResult.bonus;
+          const p2EloAfter = p2EloBefore + eloResult.player2Change + p2StreakResult.bonus;
           
           // Get week start for weekly activity tracking
           const now = new Date();
@@ -728,7 +732,7 @@ export async function POST(request: NextRequest) {
             update: {
               matchesPlayed: { increment: 1 },
               wins: p1Won ? { increment: 1 } : undefined,
-              eloChange: { increment: eloResult.player1Change + p1StreakBonus },
+              eloChange: { increment: eloResult.player1Change + p1StreakResult.bonus },
               isQualified: true,
             },
             create: {
@@ -736,7 +740,7 @@ export async function POST(request: NextRequest) {
               weekStart,
               matchesPlayed: 1,
               wins: p1Won ? 1 : 0,
-              eloChange: eloResult.player1Change + p1StreakBonus,
+              eloChange: eloResult.player1Change + p1StreakResult.bonus,
               isQualified: true,
             },
           });
@@ -748,7 +752,7 @@ export async function POST(request: NextRequest) {
             update: {
               matchesPlayed: { increment: 1 },
               wins: p2Won ? { increment: 1 } : undefined,
-              eloChange: { increment: eloResult.player2Change + p2StreakBonus },
+              eloChange: { increment: eloResult.player2Change + p2StreakResult.bonus },
               isQualified: true,
             },
             create: {
@@ -756,7 +760,7 @@ export async function POST(request: NextRequest) {
               weekStart,
               matchesPlayed: 1,
               wins: p2Won ? 1 : 0,
-              eloChange: eloResult.player2Change + p2StreakBonus,
+              eloChange: eloResult.player2Change + p2StreakResult.bonus,
               isQualified: true,
             },
           });
@@ -778,7 +782,7 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
-                streakBonus: p1StreakBonus,
+                streakBonus: p1StreakResult.bonus,
                 streakBefore: player1.currentStreak,
                 streakAfter: p1Streak.newStreak,
               },
@@ -802,7 +806,7 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
-                streakBonus: p2StreakBonus,
+                streakBonus: p2StreakResult.bonus,
                 streakBefore: player2.currentStreak,
                 streakAfter: p2Streak.newStreak,
               },
@@ -811,15 +815,15 @@ export async function POST(request: NextRequest) {
 
           return {
             match: newMatch,
-            streakBonus: { player1: p1StreakBonus, player2: p2StreakBonus },
+            streakBonus: { player1: p1StreakResult.bonus, player2: p2StreakResult.bonus },
             newStreak: { player1: p1Streak.newStreak, player2: p2Streak.newStreak },
             milestone: {
               player1: p1Streak.milestoneHit,
               player2: p2Streak.milestoneHit,
             },
             tier: {
-              player1: checkTierCrossing(p1EloBefore, p1EloBefore + eloResult.player1Change + p1StreakBonus),
-              player2: checkTierCrossing(p2EloBefore, p2EloBefore + eloResult.player2Change + p2StreakBonus),
+              player1: checkTierCrossing(p1EloBefore, p1EloBefore + eloResult.player1Change + p1StreakResult.bonus),
+              player2: checkTierCrossing(p2EloBefore, p2EloBefore + eloResult.player2Change + p2StreakResult.bonus),
             },
           };
         });

@@ -59,10 +59,9 @@ The K-factor determines how much your ELO can change per match. Higher K = bigge
 - Entry fee deducted from each player's ELO
 - House adds 50 ELO to prize pool
 - Prize distribution:
-  - 1st place: 60%
-  - 2nd place: 25%
-  - 3rd place: 10%
-  - 4th place: 5%
+  - 1st place: 50%
+  - 2nd place: 35%
+  - 3rd place: 15%
 - ELO changes from tournament matches **only affect Forever ELO** (season ELO is not changed)
 
 ---
@@ -93,16 +92,26 @@ Where:
 
 Players earn an ELO bonus for consecutive daily play.
 
+### Tiered Bonus System
+| Days | Bonus/Match | Max/Day |
+|------|-------------|---------|
+| 3-6 | +1 ELO | 5 |
+| 7-13 | +2 ELO | 10 |
+| 14-29 | +3 ELO | 15 |
+| 30+ | +5 ELO | 25 |
+
 ### Configuration
 - **Minimum streak**: 3 consecutive days
-- **Streak bonus**: +2 ELO per match
 - **Grace period**: 2 days (can miss 2 days without breaking streak)
 - **Resets**: After 3+ days of no matches
+- **Daily cap**: Based on tier (5-25 ELO per day)
 
 ### Streak Tracking Fields
 - `currentStreak`: Consecutive days with matches
 - `longestStreak`: All-time best streak
 - `lastMatchDate`: When player last played
+- `todayStreakBonus`: Bonus earned today (resets daily)
+- `lastBonusResetDate`: When daily bonus was last reset
 
 ---
 
@@ -197,8 +206,9 @@ Admins can delete matches via `/api/admin/delete-match`.
 ### Scenario 3: Tournament Prize
 - Tournament with 10 players, 100 ELO entry fee each
 - Prize pool = (10 × 100) + 50 house = 1050 ELO
-- Winner gets: 1050 × 0.60 = 630 ELO bonus
-- Runner-up gets: 1050 × 0.25 = 262 ELO bonus
+- Winner gets: 1050 × 0.50 = 525 ELO bonus
+- Runner-up gets: 1050 × 0.35 = 367 ELO bonus
+- Third place gets: 1050 × 0.15 = 157 ELO bonus
 
 ---
 
