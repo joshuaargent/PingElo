@@ -213,6 +213,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Reset weekly stats after awarding bonuses (new week starts fresh)
+      await tx.user.updateMany({
+        data: {
+          weeklySinglesEloGained: 0,
+          weeklyDoublesEloGained: 0,
+          weeklyTeamEloGained: 0,
+          weeklySinglesMatches: 0,
+          weeklyDoublesMatches: 0,
+          weeklyTeamMatches: 0,
+        },
+      });
+
       return {
         singlesLeader: singlesLeader ? {
           id: singlesLeader.id,
