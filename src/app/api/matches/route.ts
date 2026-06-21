@@ -761,6 +761,10 @@ export async function POST(request: NextRequest) {
             match: newMatch,
             streakBonus: { player1: p1StreakBonus, player2: p2StreakBonus },
             newStreak: { player1: p1Streak.newStreak, player2: p2Streak.newStreak },
+            milestone: {
+              player1: p1Streak.milestoneHit,
+              player2: p2Streak.milestoneHit,
+            },
           };
         });
         
@@ -771,6 +775,7 @@ export async function POST(request: NextRequest) {
           matchType: "SINGLES",
           streakBonus: singlesResult.streakBonus,
           newStreak: singlesResult.newStreak,
+          milestone: singlesResult.milestone,
         }, { status: 201 });
     }
 

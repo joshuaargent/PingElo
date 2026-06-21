@@ -785,15 +785,32 @@ export const STREAK_CONFIG = {
   STREAK_GRACE_PERIOD: 2, // Can miss 2 days before losing streak
 } as const;
 
+/** Milestone streaks that trigger celebrations */
+export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365] as const;
+
+/** Get streak milestone message */
+export function getStreakMilestoneMessage(streak: number): string {
+  if (streak === 3) return "🔥 3-Day Streak! You're heating up!";
+  if (streak === 7) return "🔥🔥 1-Week Streak! On fire!";
+  if (streak === 14) return "🔥🔥🔥 2-Week Streak! Unstoppable!";
+  if (streak === 30) return "💥 1-Month Streak! Legendary!";
+  if (streak === 60) return "⚡ 2-Month Streak! Machine!";
+  if (streak === 90) return "🌟 3-Month Streak! GOAT status!";
+  if (streak === 180) return "👑 6-Month Streak! Hall of Fame!";
+  if (streak === 365) return "🏆 1-YEAR STREAK! Absolute legend!";
+  return `🔥 ${streak}-Day Streak!`;
+}
+
 /**
  * Calculates new streak values after a match
+ * Returns milestoneHit if player just hit a streak milestone
  */
 export function calculateStreak(
   lastMatchDate: Date | null,
   currentStreak: number,
   longestStreak: number,
   today: Date = new Date()
-): { newStreak: number; newLongestStreak: number; hasStreakBonus: boolean } {
+): { newStreak: number; newLongestStreak: number; hasStreakBonus: boolean; milestoneHit: number | null } {
   const todayStart = new Date(today);
   todayStart.setHours(0, 0, 0, 0);
 
@@ -802,7 +819,10 @@ export function calculateStreak(
 
   if (!lastMatchDate) {
     // First match ever
-    return { newStreak: 1, newLongestStreak: Math.max(1, longestStreak), hasStreakBonus: false };
+    const newStreak = 1;
+    const newLongestStreak = Math.max(1, longestStreak);
+    const milestoneHit = STREAK_MILESTONES.includes(newStreak as typeof STREAK_MILESTONES[number]) ? newStreak : null;
+    return { newStreak, newLongestStreak, hasStreakBonus: false, milestoneHit };
   }
 
   const lastMatchStart = new Date(lastMatchDate);
@@ -812,7 +832,7 @@ export function calculateStreak(
   if (lastMatchStart.getTime() === todayStart.getTime()) {
     // Already played today, just return current state
     const hasStreakBonus = currentStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
-    return { newStreak: currentStreak, newLongestStreak: longestStreak, hasStreakBonus };
+    return { newStreak: currentStreak, newLongestStreak: longestStreak, hasStreakBonus, milestoneHit: null };
   }
 
   // Calculate days since last match
@@ -835,8 +855,22 @@ export function calculateStreak(
 
   const newLongestStreak = Math.max(newStreak, longestStreak);
   const hasStreakBonus = newStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
+  
+  // Check if we hit a milestone
+  let milestoneHit: number | null = null;
+  for (const milestone of STREAK_MILESTONES) {
+    if (newStreak === milestone && newLongestStreak === newStreak) {
+      milestoneHit = milestone;
+      break;
+    }
+    // Also check if they beat their previous longest
+    if (newStreak >= milestone && longestStreak < milestone) {
+      milestoneHit = milestone;
+      break;
+    }
+  }
 
-  return { newStreak, newLongestStreak, hasStreakBonus };
+  return { newStreak, newLongestStreak, hasStreakBonus, milestoneHit };
 }
 
 /**

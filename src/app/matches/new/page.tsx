@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { useRouter } from 'next/navigation';
+import confetti from 'canvas-confetti';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -62,6 +63,15 @@ export default function LogMatchPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Match result state for celebrations
+  const [matchResult, setMatchResult] = useState<{
+    won: boolean;
+    eloGained: number;
+    streakBonus: number;
+    newStreak: number;
+    milestone: number | null;
+  } | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -164,7 +174,82 @@ export default function LogMatchPage() {
       });
 
       if (res.ok) {
-        router.push('/dashboard');
+        const data = await res.json();
+        
+        // Check if the logged-in user won
+        const userId = session?.user?.id;
+        let won = false;
+        let eloGained = 0;
+        let streakBonus = 0;
+        let newStreak = 0;
+        let milestone: number | null = null;
+        
+        if (data.match?.winnerId === userId) {
+          won = true;
+        }
+        
+        // Get ELO change for logged-in user
+        if (data.match?.player1Id === userId) {
+          eloGained = data.match?.player1EloChange || data.eloChange?.player1Change || 0;
+        } else if (data.match?.player2Id === userId) {
+          eloGained = data.match?.player2EloChange || data.eloChange?.player2Change || 0;
+        }
+        
+        // Get streak info for logged-in user
+        if (data.newStreak) {
+          if (data.match?.player1Id === userId) {
+            streakBonus = data.streakBonus?.player1 || 0;
+            newStreak = data.newStreak?.player1 || 0;
+            milestone = data.milestone?.player1 || null;
+          } else if (data.match?.player2Id === userId) {
+            streakBonus = data.streakBonus?.player2 || 0;
+            newStreak = data.newStreak?.player2 || 0;
+            milestone = data.milestone?.player2 || null;
+          }
+        }
+        
+        // Set match result for celebration
+        setMatchResult({ won, eloGained, streakBonus, newStreak, milestone });
+        
+        // Trigger confetti based on result
+        if (won) {
+          // Regular win - small confetti
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#22c55e', '#16a34a', '#15803d'],
+          });
+          
+          // Big win (100+ ELO gain)
+          if (eloGained >= 100) {
+            setTimeout(() => {
+              confetti({
+                particleCount: 200,
+                spread: 100,
+                origin: { y: 0.5 },
+                colors: ['#fbbf24', '#f59e0b', '#d97706'],
+              });
+            }, 200);
+          }
+        }
+        
+        // Milestone celebration - extra confetti burst
+        if (milestone) {
+          setTimeout(() => {
+            confetti({
+              particleCount: 300,
+              spread: 180,
+              origin: { y: 0.5 },
+              colors: ['#f97316', '#ea580c', '#dc2626', '#fbbf24'],
+            });
+          }, 400);
+        }
+        
+        // Redirect after showing celebration
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
       } else {
         const data = await res.json();
         setError(data.error || 'Failed to log match');
@@ -207,6 +292,59 @@ export default function LogMatchPage() {
         title="Log a Match"
         description="Record your ping pong match and update the leaderboard"
       />
+
+      {/* Match Result Celebration Overlay */}
+      {matchResult && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full p-8 text-center animate-bounce">
+            {matchResult.won ? (
+              <>
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-3xl font-bold text-green-500 mb-2">VICTORY!</h2>
+                <div className="text-4xl font-bold text-text-primary mb-2">
+                  +{matchResult.eloGained} ELO
+                </div>
+                {matchResult.streakBonus > 0 && (
+                  <div className="text-lg text-orange-500 mb-2">
+                    🔥 +{matchResult.streakBonus} Streak Bonus!
+                  </div>
+                )}
+                {matchResult.milestone && (
+                  <div className="mt-4 p-4 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                    <div className="text-2xl mb-1">
+                      {matchResult.milestone === 3 && '🔥'}
+                      {matchResult.milestone === 7 && '🔥🔥'}
+                      {matchResult.milestone === 14 && '🔥🔥🔥'}
+                      {matchResult.milestone === 30 && '💥'}
+                      {matchResult.milestone === 60 && '⚡'}
+                      {matchResult.milestone === 90 && '🌟'}
+                      {matchResult.milestone === 180 && '👑'}
+                      {matchResult.milestone === 365 && '🏆'}
+                    </div>
+                    <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                      {matchResult.milestone}-Day Streak Milestone!
+                    </p>
+                  </div>
+                )}
+                <p className="text-text-secondary mt-4">
+                  Redirecting to dashboard...
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl mb-4">👊</div>
+                <h2 className="text-2xl font-bold text-text-primary mb-2">Match Logged</h2>
+                <div className="text-xl text-text-secondary mb-2">
+                  {matchResult.eloGained >= 0 ? '+' : ''}{matchResult.eloGained} ELO
+                </div>
+                <p className="text-text-secondary mt-4">
+                  Better luck next time! Redirecting...
+                </p>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">
