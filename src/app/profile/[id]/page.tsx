@@ -87,46 +87,43 @@ export default function ProfilePage() {
 
   const isOwnProfile = session?.user?.id === params.id;
 
+  // Fetch profile, matches, achievements (only on mount/user change)
   useEffect(() => {
-    async function fetchProfile() {
+    async function fetchAllProfileData() {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/users/${params.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data.user);
+        const [profileRes, matchesRes, achievementsRes] = await Promise.all([
+          fetch(`/api/users/${params.id}`),
+          fetch(`/api/matches?playerId=${params.id}&limit=10`),
+          fetch(`/api/users/${params.id}/achievements`)
+        ]);
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setProfile(profileData.user);
+        }
+
+        if (matchesRes.ok) {
+          const matchesData = await matchesRes.json();
+          setRecentMatches(matchesData.matches || []);
+        }
+
+        if (achievementsRes.ok) {
+          const achievementsData = await achievementsRes.json();
+          setAchievements(achievementsData.achievements || []);
         }
       } catch (error) {
-        console.error('Failed to fetch profile:', error);
+        console.error('Failed to fetch profile data:', error);
       } finally {
         setIsLoading(false);
       }
     }
 
-    async function fetchMatches() {
-      try {
-        const res = await fetch(`/api/matches?userId=${params.id}&limit=10`);
-        if (res.ok) {
-          const data = await res.json();
-          setRecentMatches(data.matches || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch matches:', error);
-      }
-    }
+    fetchAllProfileData();
+  }, [params.id]);
 
-    async function fetchAchievements() {
-      try {
-        const res = await fetch(`/api/achievements/user/${params.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setAchievements(data.achievements || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch achievements:', error);
-      }
-    }
-
+  // Fetch ELO history when timeframe changes (doesn't reload other data)
+  useEffect(() => {
     async function fetchEloHistory() {
       try {
         const res = await fetch(`/api/users/${params.id}/elo-history?timeframe=${eloTimeframe}`);
@@ -140,9 +137,6 @@ export default function ProfilePage() {
       }
     }
 
-    fetchProfile();
-    fetchMatches();
-    fetchAchievements();
     fetchEloHistory();
   }, [params.id, eloTimeframe]);
 
