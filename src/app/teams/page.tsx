@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Users, Plus, Trash2, Calendar, Trophy, Target, Flame, Clock, History, Sparkles } from "lucide-react";
 
 interface SeasonStat {
@@ -214,7 +215,33 @@ export default function TeamsPage() {
   });
 
   if (status === "loading" || isLoading) {
-    return <div className="flex justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"/></div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <Skeleton className="h-10 w-48 mx-auto mb-4" />
+            <Skeleton className="h-6 w-64 mx-auto" />
+          </div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="p-4 bg-bg-secondary/30 rounded-xl border border-border">
+                <div className="flex items-center justify-between mb-4">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-6 w-16" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Skeleton variant="circular" className="w-10 h-10" />
+                  <Skeleton className="h-4 w-20" />
+                  <span className="text-text-muted">+</span>
+                  <Skeleton variant="circular" className="w-10 h-10" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!hasActiveSeason) {

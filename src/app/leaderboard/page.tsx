@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Leaderboard } from '@/components/elo/Leaderboard';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { User, Users, Trophy, TrendingUp, Crown, Shield } from 'lucide-react';
 
 type LeaderboardType = 'forever' | 'season' | 'teams';
@@ -177,11 +178,12 @@ export default function LeaderboardPage() {
       {/* Content Section */}
       <div className="container mx-auto px-4 pb-16">
         {/* Filters on One Line */}
-        <div className="flex flex-wrap items-center gap-4 mb-8">
+        <div className="flex flex-wrap items-center gap-4 mb-8" role="group" aria-label="Leaderboard filters">
           {/* Match Type Filter */}
-          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
+          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary" role="group" aria-label="Match type">
             <button
               onClick={() => setMatchType('singles')}
+              aria-pressed={matchType === 'singles'}
               className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 matchType === 'singles'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -193,6 +195,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setMatchType('doubles')}
+              aria-pressed={matchType === 'doubles'}
               className={`inline-flex items-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 matchType === 'doubles'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -205,9 +208,10 @@ export default function LeaderboardPage() {
           </div>
 
           {/* ELO Type Filter */}
-          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary">
+          <div className="inline-flex h-10 items-center justify-center rounded-lg bg-bg-secondary p-1 text-text-secondary" role="group" aria-label="ELO type">
             <button
               onClick={() => { setLeaderboardType('forever'); setSelectedSeasonId('all'); }}
+              aria-pressed={leaderboardType === 'forever'}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'forever'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -218,6 +222,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setLeaderboardType('season')}
+              aria-pressed={leaderboardType === 'season'}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'season'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -228,6 +233,7 @@ export default function LeaderboardPage() {
             </button>
             <button
               onClick={() => setLeaderboardType('teams')}
+              aria-pressed={leaderboardType === 'teams'}
               className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium ring-offset-bg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                 leaderboardType === 'teams'
                   ? 'bg-bg-primary text-text-primary shadow-sm'
@@ -271,10 +277,32 @@ export default function LeaderboardPage() {
 
         {/* Loading or Leaderboard */}
         {isLoading ? (
-          <Card className="p-6 sm:p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading leaderboard...</p>
-          </Card>
+          <div aria-label="Loading leaderboard" aria-busy="true">
+            <div className="mb-4 flex flex-wrap items-center gap-4">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+            <div className="bg-bg-primary rounded-xl border border-border overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center gap-4 p-4 bg-bg-secondary border-b border-border">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24 ml-auto" />
+              </div>
+              {/* Rows */}
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border-b border-border last:border-0">
+                  <Skeleton className="w-8 h-8" />
+                  <Skeleton variant="circular" className="w-12 h-12" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-32 mb-1" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
         ) : entries.length === 0 ? (
           <Card className="p-6 sm:p-12 text-center">
             <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />

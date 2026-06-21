@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Skeleton, MatchCardSkeleton, StatsCardSkeleton, MatchListSkeleton } from '@/components/ui/Skeleton';
 import { EloBadge } from '@/components/elo/EloBadge';
 import { MatchCardFromMatch } from '@/components/elo/MatchCard';
 import { SeasonCountdownWidget } from '@/components/ui/SeasonCountdownWidget';
@@ -134,10 +135,52 @@ export default function DashboardPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-text-secondary">Loading dashboard...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Hero skeleton */}
+          <div className="text-center mb-12">
+            <Skeleton className="h-12 w-64 mx-auto mb-4" />
+            <Skeleton className="h-6 w-96 mx-auto" />
+          </div>
+
+          {/* Quick actions skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="p-4 bg-bg-secondary/30 rounded-xl border border-border text-center">
+                <Skeleton className="w-12 h-12 mx-auto mb-3 rounded-full" variant="circular" />
+                <Skeleton className="h-5 w-24 mx-auto" />
+              </div>
+            ))}
+          </div>
+
+          {/* Widgets row skeleton */}
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="p-4 bg-bg-secondary/30 rounded-xl border border-border">
+              <Skeleton className="h-6 w-32 mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+            <div className="p-4 bg-bg-secondary/30 rounded-xl border border-border">
+              <Skeleton className="h-6 w-32 mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+            <div className="p-4 bg-bg-secondary/30 rounded-xl border border-border">
+              <Skeleton className="h-6 w-32 mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </div>
+
+          {/* Recent matches skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-6 w-40 mb-4" />
+            <MatchListSkeleton count={3} />
+          </div>
+
+          {/* Stats skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <StatsCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       </div>
     );

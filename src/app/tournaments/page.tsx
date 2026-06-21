@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { formatNumber } from '@/lib/utils';
 import { calculateEntryFee } from '@/lib/elo';
 import { Trophy, Users, Calendar, User, Users as UsersIcon, ArrowRight, Plus, Check } from 'lucide-react';
@@ -355,10 +356,34 @@ export default function TournamentsPage() {
 
         {/* Loading or Tournament Grid */}
         {isLoading ? (
-          <Card className="p-6 sm:p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading tournaments...</p>
-          </Card>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" aria-label="Loading tournaments" aria-busy="true">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="p-6 bg-bg-secondary/30 rounded-xl border border-border">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filteredTournaments.length === 0 ? (
           <Card className="p-6 sm:p-12 text-center">
             <Trophy className="h-12 w-12 text-text-muted mx-auto mb-4" />
