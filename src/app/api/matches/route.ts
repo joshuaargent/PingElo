@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       where.deletedAt = null;
     }
 
-    const [matches, total] = await Promise.all([
+    const [rawMatches, total] = await Promise.all([
       prisma.match.findMany({
         where,
         include: {
@@ -119,6 +119,10 @@ export async function GET(request: NextRequest) {
               image: true,
             },
           },
+          eloHistory: {
+            orderBy: { createdAt: 'desc' },
+            take: 4, // Get entries for all players in the match
+          },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -127,8 +131,36 @@ export async function GET(request: NextRequest) {
       prisma.match.count({ where }),
     ]);
 
+    // Transform matches to include streak bonus per player
+    const matchesWithStreak = rawMatches.map((match) => {
+      const streakBonus: { player1: number; player2: number } = { player1: 0, player2: 0 };
+      const m = match as any;
+      
+      // Find streak bonus for each player from ELO history
+      (m.eloHistory || []).forEach((history: any) => {
+        const metadata = history.metadata as Record<string, unknown> | null;
+        if (metadata?.streakBonus && typeof metadata.streakBonus === 'number') {
+          // Determine if this player is player1 or player2 based on the match
+          if (match.matchType === 'SINGLES') {
+            if (history.userId === match.player1Id) {
+              streakBonus.player1 = metadata.streakBonus as number;
+            } else {
+              streakBonus.player2 = metadata.streakBonus as number;
+            }
+          }
+          // For doubles, we could extend this later
+        }
+      });
+
+      return {
+        ...match,
+        eloHistory: undefined, // Remove raw history from response
+        streakBonus: streakBonus.player1 > 0 || streakBonus.player2 > 0 ? streakBonus : undefined,
+      };
+    });
+
     return NextResponse.json({
-      matches,
+      matches: matchesWithStreak,
       pagination: {
         page,
         limit,

@@ -175,6 +175,11 @@ model Team {
   // ELO tracking (average of both players' doubles ELO - persisted across seasons)
   foreverElo    Int       @default(1000)
   
+  // Activity streak tracking for teams
+  currentStreak        Int       @default(0)  // Consecutive days with matches
+  longestStreak        Int       @default(0)  // All-time best streak
+  lastMatchDate        DateTime?
+  
   // Total stats across all seasons
   totalMatchesPlayed Int   @default(0)
   totalWins          Int   @default(0)

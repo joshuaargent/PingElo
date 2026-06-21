@@ -7,7 +7,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatEloChange, getEloTierColor } from '@/lib/elo';
-import { Trophy, Users, Calendar } from 'lucide-react';
+import { Trophy, Users, Calendar, Flame } from 'lucide-react';
 
 interface MatchPlayer {
   id: string;
@@ -29,6 +29,7 @@ interface MatchCardProps {
   tournamentName?: string;
   tournamentId?: string;
   createdAt: Date | string;
+  streakBonus?: { player1: number; player2: number };
   className?: string;
 }
 
@@ -45,12 +46,13 @@ interface MatchCardFromMatchProps {
     tournamentId?: string;
     createdAt: Date | string;
     eloChange?: { player1Change: number; player2Change: number };
+    streakBonus?: { player1: number; player2: number };
   };
   className?: string;
 }
 
 /**
- * Card displaying a match result with ELO changes
+ * Card displaying a match result with ELO changes and streak bonus
  */
 export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
   (
@@ -67,6 +69,7 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
       tournamentName,
       tournamentId,
       createdAt,
+      streakBonus,
       className,
     },
     ref
@@ -132,14 +135,22 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
                 </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span
-                  className={cn(
-                    'font-bold',
-                    player1Won ? 'text-green-600' : 'text-red-500'
+                <div className="flex items-center gap-1">
+                  <span
+                    className={cn(
+                      'font-bold',
+                      player1Won ? 'text-green-600' : 'text-red-500'
+                    )}
+                  >
+                    {formatEloChange(player1EloChange)}
+                  </span>
+                  {(streakBonus?.player1 ?? 0) > 0 && (
+                    <span className="flex items-center gap-0.5 text-xs text-orange-500">
+                      <Flame className="h-3 w-3" />
+                      +{streakBonus?.player1}
+                    </span>
                   )}
-                >
-                  {formatEloChange(player1EloChange)}
-                </span>
+                </div>
                 {player1.foreverElo && (
                   <span
                     className={cn(
@@ -196,14 +207,22 @@ export const MatchCard = forwardRef<HTMLDivElement, MatchCardProps>(
                 </span>
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span
-                  className={cn(
-                    'font-bold',
-                    player2Won ? 'text-green-600' : 'text-red-500'
+                <div className="flex items-center gap-1">
+                  <span
+                    className={cn(
+                      'font-bold',
+                      player2Won ? 'text-green-600' : 'text-red-500'
+                    )}
+                  >
+                    {formatEloChange(player2EloChange)}
+                  </span>
+                  {(streakBonus?.player2 ?? 0) > 0 && (
+                    <span className="flex items-center gap-0.5 text-xs text-orange-500">
+                      <Flame className="h-3 w-3" />
+                      +{streakBonus?.player2}
+                    </span>
                   )}
-                >
-                  {formatEloChange(player2EloChange)}
-                </span>
+                </div>
                 {player2.foreverElo && (
                   <span
                     className={cn(
@@ -243,6 +262,7 @@ export function MatchCardFromMatch({ match, className }: MatchCardFromMatchProps
       tournamentName={match.tournamentName}
       tournamentId={match.tournamentId}
       createdAt={match.createdAt}
+      streakBonus={match.streakBonus}
       className={className}
     />
   );

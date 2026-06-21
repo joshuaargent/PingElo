@@ -181,6 +181,10 @@ export default function HowItWorksPage() {
             Play at least one match every day to build your streak! Once you hit a <strong>3-day streak</strong>, 
             you earn bonus ELO on every match you play.
           </p>
+          <p className="text-text-secondary text-sm mb-4">
+            <strong>Individual players</strong> and <strong>teams</strong> each have their own streaks. 
+            Playing doubles with your team counts toward your team's streak, while playing singles counts toward your personal streak.
+          </p>
 
           <div className="grid md:grid-cols-3 gap-4 mb-4">
             <Card className="p-4 text-center bg-orange-500/10 border-orange-500/30">
