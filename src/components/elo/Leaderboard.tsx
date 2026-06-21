@@ -146,12 +146,14 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick, index 
     return type === 'forever' ? entry.foreverElo : entry.seasonElo;
   };
 
-  // Get the secondary ELO to show (if applicable)
+  // Get the secondary ELO to show (if applicable) - show the OTHER ELO type
   const getSecondaryElo = () => {
     if (matchType === 'doubles') {
-      return type === 'forever' ? entry.doublesSeasonElo : entry.doublesForeverElo;
+      // Showing doubles, so secondary should be singles
+      return type === 'forever' ? entry.seasonElo : entry.foreverElo;
     }
-    return type === 'forever' ? entry.seasonElo : undefined;
+    // Showing singles, so secondary should be doubles
+    return type === 'forever' ? (entry.doublesForeverElo || 1000) : (entry.doublesSeasonElo || 1000);
   };
 
   const displayElo = getDisplayElo();
@@ -214,8 +216,8 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick, index 
           {secondaryElo && (
             <span className="text-xs text-text-secondary">
               {matchType === 'doubles' 
-                ? `Singles: ${type === 'forever' ? entry.foreverElo : entry.seasonElo}`
-                : `Doubles: ${type === 'forever' ? (entry.doublesForeverElo || 1000) : (entry.doublesSeasonElo || 1000)}`
+                ? `Singles: ${secondaryElo}`
+                : `Doubles: ${secondaryElo}`
               }
             </span>
           )}

@@ -826,11 +826,11 @@ export default function LogMatchPage() {
                   <Zap className="h-5 w-5 text-accent" />
                   Team 1 (Winner)
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
                     <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       value={team1Player1?.id || ''}
                       onChange={(e) => {
                         const p = players.find(pl => pl.id === e.target.value);
@@ -849,16 +849,19 @@ export default function LogMatchPage() {
                       ))}
                     </select>
                     {team1Player1 && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Avatar src={team1Player1.image || undefined} alt={team1Player1.name} fallback={team1Player1.name.charAt(0)} size="sm" />
-                        <span className="text-sm text-text-primary">{team1Player1.name}</span>
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar src={team1Player1.image || undefined} alt={team1Player1.name} fallback={team1Player1.name.charAt(0)} size="md" />
+                        <div>
+                          <p className="font-medium text-text-primary">{team1Player1.name}</p>
+                          <EloBadge elo={team1Player1.doublesForeverElo || team1Player1.foreverElo} size="sm" />
+                        </div>
                       </div>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
                     <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       value={team1Player2?.id || ''}
                       onChange={(e) => {
                         const p = players.find(pl => pl.id === e.target.value);
@@ -877,9 +880,12 @@ export default function LogMatchPage() {
                       ))}
                     </select>
                     {team1Player2 && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Avatar src={team1Player2.image || undefined} alt={team1Player2.name} fallback={team1Player2.name.charAt(0)} size="sm" />
-                        <span className="text-sm text-text-primary">{team1Player2.name}</span>
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar src={team1Player2.image || undefined} alt={team1Player2.name} fallback={team1Player2.name.charAt(0)} size="md" />
+                        <div>
+                          <p className="font-medium text-text-primary">{team1Player2.name}</p>
+                          <EloBadge elo={team1Player2.doublesForeverElo || team1Player2.foreverElo} size="sm" />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -894,11 +900,11 @@ export default function LogMatchPage() {
               {/* Team 2 (2 players) */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4 text-text-primary">Team 2</h2>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Player 1</label>
                     <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       value={team2Player1?.id || ''}
                       onChange={(e) => {
                         const p = players.find(pl => pl.id === e.target.value);
@@ -917,16 +923,19 @@ export default function LogMatchPage() {
                       ))}
                     </select>
                     {team2Player1 && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Avatar src={team2Player1.image || undefined} alt={team2Player1.name} fallback={team2Player1.name.charAt(0)} size="sm" />
-                        <span className="text-sm text-text-primary">{team2Player1.name}</span>
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar src={team2Player1.image || undefined} alt={team2Player1.name} fallback={team2Player1.name.charAt(0)} size="md" />
+                        <div>
+                          <p className="font-medium text-text-primary">{team2Player1.name}</p>
+                          <EloBadge elo={team2Player1.doublesForeverElo || team2Player1.foreverElo} size="sm" />
+                        </div>
                       </div>
                     )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">Player 2</label>
                     <select
-                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                      className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                       value={team2Player2?.id || ''}
                       onChange={(e) => {
                         const p = players.find(pl => pl.id === e.target.value);
@@ -945,9 +954,12 @@ export default function LogMatchPage() {
                       ))}
                     </select>
                     {team2Player2 && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <Avatar src={team2Player2.image || undefined} alt={team2Player2.name} fallback={team2Player2.name.charAt(0)} size="sm" />
-                        <span className="text-sm text-text-primary">{team2Player2.name}</span>
+                      <div className="mt-2 p-3 bg-bg-secondary rounded-lg flex items-center gap-3">
+                        <Avatar src={team2Player2.image || undefined} alt={team2Player2.name} fallback={team2Player2.name.charAt(0)} size="md" />
+                        <div>
+                          <p className="font-medium text-text-primary">{team2Player2.name}</p>
+                          <EloBadge elo={team2Player2.doublesForeverElo || team2Player2.foreverElo} size="sm" />
+                        </div>
                       </div>
                     )}
                   </div>

@@ -52,8 +52,9 @@ export default function CreateTournamentPage() {
     }
 
     const maxScoreNum = parseInt(maxScore);
-    if (isNaN(maxScoreNum) || maxScoreNum < 3 || maxScoreNum > 21) {
-      setError('Max Score must be between 3 and 21');
+    const validMaxScores = [7, 11, 15, 21];
+    if (isNaN(maxScoreNum) || !validMaxScores.includes(maxScoreNum)) {
+      setError('Max score must be 7, 11, 15, or 21');
       return;
     }
 
@@ -257,15 +258,18 @@ export default function CreateTournamentPage() {
                 <label className="block text-sm font-medium text-text-secondary mb-2">
                   Max Score (Points to Win)
                 </label>
-                <Input
-                  type="number"
-                  min="3"
-                  max="21"
+                <select
+                  className="w-full h-12 px-4 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                   value={maxScore}
                   onChange={(e) => setMaxScore(e.target.value)}
-                />
+                >
+                  <option value="7">7 Points</option>
+                  <option value="11">11 Points</option>
+                  <option value="15">15 Points</option>
+                  <option value="21">21 Points</option>
+                </select>
                 <p className="text-sm text-text-muted mt-2">
-                  Points needed to win a game. Common values: 11 (faster) or 21 (standard). You can still have close games like 7-5 or 19-17.
+                  Points needed to win a game.
                 </p>
               </div>
             </div>

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate sort field
-    const validSortFields = ["foreverElo", "seasonElo", "matchesPlayed", "name", "createdAt"];
+    const validSortFields = ["foreverElo", "seasonElo", "doublesForeverElo", "doublesSeasonElo", "matchesPlayed", "name", "createdAt"];
     const sortField = validSortFields.includes(sortBy) ? sortBy : "foreverElo";
     const sortOrder = order === "asc" ? "asc" : "desc";
 

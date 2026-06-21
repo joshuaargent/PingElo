@@ -324,8 +324,8 @@ export default function TournamentDetailPage() {
       setIsEditing(false);
       return;
     }
-    if (editForm.maxScore < 3 || editForm.maxScore > 21) {
-      alert('Max Score must be between 3 and 21');
+    if (![7, 11, 15, 21].includes(editForm.maxScore)) {
+      alert('Max Score must be 7, 11, 15, or 21');
       setIsEditing(false);
       return;
     }
