@@ -316,12 +316,17 @@ model Challenge {
 | 1.3 Win Animation Upgrade | ✅ Implemented |
 | 1.4 Leaderboard Rank Changes | ✅ Implemented |
 | 2.1 Achievement System | ✅ Implemented |
-| 2.2 Weekly Top Climber | ✅ Implemented (10% per mode, resets on season) |
+| 2.2 Weekly Top Climber | ✅ Implemented (10% per mode, resets weekly) |
 | 2.3 Match Reactions | ⚠️ API Created, UI Not Implemented |
 | 2.4 Season Countdown | ✅ Implemented |
 | 3.1 Activity Feed | ✅ Implemented |
 | 3.2 Tournament Brackets | ✅ Implemented (all formats) |
 | 3.3 Challenge System | ✅ Implemented (enhanced: team challenges) |
+| 4.1 Sound Effects | ✅ Implemented |
+| 4.2 Shareable Match Results | ✅ Implemented |
+| 4.3 ELO History Graph | ✅ Implemented |
+| 4.4 Head-to-Head Stats | ✅ Implemented |
+| Spectator Mode | ❌ N/A (real-life matches, not video) |
 
 ---
 
@@ -359,3 +364,62 @@ model Challenge {
 1. **Match Reactions UI** - API created, need to add reaction buttons to MatchCard/History page
 2. **Tier announcement toast UI** - Backend sends tier crossing data, need to show toast in UI
 3. **Documentation animations** - Add celebration animations to How-It-Works page
+
+---
+
+## Phase 4: Polish & Social Features (IMPLEMENTED)
+
+### 4.1 Sound Effects ✅ IMPLEMENTED
+**Trigger:** Match results, tier ups, streak milestones
+
+**Implementation:**
+- ✅ Add audio elements for win/loss sounds
+- ✅ Victory fanfare for upsets (beating someone 100+ ELO higher)
+- ✅ Tier-up celebration sounds
+- ✅ Streak milestone sounds
+
+**Files modified:**
+- `src/components/elo/MatchResult.tsx` - ✅ Add audio elements
+
+---
+
+### 4.2 Shareable Match Results ✅ IMPLEMENTED
+**Trigger:** After viewing a match result
+
+**Implementation:**
+- ✅ Add share button to match result
+- ✅ Copy match summary to clipboard
+- ✅ Generate shareable text with ELO changes
+
+**Files modified:**
+- `src/components/elo/MatchResult.tsx` - ✅ Add share functionality
+
+---
+
+### 4.3 ELO History Graph ✅ IMPLEMENTED
+**Trigger:** Profile page load
+
+**Implementation:**
+- ✅ Use EloHistory model to fetch ELO changes
+- ✅ Display line chart showing ELO progression
+- ✅ Highlight tier crossings on graph
+- ✅ Show win/loss markers
+
+**Files created/modified:**
+- `src/app/profile/[id]/page.tsx` - ✅ Add ELO graph component
+
+---
+
+### 4.4 Head-to-Head Stats ✅ IMPLEMENTED
+**Trigger:** User clicks on another player's profile
+
+**Implementation:**
+- ✅ New API endpoint for head-to-head stats
+- ✅ Display all matches between two players
+- ✅ Show win/loss record
+- ✅ ELO history against each other
+- ✅ Average score differential
+
+**Files created/modified:**
+- `src/app/api/players/[id]/head-to-head/route.ts` - ✅ Head-to-head API
+- `src/app/profile/[id]/page.tsx` - ✅ Add head-to-head section

@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EloBadge } from '@/components/elo/EloBadge';
-import { Trophy, Users, User, Check, Zap, Shuffle } from 'lucide-react';
+import { Trophy, Users, User, Check, Zap, Shuffle, Share2, CheckCheck } from 'lucide-react';
+import { playVictorySound, playDefeatSound, playTierUpSound, playMilestoneSound, playAchievementSound, playBonusSound } from '@/lib/sounds';
 
 type MatchType = 'SINGLES' | 'DOUBLES';
 type DoublesMode = 'teams' | 'adhoc';
@@ -74,6 +75,7 @@ export default function LogMatchPage() {
     tier: { name: string; emoji: string; color: string } | null;
     newAchievements?: { slug: string; name: string; icon: string; tier: string }[];
   } | null>(null);
+  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -216,8 +218,11 @@ export default function LogMatchPage() {
         // Set match result for celebration
         setMatchResult({ won, eloGained, streakBonus, newStreak, milestone, tier });
         
-        // Trigger confetti based on result
+        // Trigger confetti and sounds based on result
         if (won) {
+          // Play victory sound
+          playVictorySound();
+          
           // Regular win - small confetti
           confetti({
             particleCount: 100,
@@ -226,9 +231,10 @@ export default function LogMatchPage() {
             colors: ['#22c55e', '#16a34a', '#15803d'],
           });
           
-          // Big win (100+ ELO gain)
+          // Big win (100+ ELO gain) - extra celebration
           if (eloGained >= 100) {
             setTimeout(() => {
+              playBonusSound();
               confetti({
                 particleCount: 200,
                 spread: 100,
@@ -237,11 +243,15 @@ export default function LogMatchPage() {
               });
             }, 200);
           }
+        } else {
+          // Play defeat sound (softer)
+          playDefeatSound();
         }
         
-        // Milestone celebration - extra confetti burst
+        // Milestone celebration - extra confetti burst and sound
         if (milestone) {
           setTimeout(() => {
+            playMilestoneSound();
             confetti({
               particleCount: 300,
               spread: 180,
@@ -249,6 +259,19 @@ export default function LogMatchPage() {
               colors: ['#f97316', '#ea580c', '#dc2626', '#fbbf24'],
             });
           }, 400);
+        }
+        
+        // Tier up celebration - sound and confetti
+        if (data.tier?.crossed) {
+          setTimeout(() => {
+            playTierUpSound();
+            confetti({
+              particleCount: 250,
+              spread: 150,
+              origin: { y: 0.5 },
+              colors: ['#8b5cf6', '#a855f7', '#d946ef', '#fbbf24'],
+            });
+          }, 300);
         }
         
         // Check for new achievements
@@ -275,8 +298,9 @@ export default function LogMatchPage() {
             if (achData.newAchievements?.length > 0) {
               setMatchResult(prev => prev ? { ...prev, newAchievements: achData.newAchievements } : null);
               
-              // Achievement unlock confetti
+              // Achievement unlock confetti and sound
               setTimeout(() => {
+                playAchievementSound();
                 confetti({
                   particleCount: 200,
                   spread: 360,
@@ -409,6 +433,26 @@ export default function LogMatchPage() {
                 <p className="text-text-secondary mt-4">
                   Redirecting to dashboard...
                 </p>
+                {!shared && (
+                  <button
+                    onClick={() => {
+                      const text = matchResult.won 
+                        ? `🎉 Just won ${matchResult.eloGained > 0 ? '+' + matchResult.eloGained : matchResult.eloGained} ELO in ping pong! 🏓${matchResult.tier ? ` Now ranked ${matchResult.tier.name}!` : ''}`
+                        : `Played some ping pong today! 🏓`;
+                      navigator.clipboard.writeText(text).then(() => setShared(true));
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share Result
+                  </button>
+                )}
+                {shared && (
+                  <div className="mt-4 inline-flex items-center gap-2 text-green-500">
+                    <CheckCheck className="h-4 w-4" />
+                    Copied to clipboard!
+                  </div>
+                )}
               </>
             ) : (
               <>

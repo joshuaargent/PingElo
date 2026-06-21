@@ -24,8 +24,11 @@ import {
   Medal,
   Users,
   Crown,
-  Star
+  Star,
+  BarChart3,
+  Swords
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface UserProfile {
   id: string;
@@ -74,6 +77,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recentMatches, setRecentMatches] = useState<Match[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [eloHistory, setEloHistory] = useState<any[]>([]);
+  const [eloStats, setEloStats] = useState<any>(null);
+  const [headToHeadOpen, setHeadToHeadOpen] = useState(false);
+  const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
+  const [headToHeadData, setHeadToHeadData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isOwnProfile = session?.user?.id === params.id;
@@ -118,10 +126,42 @@ export default function ProfilePage() {
       }
     }
 
+    async function fetchEloHistory() {
+      try {
+        const res = await fetch(`/api/users/${params.id}/elo-history?limit=20`);
+        if (res.ok) {
+          const data = await res.json();
+          setEloHistory(data.history || []);
+          setEloStats(data.stats || null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch ELO history:', error);
+      }
+    }
+
     fetchProfile();
     fetchMatches();
     fetchAchievements();
+    fetchEloHistory();
   }, [params.id]);
+
+  // Fetch head-to-head when modal opens
+  useEffect(() => {
+    if (headToHeadOpen && selectedOpponent && params.id) {
+      async function fetchHeadToHead() {
+        try {
+          const res = await fetch(`/api/players/${params.id}/head-to-head?opponentId=${selectedOpponent.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setHeadToHeadData(data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch head-to-head:', error);
+        }
+      }
+      fetchHeadToHead();
+    }
+  }, [headToHeadOpen, selectedOpponent, params.id]);
 
   if (isLoading) {
     return (
@@ -266,6 +306,68 @@ export default function ProfilePage() {
             </Card>
           </div>
 
+          {/* ELO History Chart */}
+          {eloHistory.length > 0 && (
+            <Card className="p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-text-primary flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-accent" />
+                  ELO History
+                </h2>
+                {eloStats && (
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-green-500">↑ {eloStats.highestElo} High</span>
+                    <span className="text-red-500">↓ {eloStats.lowestElo} Low</span>
+                  </div>
+                )}
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={eloHistory} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="createdAt" 
+                      stroke="#888"
+                      fontSize={12}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    />
+                    <YAxis 
+                      stroke="#888"
+                      fontSize={12}
+                      domain={['dataMin - 50', 'dataMax + 50']}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(0,0,0,0.8)', 
+                        border: 'none', 
+                        borderRadius: '8px',
+                        color: '#fff'
+                      }}
+                      labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                      formatter={(value) => [
+                        `${value} ELO`,
+                        'Rating'
+                      ]}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="eloAfter" 
+                      stroke="#22c55e" 
+                      strokeWidth={2}
+                      dot={{ fill: '#22c55e', strokeWidth: 0, r: 3 }}
+                      activeDot={{ r: 5, fill: '#22c55e' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
           {/* Match Stats */}
           <Card className="p-6 mb-8">
             <h2 className="font-semibold text-text-primary mb-4 flex items-center gap-2">
@@ -344,9 +446,26 @@ export default function ProfilePage() {
             </div>
             {recentMatches.length > 0 ? (
               <div className="space-y-4">
-                {recentMatches.map((match) => (
-                  <MatchCardFromMatch key={match.id} match={match} />
-                ))}
+                {recentMatches.map((match) => {
+                  const opponent = match.player1.id === params.id ? match.player2 : match.player1;
+                  return (
+                    <div key={match.id} className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <MatchCardFromMatch match={match} />
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedOpponent(opponent);
+                          setHeadToHeadOpen(true);
+                        }}
+                        className="ml-4 p-2 text-text-secondary hover:text-accent transition-colors"
+                        title="View head-to-head"
+                      >
+                        <Swords className="h-5 w-5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-text-secondary">
@@ -357,6 +476,95 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
+
+      {/* Head-to-Head Modal */}
+      {headToHeadOpen && headToHeadData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Swords className="h-6 w-6" />
+                Head-to-Head: {profile?.name} vs {headToHeadData.players?.player2?.name}
+              </h2>
+              <button
+                onClick={() => setHeadToHeadOpen(false)}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="text-center p-4 bg-bg-secondary rounded-xl">
+                <div className="text-2xl font-bold text-green-500">
+                  {headToHeadData.stats?.player1Wins || 0}
+                </div>
+                <div className="text-sm text-text-secondary">{profile?.name} Wins</div>
+              </div>
+              <div className="text-center p-4 bg-bg-secondary rounded-xl">
+                <div className="text-2xl font-bold text-text-primary">
+                  {headToHeadData.stats?.totalMatches || 0}
+                </div>
+                <div className="text-sm text-text-secondary">Total Matches</div>
+              </div>
+              <div className="text-center p-4 bg-bg-secondary rounded-xl">
+                <div className="text-2xl font-bold text-blue-500">
+                  {headToHeadData.stats?.player2Wins || 0}
+                </div>
+                <div className="text-sm text-text-secondary">{headToHeadData.players?.player2?.name} Wins</div>
+              </div>
+            </div>
+
+            {/* Match History */}
+            <h3 className="font-semibold mb-3">Match History</h3>
+            {headToHeadData.matches?.length > 0 ? (
+              <div className="space-y-2">
+                {headToHeadData.matches.slice(0, 10).map((match: any) => {
+                  const isPlayer1Win = match.winnerId === params.id;
+                  return (
+                    <div
+                      key={match.id}
+                      className={`p-3 rounded-lg flex items-center justify-between ${
+                        isPlayer1Win ? 'bg-green-500/10' : 'bg-red-500/10'
+                      }`}
+                    >
+                      <div>
+                        <span className={isPlayer1Win ? 'text-green-500 font-bold' : 'text-red-500'}>
+                          {isPlayer1Win ? profile?.name : headToHeadData.players?.player2?.name}
+                        </span>
+                        {' defeated '}
+                        <span className={isPlayer1Win ? 'text-red-500' : 'text-green-500 font-bold'}>
+                          {isPlayer1Win ? headToHeadData.players?.player2?.name : profile?.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">{match.player1Score}-{match.player2Score}</div>
+                        <div className="text-xs text-text-secondary">
+                          {new Date(match.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-text-secondary text-center py-4">No matches found</p>
+            )}
+
+            {/* Largest Upset */}
+            {headToHeadData.stats?.largestUpset && (
+              <div className="mt-6 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                <div className="text-sm text-yellow-500 font-semibold mb-1">🏆 Largest Upset</div>
+                <p>
+                  {headToHeadData.stats.largestUpset.winner} beat {headToHeadData.stats.largestUpset.loser} 
+                  {' '}by {headToHeadData.stats.largestUpset.eloDiff} ELO!
+                </p>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 }
