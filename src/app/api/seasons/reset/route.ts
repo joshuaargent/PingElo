@@ -142,7 +142,17 @@ export async function POST(request: NextRequest) {
 
       // 2. Reset all users' season ELO to 1000
       await tx.user.updateMany({
-        data: { seasonElo: 1000, doublesSeasonElo: 1000 },
+        data: { 
+          seasonElo: 1000, 
+          doublesSeasonElo: 1000,
+          // Reset weekly stats on season reset
+          weeklySinglesEloGained: 0,
+          weeklyDoublesEloGained: 0,
+          weeklyTeamEloGained: 0,
+          weeklySinglesMatches: 0,
+          weeklyDoublesMatches: 0,
+          weeklyTeamMatches: 0,
+        },
       });
 
       // 3. Create new season (1 month duration)

@@ -80,6 +80,9 @@ model User {
   lastKnownRank      Int?      // Previous rank for change indicator
   lastRankUpdate     DateTime? // When rank was last updated
 
+  // Tier tracking for announcements
+  lastAnnouncedTier String?
+
   // Weekly tracking (resets with season) - separate for each mode
   weeklySinglesEloGained  Int       @default(0)   // Singles ELO gained this week
   weeklyDoublesEloGained Int       @default(0)   // Doubles ELO gained this week

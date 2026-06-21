@@ -829,6 +829,24 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          // Check for tier crossing
+          const p1TierCrossing = checkTierCrossing(p1EloBefore, p1EloBefore + eloResult.player1Change + p1StreakResult.bonus);
+          const p2TierCrossing = checkTierCrossing(p2EloBefore, p2EloBefore + eloResult.player2Change + p2StreakResult.bonus);
+          
+          // Update lastAnnouncedTier for players who crossed tiers
+          if (p1TierCrossing) {
+            await tx.user.update({
+              where: { id: player1Id },
+              data: { lastAnnouncedTier: p1TierCrossing.name },
+            });
+          }
+          if (p2TierCrossing) {
+            await tx.user.update({
+              where: { id: player2Id },
+              data: { lastAnnouncedTier: p2TierCrossing.name },
+            });
+          }
+
           return {
             match: newMatch,
             streakBonus: { player1: p1StreakResult.bonus, player2: p2StreakResult.bonus },
@@ -838,8 +856,9 @@ export async function POST(request: NextRequest) {
               player2: p2Streak.milestoneHit,
             },
             tier: {
-              player1: checkTierCrossing(p1EloBefore, p1EloBefore + eloResult.player1Change + p1StreakResult.bonus),
-              player2: checkTierCrossing(p2EloBefore, p2EloBefore + eloResult.player2Change + p2StreakResult.bonus),
+              crossed: p1TierCrossing || p2TierCrossing ? true : false,
+              player1: p1TierCrossing,
+              player2: p2TierCrossing,
             },
           };
         });
@@ -864,7 +883,7 @@ export async function POST(request: NextRequest) {
             matchId: singlesResult.match.id,
           },
         }).catch(() => {});
-        
+
         return NextResponse.json({ 
           match: singlesResult.match, 
           eloChange: eloChangeResult, 

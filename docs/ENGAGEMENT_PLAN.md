@@ -22,28 +22,30 @@ This document outlines all planned engagement features to increase user retentio
 
 ---
 
-### 1.2 ELO Tier Announcements ⚠️ PARTIAL
+### 1.2 ELO Tier Announcements ✅ IMPLEMENTED
 **Trigger:** When a player's ELO crosses tier thresholds
 
 **Current Tiers (from elo.ts):**
-- Bronze: 0-1099
+- Rookie: 0-799
+- Bronze: 800-1099
 - Silver: 1100-1299
 - Gold: 1300-1499
 - Platinum: 1500-1699
 - Diamond: 1700-1899
 - Master: 1900-2099
-- Grandmaster: 2100+
+- Grandmaster: 2100-2299
+- Legend: 2300+
 
 **Implementation:**
-- ⚠️ Store `lastAnnouncedTier` on User model - **NOT YET ADDED TO SCHEMA**
-- ⚠️ Check tier crossing after each match - **CODE EXISTS, NOT PERSISTED**
-- ⚠️ Show toast: "🎉 You've reached Platinum!" - **NOT YET UI**
-- ⚠️ Add tier badge to profile with glow effect - **NOT YET**
+- ✅ Store `lastAnnouncedTier` on User model
+- ✅ Check tier crossing after each match (singles & doubles)
+- ✅ Returns tier crossing info in match response
+- ✅ UI can display tier announcements from match result
 
-**Files to modify:**
-- `prisma/schema.prisma` - Add `lastAnnouncedTier` field
-- `src/app/api/matches/route.ts` - Check tier after match
-- `src/app/profile/[id]/page.tsx` - Display tier badge
+**Files modified:**
+- `prisma/schema.prisma` - ✅ Add `lastAnnouncedTier` field
+- `src/app/api/matches/route.ts` - ✅ Check tier after match, persist
+- Tier announcement UI on profile can now read from `lastAnnouncedTier`
 
 ---
 
@@ -310,12 +312,12 @@ model Challenge {
 | Feature | Status |
 |---------|--------|
 | 1.1 Streak Milestone Celebrations | ✅ Implemented |
-| 1.2 ELO Tier Announcements | ⚠️ Partial (code exists, UI/not persisted) |
+| 1.2 ELO Tier Announcements | ✅ Implemented (now persisted) |
 | 1.3 Win Animation Upgrade | ✅ Implemented |
 | 1.4 Leaderboard Rank Changes | ✅ Implemented |
 | 2.1 Achievement System | ✅ Implemented |
-| 2.2 Weekly Top Climber | ✅ Implemented (enhanced: 10% per mode) |
-| 2.3 Match Reactions | ❌ Not Implemented (model exists) |
+| 2.2 Weekly Top Climber | ✅ Implemented (10% per mode, resets on season) |
+| 2.3 Match Reactions | ⚠️ API Created, UI Not Implemented |
 | 2.4 Season Countdown | ✅ Implemented |
 | 3.1 Activity Feed | ✅ Implemented |
 | 3.2 Tournament Brackets | ✅ Implemented (all formats) |
@@ -354,6 +356,6 @@ model Challenge {
 
 ## Remaining Work
 
-1. **Match Reactions** - Need to create reactions API and UI
-2. **ELO Tier Announcements** - Need to persist lastAnnouncedTier and add UI
+1. **Match Reactions UI** - API created, need to add reaction buttons to MatchCard/History page
+2. **Tier announcement toast UI** - Backend sends tier crossing data, need to show toast in UI
 3. **Documentation animations** - Add celebration animations to How-It-Works page
