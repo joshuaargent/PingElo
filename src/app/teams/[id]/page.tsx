@@ -470,39 +470,42 @@ export default function TeamDetailPage() {
 
           {/* ELO History Chart */}
           {eloHistory.length > 0 && (
-            <Card className="p-6 mb-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <Card className="p-4 sm:p-6 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-accent"/>Team ELO History
                 </h3>
                 {eloStats && (
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-green-500">↑ {eloStats.highestElo} High</span>
-                    <span className="text-red-500">↓ {eloStats.lowestElo} Low</span>
+                  <div className="flex items-center gap-4 text-xs sm:text-sm">
+                    <span className="text-green-500">↑ {eloStats.highestElo}</span>
+                    <span className="text-red-500">↓ {eloStats.lowestElo}</span>
                   </div>
                 )}
               </div>
               <div className="h-48 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={eloHistory} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <LineChart data={eloHistory} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis 
                       dataKey="createdAt" 
                       stroke="#888"
-                      fontSize={12}
+                      fontSize={10}
                       tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
                       stroke="#888"
-                      fontSize={12}
+                      fontSize={10}
                       domain={['dataMin - 50', 'dataMax + 50']}
+                      width={35}
                     />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'rgba(0,0,0,0.8)', 
                         border: 'none', 
                         borderRadius: '8px',
-                        color: '#fff'
+                        color: '#fff',
+                        fontSize: '12px'
                       }}
                       labelFormatter={(value) => new Date(value).toLocaleDateString()}
                       formatter={(value) => [`${value} ELO`, 'Rating']}

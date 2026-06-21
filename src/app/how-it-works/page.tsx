@@ -90,8 +90,8 @@ export default function HowItWorksPage() {
               how much your ELO can change per match.
             </p>
 
-            <div className="overflow-hidden rounded-xl border border-border mb-8">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-xl border border-border mb-8">
+              <table className="w-full min-w-[400px]">
                 <thead className="bg-bg-secondary">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-text-secondary">Games Played</th>
@@ -101,21 +101,21 @@ export default function HowItWorksPage() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   <tr>
-                    <td className="px-4 py-3 text-sm">0-9 games</td>
+                    <td className="px-4 py-3 text-sm">0-10 games</td>
                     <td className="px-4 py-3">
                       <Badge variant="primary" size="sm">64</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-text-secondary">Rapid adjustment for new players</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm">10-29 games</td>
+                    <td className="px-4 py-3 text-sm">11-30 games</td>
                     <td className="px-4 py-3">
                       <Badge variant="default" size="sm">48</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-text-secondary">Still adjusting quickly</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 text-sm">30-99 games</td>
+                    <td className="px-4 py-3 text-sm">31-100 games</td>
                     <td className="px-4 py-3">
                       <Badge variant="default" size="sm">32</Badge>
                     </td>
