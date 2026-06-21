@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react';
 import { cn, formatNumber } from '@/lib/utils';
-import { getEloTierBadgeColor, getEloTierLabel } from '@/lib/elo';
+import { getEloTierBadgeColor, getPlayerTier } from '@/lib/elo';
 
 interface EloBadgeProps {
   elo: number;
@@ -18,12 +18,12 @@ const sizeStyles = {
 };
 
 /**
- * Badge displaying player's ELO with tier-based styling
+ * Badge displaying player's ELO with skill tier styling
  */
 export const EloBadge = forwardRef<HTMLSpanElement, EloBadgeProps>(
   ({ elo, showLabel = true, size = 'md', className }, ref) => {
     const badgeColor = getEloTierBadgeColor(elo);
-    const tierLabel = getEloTierLabel(elo);
+    const tier = getPlayerTier(elo);
 
     return (
       <span
@@ -37,7 +37,7 @@ export const EloBadge = forwardRef<HTMLSpanElement, EloBadgeProps>(
       >
         <span className="font-bold">{formatNumber(elo)}</span>
         {showLabel && (
-          <span className="opacity-75">{tierLabel.split('(')[0].trim()}</span>
+          <span className="opacity-75">{tier.name}</span>
         )}
       </span>
     );

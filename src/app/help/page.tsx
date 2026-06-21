@@ -373,11 +373,15 @@ export default function HelpPage() {
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
               <div className="p-2 bg-bg-secondary rounded text-center">
-                <div className="text-orange-500 font-bold">Bronze</div>
-                <div className="text-xs text-text-muted">&lt; 1100</div>
+                <div className="text-gray-400 font-bold">Rookie</div>
+                <div className="text-xs text-text-muted">0-799</div>
               </div>
               <div className="p-2 bg-bg-secondary rounded text-center">
-                <div className="text-gray-400 font-bold">Silver</div>
+                <div className="text-orange-500 font-bold">Bronze</div>
+                <div className="text-xs text-text-muted">800-1099</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-gray-300 font-bold">Silver</div>
                 <div className="text-xs text-text-muted">1100-1299</div>
               </div>
               <div className="p-2 bg-bg-secondary rounded text-center">
@@ -385,8 +389,20 @@ export default function HelpPage() {
                 <div className="text-xs text-text-muted">1300-1499</div>
               </div>
               <div className="p-2 bg-bg-secondary rounded text-center">
-                <div className="text-purple-500 font-bold">Platinum</div>
-                <div className="text-xs text-text-muted">1500+</div>
+                <div className="text-cyan-400 font-bold">Platinum</div>
+                <div className="text-xs text-text-muted">1500-1699</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-blue-500 font-bold">Diamond</div>
+                <div className="text-xs text-text-muted">1700-1899</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-purple-500 font-bold">Master</div>
+                <div className="text-xs text-text-muted">1900-2099</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-red-500 font-bold">Grandmaster</div>
+                <div className="text-xs text-text-muted">2100+</div>
               </div>
             </div>
           </Card>
