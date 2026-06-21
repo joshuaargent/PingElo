@@ -753,28 +753,36 @@ export default function TournamentDetailPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-border">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border">
+                <div className="flex items-center gap-2 mr-auto">
                   <Avatar
                     src={tournament.creator.image}
                     alt={tournament.creator.name}
                     fallback={tournament.creator.name.charAt(0)}
                     size="sm"
                   />
-                  <span className="text-sm text-text-secondary">
-                    Created by {tournament.creator.name}
+                  <span className="text-xs sm:text-sm text-text-secondary">
+                    by {tournament.creator.name}
                   </span>
                 </div>
 
                 {tournament.status === 'REGISTRATION_OPEN' && !isParticipant && session?.user && (
-                  <Button onClick={handleJoin} isLoading={isJoining}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Join Tournament
+                  <Button size="sm" onClick={handleJoin} isLoading={isJoining}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Join
+                  </Button>
+                )}
+
+                {tournament.status === 'REGISTRATION_OPEN' && !isParticipant && session?.user && tournament.matchType === 'DOUBLES' && (
+                  <Button size="sm" variant="outline" onClick={() => setShowTeamSelect(true)}>
+                    <UsersIcon className="h-4 w-4 mr-1" />
+                    w/ Team
                   </Button>
                 )}
 
                 {tournament.status === 'REGISTRATION_OPEN' && isParticipant && (
                   <Button 
+                    size="sm"
                     variant="outline" 
                     onClick={handleLeave}
                     className="text-red-600 border-red-600 hover:bg-red-50"
@@ -783,48 +791,43 @@ export default function TournamentDetailPage() {
                   </Button>
                 )}
 
-                {tournament.status === 'REGISTRATION_OPEN' && (
-                  <>
-                    {canEdit && (
-                      <Button variant="outline" onClick={openEditModal}>
-                        <Braces className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    )}
-                    {canEdit && (
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCancelTournament}
-                        className="text-red-600 border-red-600 hover:bg-red-50"
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                    {(() => {
-                      // Calculate minimum participants based on format
-                      const minParticipants = 
-                        tournament.format === 'ROUND_ROBIN' ? 3 : 4;
-                      const current = tournament.participants.length;
-                      const canStart = current >= minParticipants;
-                      
-                      return (
-                        <Button 
-                          onClick={handleStartTournament} 
-                          isLoading={isStarting} 
-                          disabled={!canStart}
-                          className={`${canStart ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 cursor-not-allowed'}`}
-                          title={!canStart ? `Need at least ${minParticipants} participants to start (currently ${current}/${minParticipants})` : 'Start Tournament'}
-                        >
-                          <Play className="h-4 w-4 mr-2" />
-                          Start Tournament
-                          {!canStart && (
-                            <span className="ml-2 opacity-75">({current}/{minParticipants})</span>
-                          )}
-                        </Button>
-                      );
-                    })()}
-                  </>
+                {tournament.status === 'REGISTRATION_OPEN' && canEdit && (
+                  <Button size="sm" variant="outline" onClick={openEditModal}>
+                    <Braces className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 )}
+
+                {tournament.status === 'REGISTRATION_OPEN' && canEdit && (
+                  <Button 
+                    size="sm"
+                    variant="outline" 
+                    onClick={handleCancelTournament}
+                    className="text-red-600 border-red-600 hover:bg-red-50"
+                  >
+                    Cancel
+                  </Button>
+                )}
+
+                {tournament.status === 'REGISTRATION_OPEN' && (() => {
+                  const minParticipants = tournament.format === 'ROUND_ROBIN' ? 3 : 4;
+                  const current = tournament.participants.length;
+                  const canStart = current >= minParticipants;
+                  
+                  return (
+                    <Button 
+                      size="sm"
+                      onClick={handleStartTournament} 
+                      isLoading={isStarting} 
+                      disabled={!canStart}
+                      className={`${canStart ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-500 cursor-not-allowed'}`}
+                      title={!canStart ? `Need ${minParticipants} to start (${current}/${minParticipants})` : 'Start Tournament'}
+                    >
+                      <Play className="h-4 w-4 mr-1" />
+                      {canStart ? 'Start' : `${current}/${minParticipants}`}
+                    </Button>
+                  );
+                })()}
               </div>
             </Card>
 
