@@ -74,6 +74,10 @@ model User {
   totalDoublesSeasonWins  Int       @default(0)  // Times won doubles season
   totalTeamSeasonWins     Int       @default(0)  // Times won as part of a team season
 
+  // Rank tracking for leaderboard movement display
+  lastKnownRank      Int?      // Previous rank for change indicator
+  lastRankUpdate     DateTime? // When rank was last updated
+
   // Season tracking
   seasonId       String?
   season         Season?   @relation(fields: [seasonId], references: [id])

@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor, calculateStreak, calculateStreakBonus } from "@/lib/elo";
+import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor, calculateStreak, calculateStreakBonus, getPlayerTier, checkTierCrossing } from "@/lib/elo";
 
 // Validation constants
 const MIN_SCORE = 3;
@@ -765,6 +765,10 @@ export async function POST(request: NextRequest) {
               player1: p1Streak.milestoneHit,
               player2: p2Streak.milestoneHit,
             },
+            tier: {
+              player1: checkTierCrossing(p1EloBefore, p1EloBefore + eloResult.player1Change + p1StreakBonus),
+              player2: checkTierCrossing(p2EloBefore, p2EloBefore + eloResult.player2Change + p2StreakBonus),
+            },
           };
         });
         
@@ -776,6 +780,7 @@ export async function POST(request: NextRequest) {
           streakBonus: singlesResult.streakBonus,
           newStreak: singlesResult.newStreak,
           milestone: singlesResult.milestone,
+          tier: singlesResult.tier,
         }, { status: 201 });
     }
 

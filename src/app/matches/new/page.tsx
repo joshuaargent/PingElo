@@ -71,6 +71,7 @@ export default function LogMatchPage() {
     streakBonus: number;
     newStreak: number;
     milestone: number | null;
+    tier: { name: string; emoji: string; color: string } | null;
   } | null>(null);
 
   useEffect(() => {
@@ -183,6 +184,7 @@ export default function LogMatchPage() {
         let streakBonus = 0;
         let newStreak = 0;
         let milestone: number | null = null;
+        let tier: { name: string; emoji: string; color: string } | null = null;
         
         if (data.match?.winnerId === userId) {
           won = true;
@@ -201,15 +203,17 @@ export default function LogMatchPage() {
             streakBonus = data.streakBonus?.player1 || 0;
             newStreak = data.newStreak?.player1 || 0;
             milestone = data.milestone?.player1 || null;
+            tier = data.tier?.player1 || null;
           } else if (data.match?.player2Id === userId) {
             streakBonus = data.streakBonus?.player2 || 0;
             newStreak = data.newStreak?.player2 || 0;
             milestone = data.milestone?.player2 || null;
+            tier = data.tier?.player2 || null;
           }
         }
         
         // Set match result for celebration
-        setMatchResult({ won, eloGained, streakBonus, newStreak, milestone });
+        setMatchResult({ won, eloGained, streakBonus, newStreak, milestone, tier });
         
         // Trigger confetti based on result
         if (won) {
@@ -323,6 +327,24 @@ export default function LogMatchPage() {
                     </div>
                     <p className="text-lg font-bold text-orange-600 dark:text-orange-400">
                       {matchResult.milestone}-Day Streak Milestone!
+                    </p>
+                  </div>
+                )}
+                {matchResult.tier && (
+                  <div className={`mt-4 p-4 rounded-lg ${
+                    matchResult.tier.name === 'Legend' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                    matchResult.tier.name === 'Grandmaster' || matchResult.tier.name === 'Master' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                    matchResult.tier.name === 'Diamond' || matchResult.tier.name === 'Platinum' ? 'bg-cyan-100 dark:bg-cyan-900/30' :
+                    'bg-blue-100 dark:bg-blue-900/30'
+                  }`}>
+                    <div className="text-4xl mb-2">{matchResult.tier.emoji}</div>
+                    <p className="text-xl font-bold">
+                      {matchResult.tier.name}!
+                    </p>
+                    <p className="text-sm opacity-80">
+                      {matchResult.tier.name === 'Legend' ? 'LEGENDARY! Elite status!' :
+                       matchResult.tier.name === 'Grandmaster' ? 'Elite status achieved!' :
+                       'Rank up! Keep climbing!'}
                     </p>
                   </div>
                 )}

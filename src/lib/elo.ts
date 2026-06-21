@@ -745,6 +745,54 @@ export function getEloTierBadgeColor(elo: number): string {
 }
 
 // ============================================
+// Tier Milestone System
+// ============================================
+
+/** ELO tier milestones for announcements */
+export const ELO_TIERS = [
+  { name: "Rookie", min: 0, emoji: "🌱", color: "gray" },
+  { name: "Bronze", min: 800, emoji: "🥉", color: "orange" },
+  { name: "Silver", min: 1100, emoji: "🥈", color: "gray" },
+  { name: "Gold", min: 1300, emoji: "🥇", color: "yellow" },
+  { name: "Platinum", min: 1500, emoji: "💎", color: "cyan" },
+  { name: "Diamond", min: 1700, emoji: "💠", color: "blue" },
+  { name: "Master", min: 1900, emoji: "⚡", color: "purple" },
+  { name: "Grandmaster", min: 2100, emoji: "👑", color: "red" },
+  { name: "Legend", min: 2300, emoji: "🏆", color: "yellow" },
+] as const;
+
+/** Get player's current tier info */
+export function getPlayerTier(elo: number): { name: string; min: number; emoji: string; color: string } {
+  let tier = { name: "Rookie", min: 0, emoji: "🌱", color: "gray" };
+  for (const t of ELO_TIERS) {
+    if (elo >= t.min) tier = { ...t };
+  }
+  return tier;
+}
+
+/** Get tier announcement message when crossing a tier */
+export function getTierAnnouncementMessage(previousElo: number, newElo: number): string | null {
+  const crossedTier = checkTierCrossing(previousElo, newElo);
+  if (!crossedTier) return null;
+  
+  if (crossedTier.min >= 2300) {
+    return `🏆 LEGENDARY! You've reached ${crossedTier.name}!`;
+  } else if (crossedTier.min >= 1900) {
+    return `👑 ${crossedTier.name}! Elite status achieved!`;
+  } else if (crossedTier.min >= 1500) {
+    return `💎 ${crossedTier.name}! Rising through the ranks!`;
+  }
+  return `${crossedTier.emoji} ${crossedTier.name}! You've been promoted!`;
+}
+
+/** Check if ELO crosses a tier threshold */
+export function checkTierCrossing(previousElo: number, newElo: number): { name: string; min: number; emoji: string; color: string } | null {
+  const prevTier = getPlayerTier(previousElo);
+  const newTier = getPlayerTier(newElo);
+  return prevTier.name !== newTier.name ? newTier : null;
+}
+
+// ============================================
 // Ranking Helpers
 // ============================================
 

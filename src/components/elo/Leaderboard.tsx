@@ -10,6 +10,7 @@ import { Flame, Trophy, AlertCircle } from 'lucide-react';
 
 interface LeaderboardEntry {
   rank: number;
+  rankChange?: number; // Positive = climbing, negative = falling, 0 = unchanged
   userId: string;
   name: string;
   image?: string | null;
@@ -156,11 +157,21 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: Lead
       <td className="px-4 py-4">
         <div className="flex items-center gap-2">
           {isTopThree ? (
-            <RankBadge rank={entry.rank} />
+            <RankBadge rank={entry.rank} rankChange={entry.rankChange} />
           ) : (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-secondary text-sm font-medium text-text-secondary">
-              {entry.rank}
-            </span>
+            <>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-secondary text-sm font-medium text-text-secondary">
+                {entry.rank}
+              </span>
+              {entry.rankChange !== undefined && entry.rankChange !== 0 && (
+                <span className={cn(
+                  'text-xs font-medium',
+                  entry.rankChange > 0 ? 'text-green-500' : 'text-red-500'
+                )}>
+                  {entry.rankChange > 0 ? '▲' : '▼'}{Math.abs(entry.rankChange)}
+                </span>
+              )}
+            </>
           )}
         </div>
       </td>
@@ -254,9 +265,10 @@ function LeaderboardRow({ entry, type, matchType, showSeasonElo, onClick }: Lead
 
 interface RankBadgeProps {
   rank: number;
+  rankChange?: number;
 }
 
-function RankBadge({ rank }: RankBadgeProps) {
+function RankBadge({ rank, rankChange }: RankBadgeProps) {
   const colors = {
     1: 'bg-yellow-100 text-yellow-700 border-yellow-300',
     2: 'bg-gray-100 text-gray-700 border-gray-300',
@@ -270,13 +282,30 @@ function RankBadge({ rank }: RankBadgeProps) {
   };
 
   return (
-    <div
-      className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-full border font-bold',
-        colors[rank as keyof typeof colors] || 'bg-bg-secondary text-text-secondary'
+    <div className="flex items-center gap-2">
+      <div
+        className={cn(
+          'flex h-7 w-7 items-center justify-center rounded-full border font-bold',
+          colors[rank as keyof typeof colors] || 'bg-bg-secondary text-text-secondary'
+        )}
+      >
+        {icons[rank as keyof typeof icons] || rank}
+      </div>
+      {rankChange !== undefined && rankChange !== 0 && (
+        <div
+          className={cn(
+            'flex items-center gap-0.5 text-xs font-medium',
+            rankChange > 0 ? 'text-green-500' : 'text-red-500'
+          )}
+        >
+          {rankChange > 0 ? (
+            <span className="text-green-500">▲</span>
+          ) : (
+            <span className="text-red-500">▼</span>
+          )}
+          <span>{Math.abs(rankChange)}</span>
+        </div>
       )}
-    >
-      {icons[rank as keyof typeof icons] || rank}
     </div>
   );
 }
