@@ -208,9 +208,8 @@ export async function POST(
           await prisma.user.update({
             where: { id: pid! },
             data: {
-              weeklyMatchesPlayed: { increment: 1 },
-              weeklyWins: { increment: 1 },
-              weeklyEloGained: { increment: Math.max(0, winnerChange) },
+              weeklyDoublesMatches: { increment: 1 },
+              weeklyDoublesEloGained: { increment: Math.max(0, winnerChange) },
             },
           });
         }
@@ -220,8 +219,8 @@ export async function POST(
           await prisma.user.update({
             where: { id: pid! },
             data: {
-              weeklyMatchesPlayed: { increment: 1 },
-              weeklyEloGained: { increment: Math.max(0, loserChange) },
+              weeklyDoublesMatches: { increment: 1 },
+              weeklyDoublesEloGained: { increment: Math.max(0, loserChange) },
             },
           });
         }
@@ -234,9 +233,8 @@ export async function POST(
           foreverElo: { increment: winnerChange },
           seasonElo: { increment: winnerChange },
           matchesPlayed: { increment: 1 },
-          weeklyMatchesPlayed: { increment: 1 },
-          weeklyWins: { increment: 1 },
-          weeklyEloGained: { increment: Math.max(0, winnerChange) },
+          weeklySinglesMatches: { increment: 1 },
+          weeklySinglesEloGained: { increment: Math.max(0, winnerChange) },
         },
       });
       await prisma.user.update({
@@ -245,8 +243,8 @@ export async function POST(
           foreverElo: { increment: loserChange },
           seasonElo: { increment: loserChange },
           matchesPlayed: { increment: 1 },
-          weeklyMatchesPlayed: { increment: 1 },
-          weeklyEloGained: { increment: Math.max(0, loserChange) },
+          weeklySinglesMatches: { increment: 1 },
+          weeklySinglesEloGained: { increment: Math.max(0, loserChange) },
         },
       });
     }

@@ -1,6 +1,6 @@
 /**
  * Weekly Reset API Route
- * Awards 2.5% bonus to weekly ELO leader and tracks stats
+ * Awards 10% bonus to weekly leaders in each category (singles, doubles, teams)
  * Smart detection: Automatically runs when week ends (Monday)
  * This is purely a reward system - no resets, just bonuses for active players
  */
@@ -28,114 +28,217 @@ export async function POST(request: NextRequest) {
 
     // Perform the weekly bonus distribution
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Find the top ELO climber this week (must have 3+ matches to qualify)
-      const weeklyLeaders = await tx.user.findMany({
+      const bonusesAwarded = [];
+      
+      // 1. SINGLES - Top singles climber (3+ matches to qualify)
+      const singlesLeaders = await tx.user.findMany({
         where: {
-          weeklyEloGained: { gt: 0 },
-          weeklyMatchesPlayed: { gte: 3 },
+          weeklySinglesEloGained: { gt: 0 },
+          weeklySinglesMatches: { gte: 3 },
         },
-        orderBy: { weeklyEloGained: "desc" },
-        take: 3, // Top 3 leaders
+        orderBy: { weeklySinglesEloGained: "desc" },
+        take: 1,
         select: {
           id: true,
           name: true,
-          weeklyEloGained: true,
-          weeklyMatchesPlayed: true,
+          weeklySinglesEloGained: true,
+          weeklySinglesMatches: true,
           foreverElo: true,
         },
       });
 
-      const eloLeader = weeklyLeaders[0];
-      const winsLeader = await tx.user.findFirst({
-        where: {
-          weeklyWins: { gt: 0 },
-          weeklyMatchesPlayed: { gte: 3 },
-        },
-        orderBy: { weeklyWins: "desc" },
-      });
-
-      // 2. Award 2.5% bonus to ELO leader (no reset - just award bonus)
-      if (eloLeader && eloLeader.weeklyEloGained > 0) {
-        const bonus = Math.round(eloLeader.weeklyEloGained * 0.025); // 2.5% of weekly gains
+      const singlesLeader = singlesLeaders[0];
+      if (singlesLeader && singlesLeader.weeklySinglesEloGained > 0) {
+        const bonus = Math.round(singlesLeader.weeklySinglesEloGained * 0.1); // 10% bonus
         if (bonus > 0) {
           await tx.user.update({
-            where: { id: eloLeader.id },
+            where: { id: singlesLeader.id },
             data: { foreverElo: { increment: bonus } },
           });
 
-          // Record in ELO history
           await tx.eloHistory.create({
             data: {
-              userId: eloLeader.id,
+              userId: singlesLeader.id,
               changeType: 'WEEKLY_BONUS',
-              eloBefore: eloLeader.foreverElo,
-              eloAfter: eloLeader.foreverElo + bonus,
+              eloBefore: singlesLeader.foreverElo,
+              eloAfter: singlesLeader.foreverElo + bonus,
               change: bonus,
-              description: `Top Climber weekly bonus (${eloLeader.weeklyEloGained} ELO gained this week)`,
+              description: `Singles Top Climber weekly bonus (+${bonus} forever ELO)`,
               metadata: { 
-                weeklyEloGained: eloLeader.weeklyEloGained,
-                bonusPercentage: 2.5,
-                matchesPlayed: eloLeader.weeklyMatchesPlayed,
+                category: 'SINGLES',
+                weeklyEloGained: singlesLeader.weeklySinglesEloGained,
+                bonusPercentage: 10,
+                matchesPlayed: singlesLeader.weeklySinglesMatches,
               },
             },
           });
 
-          // Log activity
           await tx.activity.create({
             data: {
               type: 'WEEKLY_TOP_CLIMBER',
-              message: `🏆 Weekly Top Climber! +${bonus} ELO bonus`,
-              userId: eloLeader.id,
+              message: `🎯 Weekly Singles Top Climber! +${bonus} forever ELO`,
+              userId: singlesLeader.id,
               metadata: { 
                 bonus,
-                weeklyEloGained: eloLeader.weeklyEloGained,
+                weeklyEloGained: singlesLeader.weeklySinglesEloGained,
+                category: 'SINGLES',
                 rank: 1,
               },
             },
           });
+          
+          bonusesAwarded.push({ category: 'SINGLES', userId: singlesLeader.id, bonus });
         }
       }
 
-      // 3. Log recognition for wins leader (if different from ELO leader)
-      if (winsLeader && (!eloLeader || winsLeader.id !== eloLeader.id)) {
-        // Log activity for wins leader (no ELO bonus, just recognition)
-        await tx.activity.create({
-          data: {
-            type: 'WEEKLY_WINS_LEADER',
-            message: `🔥 Weekly Wins Leader! ${winsLeader.weeklyWins} wins this week`,
-            userId: winsLeader.id,
-            metadata: { 
-              weeklyWins: winsLeader.weeklyWins,
-              rank: 1,
+      // 2. DOUBLES - Top doubles climber (3+ matches to qualify)
+      const doublesLeaders = await tx.user.findMany({
+        where: {
+          weeklyDoublesEloGained: { gt: 0 },
+          weeklyDoublesMatches: { gte: 3 },
+        },
+        orderBy: { weeklyDoublesEloGained: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          name: true,
+          weeklyDoublesEloGained: true,
+          weeklyDoublesMatches: true,
+          foreverElo: true,
+        },
+      });
+
+      const doublesLeader = doublesLeaders[0];
+      if (doublesLeader && doublesLeader.weeklyDoublesEloGained > 0) {
+        const bonus = Math.round(doublesLeader.weeklyDoublesEloGained * 0.1); // 10% bonus
+        if (bonus > 0) {
+          await tx.user.update({
+            where: { id: doublesLeader.id },
+            data: { foreverElo: { increment: bonus } },
+          });
+
+          await tx.eloHistory.create({
+            data: {
+              userId: doublesLeader.id,
+              changeType: 'WEEKLY_BONUS',
+              eloBefore: doublesLeader.foreverElo,
+              eloAfter: doublesLeader.foreverElo + bonus,
+              change: bonus,
+              description: `Doubles Top Climber weekly bonus (+${bonus} forever ELO)`,
+              metadata: { 
+                category: 'DOUBLES',
+                weeklyEloGained: doublesLeader.weeklyDoublesEloGained,
+                bonusPercentage: 10,
+                matchesPlayed: doublesLeader.weeklyDoublesMatches,
+              },
             },
-          },
-        });
+          });
+
+          await tx.activity.create({
+            data: {
+              type: 'WEEKLY_TOP_CLIMBER',
+              message: `🎾 Weekly Doubles Top Climber! +${bonus} forever ELO`,
+              userId: doublesLeader.id,
+              metadata: { 
+                bonus,
+                weeklyEloGained: doublesLeader.weeklyDoublesEloGained,
+                category: 'DOUBLES',
+                rank: 1,
+              },
+            },
+          });
+          
+          bonusesAwarded.push({ category: 'DOUBLES', userId: doublesLeader.id, bonus });
+        }
+      }
+
+      // 3. TEAMS - Top team climber (3+ matches to qualify)
+      const teamLeaders = await tx.user.findMany({
+        where: {
+          weeklyTeamEloGained: { gt: 0 },
+          weeklyTeamMatches: { gte: 3 },
+        },
+        orderBy: { weeklyTeamEloGained: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          name: true,
+          weeklyTeamEloGained: true,
+          weeklyTeamMatches: true,
+          foreverElo: true,
+        },
+      });
+
+      const teamLeader = teamLeaders[0];
+      if (teamLeader && teamLeader.weeklyTeamEloGained > 0) {
+        const bonus = Math.round(teamLeader.weeklyTeamEloGained * 0.1); // 10% bonus
+        if (bonus > 0) {
+          await tx.user.update({
+            where: { id: teamLeader.id },
+            data: { foreverElo: { increment: bonus } },
+          });
+
+          await tx.eloHistory.create({
+            data: {
+              userId: teamLeader.id,
+              changeType: 'WEEKLY_BONUS',
+              eloBefore: teamLeader.foreverElo,
+              eloAfter: teamLeader.foreverElo + bonus,
+              change: bonus,
+              description: `Teams Top Climber weekly bonus (+${bonus} forever ELO)`,
+              metadata: { 
+                category: 'TEAMS',
+                weeklyEloGained: teamLeader.weeklyTeamEloGained,
+                bonusPercentage: 10,
+                matchesPlayed: teamLeader.weeklyTeamMatches,
+              },
+            },
+          });
+
+          await tx.activity.create({
+            data: {
+              type: 'WEEKLY_TOP_CLIMBER',
+              message: `👥 Weekly Teams Top Climber! +${bonus} forever ELO`,
+              userId: teamLeader.id,
+              metadata: { 
+                bonus,
+                weeklyEloGained: teamLeader.weeklyTeamEloGained,
+                category: 'TEAMS',
+                rank: 1,
+              },
+            },
+          });
+          
+          bonusesAwarded.push({ category: 'TEAMS', userId: teamLeader.id, bonus });
+        }
       }
 
       return {
-        eloLeader: eloLeader ? {
-          id: eloLeader.id,
-          name: eloLeader.name,
-          weeklyEloGained: eloLeader.weeklyEloGained,
-          bonusAwarded: Math.round(eloLeader.weeklyEloGained * 0.025),
+        singlesLeader: singlesLeader ? {
+          id: singlesLeader.id,
+          name: singlesLeader.name,
+          weeklyEloGained: singlesLeader.weeklySinglesEloGained,
+          bonusAwarded: Math.round(singlesLeader.weeklySinglesEloGained * 0.1),
         } : null,
-        winsLeader: winsLeader ? {
-          id: winsLeader.id,
-          name: winsLeader.name,
-          weeklyWins: winsLeader.weeklyWins,
+        doublesLeader: doublesLeader ? {
+          id: doublesLeader.id,
+          name: doublesLeader.name,
+          weeklyEloGained: doublesLeader.weeklyDoublesEloGained,
+          bonusAwarded: Math.round(doublesLeader.weeklyDoublesEloGained * 0.1),
         } : null,
-        topClimbers: weeklyLeaders.map((u, i) => ({
-          rank: i + 1,
-          id: u.id,
-          name: u.name,
-          weeklyEloGained: u.weeklyEloGained,
-        })),
+        teamLeader: teamLeader ? {
+          id: teamLeader.id,
+          name: teamLeader.name,
+          weeklyEloGained: teamLeader.weeklyTeamEloGained,
+          bonusAwarded: Math.round(teamLeader.weeklyTeamEloGained * 0.1),
+        } : null,
+        bonusesAwarded,
       };
     });
 
     return NextResponse.json({
       success: true,
-      message: `Weekly bonus awarded! Top Climber received 2.5% of their weekly ELO gains.`,
+      message: `Weekly bonuses awarded! Each category's Top Climber received 10% of their weekly gains as forever ELO.`,
       ...result,
     });
   } catch (error) {
@@ -150,32 +253,45 @@ export async function POST(request: NextRequest) {
 // GET - Check current weekly status (for admin dashboard)
 export async function GET() {
   try {
-    const weeklyLeaders = await prisma.user.findMany({
+    const singlesLeaders = await prisma.user.findMany({
       where: {
-        weeklyMatchesPlayed: { gte: 3 },
+        weeklySinglesMatches: { gte: 3 },
       },
-      orderBy: { weeklyEloGained: "desc" },
+      orderBy: { weeklySinglesEloGained: "desc" },
       take: 5,
       select: {
         id: true,
         name: true,
-        weeklyEloGained: true,
-        weeklyMatchesPlayed: true,
-        weeklyWins: true,
+        weeklySinglesEloGained: true,
+        weeklySinglesMatches: true,
       },
     });
 
-    const winsLeader = await prisma.user.findFirst({
+    const doublesLeaders = await prisma.user.findMany({
       where: {
-        weeklyWins: { gt: 0 },
-        weeklyMatchesPlayed: { gte: 3 },
+        weeklyDoublesMatches: { gte: 3 },
       },
-      orderBy: { weeklyWins: "desc" },
+      orderBy: { weeklyDoublesEloGained: "desc" },
+      take: 5,
       select: {
         id: true,
         name: true,
-        weeklyWins: true,
-        weeklyMatchesPlayed: true,
+        weeklyDoublesEloGained: true,
+        weeklyDoublesMatches: true,
+      },
+    });
+
+    const teamLeaders = await prisma.user.findMany({
+      where: {
+        weeklyTeamMatches: { gte: 3 },
+      },
+      orderBy: { weeklyTeamEloGained: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        weeklyTeamEloGained: true,
+        weeklyTeamMatches: true,
       },
     });
 
@@ -193,8 +309,11 @@ export async function GET() {
       weekStart: monday.toISOString(),
       weekEnd: nextMonday.toISOString(),
       daysRemaining: Math.ceil((nextMonday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
-      eloLeaderboard: weeklyLeaders,
-      winsLeader,
+      leaderboards: {
+        singles: singlesLeaders,
+        doubles: doublesLeaders,
+        teams: teamLeaders,
+      },
     });
   } catch (error) {
     console.error("Error checking weekly status:", error);

@@ -80,10 +80,13 @@ model User {
   lastKnownRank      Int?      // Previous rank for change indicator
   lastRankUpdate     DateTime? // When rank was last updated
 
-  // Weekly tracking (resets with season)
-  weeklyEloGained     Int       @default(0)   // ELO gained this week
-  weeklyMatchesPlayed Int       @default(0)  // Matches played this week
-  weeklyWins          Int       @default(0)  // Wins this week
+  // Weekly tracking (resets with season) - separate for each mode
+  weeklySinglesEloGained  Int       @default(0)   // Singles ELO gained this week
+  weeklyDoublesEloGained Int       @default(0)   // Doubles ELO gained this week
+  weeklyTeamEloGained     Int       @default(0)   // Team ELO gained this week
+  weeklySinglesMatches   Int       @default(0)   // Singles matches this week
+  weeklyDoublesMatches  Int       @default(0)   // Doubles matches this week
+  weeklyTeamMatches      Int       @default(0)   // Team matches this week
 
   // Season tracking
   seasonId       String?

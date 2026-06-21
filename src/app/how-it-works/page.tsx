@@ -351,32 +351,55 @@ export default function HowItWorksPage() {
             <Card className="p-6 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <TrendingUp className="h-6 w-6 text-green-500" />
-                <h3 className="text-lg font-semibold">Weekly Competition</h3>
+                <h3 className="text-lg font-semibold">Weekly Bonus Competition</h3>
               </div>
               <p className="text-text-secondary text-sm mb-4">
-                Compete for the Top Climber title every week! The week runs from Monday to Sunday.
-                Track your weekly progress and climb your way to the top!
+                Compete for the Top Climber title in <strong>three separate categories</strong> every week! 
+                The week runs from Monday to Sunday. Each category awards <strong>10% of your weekly gains</strong> as bonus forever ELO!
               </p>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4 bg-green-500/10 border-green-500/30">
-                  <h4 className="font-semibold mb-2">🏆 ELO Leader</h4>
+                  <div className="text-2xl mb-2">🎯</div>
+                  <h4 className="font-semibold mb-2">Singles</h4>
                   <p className="text-sm text-text-secondary">
-                    The player who gains the most ELO during the week earns <strong>2.5% of their weekly gains</strong> as a bonus to their forever ELO!
+                    Top singles climber wins <strong>10%</strong> of their weekly singles gains!
                   </p>
+                  <p className="text-xs text-text-muted mt-2">Example: 100 ELO gained → 10 bonus ELO</p>
                 </Card>
-                <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
-                  <h4 className="font-semibold mb-2">🔥 Wins Leader</h4>
+                <Card className="p-4 bg-blue-500/10 border-blue-500/30">
+                  <div className="text-2xl mb-2">🎾</div>
+                  <h4 className="font-semibold mb-2">Doubles</h4>
                   <p className="text-sm text-text-secondary">
-                    Most wins during the week earns recognition and a featured spot on the leaderboard.
+                    Top doubles player wins <strong>10%</strong> of their weekly doubles gains!
                   </p>
+                  <p className="text-xs text-text-muted mt-2">Example: 80 ELO gained → 8 bonus ELO</p>
                 </Card>
+                <Card className="p-4 bg-purple-500/10 border-purple-500/30">
+                  <div className="text-2xl mb-2">👥</div>
+                  <h4 className="font-semibold mb-2">Teams</h4>
+                  <p className="text-sm text-text-secondary">
+                    Top team player wins <strong>10%</strong> of their weekly team gains!
+                  </p>
+                  <p className="text-xs text-text-muted mt-2">Example: 120 ELO gained → 12 bonus ELO</p>
+                </Card>
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="h-5 w-5 text-yellow-500" />
+                  <h4 className="font-semibold text-yellow-400">Season Reset Bonus</h4>
+                </div>
+                <p className="text-sm text-text-secondary">
+                  Season champions earn a <strong>permanent 10% bonus</strong> of their season ELO to their forever ELO! 
+                  This is separate from weekly bonuses - you can win both!
+                </p>
               </div>
 
               <div className="mt-4 p-3 bg-accent/10 rounded-lg">
                 <p className="text-sm text-text-secondary">
-                  <strong>No resets!</strong> Weekly stats are for rewards only - they don&apos;t reset your ELO. 
-                  Your forever ELO keeps growing! The weekly tracking resets when a new season begins.
+                  <strong>No ELO resets!</strong> Weekly stats are for rewards only - they don&apos;t reset your ELO. 
+                  Your forever ELO keeps growing! Weekly tracking resets when a new season begins.
                 </p>
               </div>
             </Card>
@@ -388,11 +411,11 @@ export default function HowItWorksPage() {
               </div>
               <ul className="text-sm text-text-secondary space-y-1">
                 <li>• Each week starts on Monday at midnight</li>
-                <li>• Your ELO gains and wins are tracked automatically</li>
-                <li>• Only qualified players (3+ matches) appear on the leaderboard</li>
-                <li>• The Top Climber widget shows the current week&apos;s leaders</li>
+                <li>• Your ELO gains are tracked separately for singles, doubles, and teams</li>
+                <li>• Only qualified players (3+ matches in a category) qualify for that category&apos;s bonus</li>
+                <li>• Each category&apos;s leader gets 10% of their weekly gains as bonus forever ELO</li>
                 <li>• Check the <Link href="/leaderboard" className="text-accent hover:underline">Leaderboard</Link> for weekly stats</li>
-                <li>• <strong>Example:</strong> Gain 100 ELO in a week → Get 2.5 ELO bonus!</li>
+                <li>• <strong>Can you win multiple categories?</strong> Yes! Play in all three modes for triple the chances!</li>
               </ul>
             </Card>
           </section>

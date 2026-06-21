@@ -546,10 +546,9 @@ export async function POST(request: NextRequest) {
               lastMatchDate: new Date(),
               todayStreakBonus: streakResult.resetDaily ? 0 : streakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
-              // Weekly stats
-              weeklyEloGained: { increment: Math.max(0, update.change + streakResult.bonus) },
-              weeklyMatchesPlayed: { increment: 1 },
-              weeklyWins: isWinner ? { increment: 1 } : undefined,
+              // Weekly stats for doubles
+              weeklyDoublesEloGained: { increment: Math.max(0, update.change + streakResult.bonus) },
+              weeklyDoublesMatches: { increment: 1 },
             },
           });
 
@@ -689,10 +688,9 @@ export async function POST(request: NextRequest) {
               lastMatchDate: new Date(),
               todayStreakBonus: p1StreakResult.resetDaily ? 0 : p1StreakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
-              // Weekly stats
-              weeklyEloGained: { increment: Math.max(0, p1EloGain) },
-              weeklyMatchesPlayed: { increment: 1 },
-              weeklyWins: eloResult.player1Change > 0 ? { increment: 1 } : undefined,
+              // Weekly stats for singles
+              weeklySinglesEloGained: { increment: Math.max(0, p1EloGain) },
+              weeklySinglesMatches: { increment: 1 },
             },
           });
 
@@ -711,10 +709,9 @@ export async function POST(request: NextRequest) {
               lastMatchDate: new Date(),
               todayStreakBonus: p2StreakResult.resetDaily ? 0 : p2StreakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
-              // Weekly stats
-              weeklyEloGained: { increment: Math.max(0, p2EloGain) },
-              weeklyMatchesPlayed: { increment: 1 },
-              weeklyWins: eloResult.player2Change > 0 ? { increment: 1 } : undefined,
+              // Weekly stats for singles
+              weeklySinglesEloGained: { increment: Math.max(0, p2EloGain) },
+              weeklySinglesMatches: { increment: 1 },
             },
           });
 
