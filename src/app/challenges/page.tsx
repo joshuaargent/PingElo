@@ -173,11 +173,11 @@ export default function ChallengesPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   filter === 'all' 
                     ? 'bg-accent text-white' 
                     : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
@@ -187,7 +187,7 @@ export default function ChallengesPage() {
               </button>
               <button
                 onClick={() => setFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   filter === 'pending' 
                     ? 'bg-yellow-500 text-white' 
                     : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
@@ -197,7 +197,7 @@ export default function ChallengesPage() {
               </button>
               <button
                 onClick={() => setFilter('accepted')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   filter === 'accepted' 
                     ? 'bg-green-500 text-white' 
                     : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
@@ -207,7 +207,7 @@ export default function ChallengesPage() {
               </button>
               <button
                 onClick={() => setFilter('completed')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   filter === 'completed' 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-bg-secondary text-text-secondary hover:text-text-primary'
@@ -219,6 +219,7 @@ export default function ChallengesPage() {
             <Button 
               leftIcon={<Plus className="h-4 w-4" />}
               onClick={() => setShowChallengeModal(true)}
+              className="whitespace-nowrap"
             >
               New Challenge
             </Button>

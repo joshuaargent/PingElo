@@ -334,7 +334,11 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-4 text-xs sm:text-sm mb-4">
                   <span className="text-green-500">↑ {eloStats.highestElo} High</span>
                   <span className="text-red-500">↓ {eloStats.lowestElo} Low</span>
-                  <span className="text-text-secondary">{eloHistory.length} matches</span>
+                  <span className="text-green-500">{eloStats.wins}W</span>
+                  <span className="text-red-500">{eloStats.losses}L</span>
+                  <span className="text-text-secondary">
+                    ({eloStats.winRate}% win rate)
+                  </span>
                 </div>
               )}
               <div className="h-48 sm:h-64">

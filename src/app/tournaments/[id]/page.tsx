@@ -766,7 +766,7 @@ export default function TournamentDetailPage() {
                   </span>
                 </div>
 
-                {tournament.status === 'REGISTRATION_OPEN' && !isParticipant && session?.user && (
+                {tournament.status === 'REGISTRATION_OPEN' && !isParticipant && session?.user && tournament.matchType === 'SINGLES' && (
                   <Button size="sm" onClick={handleJoin} isLoading={isJoining}>
                     <Plus className="h-4 w-4 mr-1" />
                     Join
@@ -776,7 +776,7 @@ export default function TournamentDetailPage() {
                 {tournament.status === 'REGISTRATION_OPEN' && !isParticipant && session?.user && tournament.matchType === 'DOUBLES' && (
                   <Button size="sm" variant="outline" onClick={() => setShowTeamSelect(true)}>
                     <UsersIcon className="h-4 w-4 mr-1" />
-                    w/ Team
+                    Join with Team
                   </Button>
                 )}
 
