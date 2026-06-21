@@ -80,6 +80,11 @@ model User {
   lastKnownRank      Int?      // Previous rank for change indicator
   lastRankUpdate     DateTime? // When rank was last updated
 
+  // Weekly tracking (resets with season)
+  weeklyEloGained     Int       @default(0)   // ELO gained this week
+  weeklyMatchesPlayed Int       @default(0)  // Matches played this week
+  weeklyWins          Int       @default(0)  // Wins this week
+
   // Season tracking
   seasonId       String?
   season         Season?   @relation(fields: [seasonId], references: [id])
@@ -381,6 +386,11 @@ model Challenge {
   // Status
   status      ChallengeStatus @default(PENDING)
   expiresAt   DateTime       @default(now()) // Auto-expire after 7 days
+
+  // Team challenge (only completable in team matches)
+  isTeamChallenge Boolean     @default(false)
+  team1Id        String?     // Required for team challenges
+  team2Id        String?     // Required for team challenges
   
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -452,6 +462,7 @@ enum EloChangeType {
   TOURNAMENT_WIN
   TOURNAMENT_PRIZE
   SEASON_BONUS
+  WEEKLY_BONUS
   CHALLENGE_WIN
   ADMIN_ADJUSTMENT
   ADMIN_REVERT

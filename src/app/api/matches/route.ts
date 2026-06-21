@@ -534,6 +534,7 @@ export async function POST(request: NextRequest) {
         const allUpdates = [...team1Players, ...team2Players];
         for (const update of allUpdates) {
           const streakResult = calculateStreakBonus(update.streak.newStreak, update.todayStreakBonus, update.lastBonusResetDate);
+          const isWinner = update.change > 0;
           
           await tx.user.update({
             where: { id: update.id },
@@ -545,6 +546,10 @@ export async function POST(request: NextRequest) {
               lastMatchDate: new Date(),
               todayStreakBonus: streakResult.resetDaily ? 0 : streakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
+              // Weekly stats
+              weeklyEloGained: { increment: Math.max(0, update.change + streakResult.bonus) },
+              weeklyMatchesPlayed: { increment: 1 },
+              weeklyWins: isWinner ? { increment: 1 } : undefined,
             },
           });
 
@@ -672,34 +677,44 @@ export async function POST(request: NextRequest) {
           // Calculate streak for player 1 with daily tracking
           const p1Streak = calculateStreak(player1.lastMatchDate, player1.currentStreak, player1.longestStreak);
           const p1StreakResult = calculateStreakBonus(p1Streak.newStreak, player1.todayStreakBonus, player1.lastBonusResetDate);
+          const p1EloGain = eloResult.player1Change + p1StreakResult.bonus;
           
           await tx.user.update({
             where: { id: player1Id },
             data: { 
-              foreverElo: player1.foreverElo + eloResult.player1Change + p1StreakResult.bonus, 
+              foreverElo: player1.foreverElo + p1EloGain, 
               matchesPlayed: { increment: 1 },
               currentStreak: p1Streak.newStreak,
               longestStreak: p1Streak.newLongestStreak,
               lastMatchDate: new Date(),
               todayStreakBonus: p1StreakResult.resetDaily ? 0 : p1StreakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
+              // Weekly stats
+              weeklyEloGained: { increment: Math.max(0, p1EloGain) },
+              weeklyMatchesPlayed: { increment: 1 },
+              weeklyWins: eloResult.player1Change > 0 ? { increment: 1 } : undefined,
             },
           });
 
           // Calculate streak for player 2 with daily tracking
           const p2Streak = calculateStreak(player2.lastMatchDate, player2.currentStreak, player2.longestStreak);
           const p2StreakResult = calculateStreakBonus(p2Streak.newStreak, player2.todayStreakBonus, player2.lastBonusResetDate);
+          const p2EloGain = eloResult.player2Change + p2StreakResult.bonus;
           
           await tx.user.update({
             where: { id: player2Id },
             data: { 
-              foreverElo: player2.foreverElo + eloResult.player2Change + p2StreakResult.bonus, 
+              foreverElo: player2.foreverElo + p2EloGain, 
               matchesPlayed: { increment: 1 },
               currentStreak: p2Streak.newStreak,
               longestStreak: p2Streak.newLongestStreak,
               lastMatchDate: new Date(),
               todayStreakBonus: p2StreakResult.resetDaily ? 0 : p2StreakResult.newDailyTotal,
               lastBonusResetDate: new Date(),
+              // Weekly stats
+              weeklyEloGained: { increment: Math.max(0, p2EloGain) },
+              weeklyMatchesPlayed: { increment: 1 },
+              weeklyWins: eloResult.player2Change > 0 ? { increment: 1 } : undefined,
             },
           });
 

@@ -354,7 +354,7 @@ export default function HowItWorksPage() {
                 <h3 className="text-lg font-semibold">Weekly Competition</h3>
               </div>
               <p className="text-text-secondary text-sm mb-4">
-                Compete for the Top Climber title every week! The week runs from Monday to Friday.
+                Compete for the Top Climber title every week! The week runs from Monday to Sunday.
                 Track your weekly progress and climb your way to the top!
               </p>
 
@@ -362,20 +362,21 @@ export default function HowItWorksPage() {
                 <Card className="p-4 bg-green-500/10 border-green-500/30">
                   <h4 className="font-semibold mb-2">🏆 ELO Leader</h4>
                   <p className="text-sm text-text-secondary">
-                    The player who gains the most ELO during the week earns recognition and bragging rights!
+                    The player who gains the most ELO during the week earns <strong>2.5% of their weekly gains</strong> as a bonus to their forever ELO!
                   </p>
                 </Card>
                 <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
                   <h4 className="font-semibold mb-2">🔥 Wins Leader</h4>
                   <p className="text-sm text-text-secondary">
-                    Most wins during the week also earns recognition and a featured spot on the leaderboard.
+                    Most wins during the week earns recognition and a featured spot on the leaderboard.
                   </p>
                 </Card>
               </div>
 
               <div className="mt-4 p-3 bg-accent/10 rounded-lg">
                 <p className="text-sm text-text-secondary">
-                  <strong>Top Climber follows season reset.</strong> Your weekly ELO gains reset when a new season begins, giving everyone a fresh chance to climb the ranks!
+                  <strong>No resets!</strong> Weekly stats are for rewards only - they don&apos;t reset your ELO. 
+                  Your forever ELO keeps growing! The weekly tracking resets when a new season begins.
                 </p>
               </div>
             </Card>
@@ -391,6 +392,7 @@ export default function HowItWorksPage() {
                 <li>• Only qualified players (3+ matches) appear on the leaderboard</li>
                 <li>• The Top Climber widget shows the current week&apos;s leaders</li>
                 <li>• Check the <Link href="/leaderboard" className="text-accent hover:underline">Leaderboard</Link> for weekly stats</li>
+                <li>• <strong>Example:</strong> Gain 100 ELO in a week → Get 2.5 ELO bonus!</li>
               </ul>
             </Card>
           </section>
@@ -599,6 +601,34 @@ export default function HowItWorksPage() {
           <section id="tournaments" className="mb-16 scroll-mt-20">
             <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Tournaments</h2>
             
+            <Card className="p-6 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="h-6 w-6 text-accent" />
+                <h3 className="text-lg font-semibold">Tournament Formats</h3>
+              </div>
+              <p className="text-text-secondary text-sm mb-4">
+                PingElo supports multiple tournament formats to suit different play styles:
+              </p>
+              <div className="grid md:grid-cols-2 gap-3">
+                <Card className="p-4 bg-accent/5">
+                  <h4 className="font-semibold mb-1">🏆 Single Elimination</h4>
+                  <p className="text-xs text-text-secondary">Lose once and you're out. Best for quick tournaments.</p>
+                </Card>
+                <Card className="p-4 bg-accent/5">
+                  <h4 className="font-semibold mb-1">🔄 Double Elimination</h4>
+                  <p className="text-xs text-text-secondary">Get a second chance! Losers move to the loser bracket.</p>
+                </Card>
+                <Card className="p-4 bg-accent/5">
+                  <h4 className="font-semibold mb-1">🔢 Round Robin</h4>
+                  <p className="text-xs text-text-secondary">Everyone plays everyone. Fairest format!</p>
+                </Card>
+                <Card className="p-4 bg-accent/5">
+                  <h4 className="font-semibold mb-1">📊 Swiss System</h4>
+                  <p className="text-xs text-text-secondary">No elimination! Standings-based pairings over multiple rounds.</p>
+                </Card>
+              </div>
+            </Card>
+
             <Card className="p-6 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <Trophy className="h-6 w-6 text-accent" />

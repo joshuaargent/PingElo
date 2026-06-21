@@ -192,6 +192,40 @@ export async function POST(
         where: { id: loser.id },
         data: { foreverElo: { increment: loserChange } },
       });
+      
+      // Update individual player weekly stats for doubles
+      const winnerTeam = await prisma.team.findUnique({
+        where: { id: winnerId },
+        select: { player1Id: true, player2Id: true }
+      });
+      const loserTeam = await prisma.team.findUnique({
+        where: { id: loser.id },
+        select: { player1Id: true, player2Id: true }
+      });
+      
+      if (winnerTeam) {
+        for (const pid of [winnerTeam.player1Id, winnerTeam.player2Id].filter(Boolean)) {
+          await prisma.user.update({
+            where: { id: pid! },
+            data: {
+              weeklyMatchesPlayed: { increment: 1 },
+              weeklyWins: { increment: 1 },
+              weeklyEloGained: { increment: Math.max(0, winnerChange) },
+            },
+          });
+        }
+      }
+      if (loserTeam) {
+        for (const pid of [loserTeam.player1Id, loserTeam.player2Id].filter(Boolean)) {
+          await prisma.user.update({
+            where: { id: pid! },
+            data: {
+              weeklyMatchesPlayed: { increment: 1 },
+              weeklyEloGained: { increment: Math.max(0, loserChange) },
+            },
+          });
+        }
+      }
     } else {
       // Update user ELOs
       await prisma.user.update({
@@ -200,6 +234,9 @@ export async function POST(
           foreverElo: { increment: winnerChange },
           seasonElo: { increment: winnerChange },
           matchesPlayed: { increment: 1 },
+          weeklyMatchesPlayed: { increment: 1 },
+          weeklyWins: { increment: 1 },
+          weeklyEloGained: { increment: Math.max(0, winnerChange) },
         },
       });
       await prisma.user.update({
@@ -208,6 +245,8 @@ export async function POST(
           foreverElo: { increment: loserChange },
           seasonElo: { increment: loserChange },
           matchesPlayed: { increment: 1 },
+          weeklyMatchesPlayed: { increment: 1 },
+          weeklyEloGained: { increment: Math.max(0, loserChange) },
         },
       });
     }
