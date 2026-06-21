@@ -894,7 +894,7 @@ export function calculateStreak(
   // Check if already played today
   if (lastMatchStart.getTime() === todayStart.getTime()) {
     // Already played today, just return current state
-    const hasStreakBonus = currentStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
+    const hasStreakBonus = currentStreak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER1;
     return { newStreak: currentStreak, newLongestStreak: longestStreak, hasStreakBonus, milestoneHit: null };
   }
 
@@ -917,7 +917,7 @@ export function calculateStreak(
   }
 
   const newLongestStreak = Math.max(newStreak, longestStreak);
-  const hasStreakBonus = newStreak >= STREAK_CONFIG.STREAK_THRESHOLD;
+  const hasStreakBonus = newStreak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER1;
   
   // Check if we hit a milestone
   let milestoneHit: number | null = null;
@@ -939,7 +939,7 @@ export function calculateStreak(
 /**
  * Get the tier for a given streak
  */
-function getStreakTier(streak: number): 'TIER1' | 'TIER2' | 'TIER3' | 'TIER4' {
+function getStreakTier(streak: number): 'TIER1' | 'TIER2' | 'TIER3' | 'TIER4' | 'NONE' {
   if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER4) return 'TIER4';
   if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER3) return 'TIER3';
   if (streak >= STREAK_CONFIG.TIER_THRESHOLDS.TIER2) return 'TIER2';
@@ -980,8 +980,18 @@ export function calculateStreakBonus(
   
   // Get current tier and associated values
   const tier = getStreakTier(currentStreak);
-  const bonusPerMatch = STREAK_CONFIG.TIER_BONUS[tier];
-  const maxDaily = STREAK_CONFIG.TIER_MAX_DAILY[tier];
+  
+  // Since we checked currentStreak >= TIER1, we know tier is one of the valid tiers
+  // Use explicit lookup to avoid TypeScript narrowing issues
+  const tierConfig = {
+    TIER1: { bonus: STREAK_CONFIG.TIER_BONUS.TIER1, max: STREAK_CONFIG.TIER_MAX_DAILY.TIER1 },
+    TIER2: { bonus: STREAK_CONFIG.TIER_BONUS.TIER2, max: STREAK_CONFIG.TIER_MAX_DAILY.TIER2 },
+    TIER3: { bonus: STREAK_CONFIG.TIER_BONUS.TIER3, max: STREAK_CONFIG.TIER_MAX_DAILY.TIER3 },
+    TIER4: { bonus: STREAK_CONFIG.TIER_BONUS.TIER4, max: STREAK_CONFIG.TIER_MAX_DAILY.TIER4 },
+  } as const;
+  
+  const bonusPerMatch = (tierConfig as Record<string, {bonus: number, max: number}>)[tier].bonus;
+  const maxDaily = (tierConfig as Record<string, {bonus: number, max: number}>)[tier].max;
   
   // Check if daily cap reached for this tier
   if (todayStreakBonus >= maxDaily) {

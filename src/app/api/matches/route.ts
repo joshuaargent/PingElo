@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 import { calculateEloChange, calculateDoublesEloChange, getTeamElo, getTeamKFactor, calculateStreak, calculateStreakBonus, getPlayerTier, checkTierCrossing } from "@/lib/elo";
 import { checkAchievements, checkSpecialAchievements, getAchievementDef, ACHIEVEMENTS } from "@/lib/achievements";
+import { autoCompleteChallenges, updateTeamStreaks } from "@/lib/match-helpers";
 
 // Validation constants
 const MIN_SCORE = 3;
@@ -353,7 +354,8 @@ export async function POST(request: NextRequest) {
         select: { 
           id: true, name: true, isBanned: true, 
           doublesForeverElo: true, doublesMatchesPlayed: true, doublesSeasonElo: true, 
-          currentStreak: true, longestStreak: true, lastMatchDate: true 
+          currentStreak: true, longestStreak: true, lastMatchDate: true,
+          todayStreakBonus: true, lastBonusResetDate: true,
         },
       });
 
@@ -493,12 +495,12 @@ export async function POST(request: NextRequest) {
       const p4Streak = calculateStreak(p4.lastMatchDate, p4.currentStreak, p4.longestStreak);
       
       const team1Players = [
-        { id: t1p1Id, name: p1.name, eloBefore: p1.doublesForeverElo, change: eloResult.individualChanges.team1Player1, seasonEloBefore: p1.doublesSeasonElo, streak: p1Streak },
-        { id: t1p2Id, name: p2.name, eloBefore: p2.doublesForeverElo, change: eloResult.individualChanges.team1Player2, seasonEloBefore: p2.doublesSeasonElo, streak: p2Streak },
+        { id: t1p1Id, name: p1.name, eloBefore: p1.doublesForeverElo, change: eloResult.individualChanges.team1Player1, seasonEloBefore: p1.doublesSeasonElo, streak: p1Streak, todayStreakBonus: p1.todayStreakBonus, lastBonusResetDate: p1.lastBonusResetDate },
+        { id: t1p2Id, name: p2.name, eloBefore: p2.doublesForeverElo, change: eloResult.individualChanges.team1Player2, seasonEloBefore: p2.doublesSeasonElo, streak: p2Streak, todayStreakBonus: p2.todayStreakBonus, lastBonusResetDate: p2.lastBonusResetDate },
       ];
       const team2Players = [
-        { id: t2p1Id, name: p3.name, eloBefore: p3.doublesForeverElo, change: eloResult.individualChanges.team2Player1, seasonEloBefore: p3.doublesSeasonElo, streak: p3Streak },
-        { id: t2p2Id, name: p4.name, eloBefore: p4.doublesForeverElo, change: eloResult.individualChanges.team2Player2, seasonEloBefore: p4.doublesSeasonElo, streak: p4Streak },
+        { id: t2p1Id, name: p3.name, eloBefore: p3.doublesForeverElo, change: eloResult.individualChanges.team2Player1, seasonEloBefore: p3.doublesSeasonElo, streak: p3Streak, todayStreakBonus: p3.todayStreakBonus, lastBonusResetDate: p3.lastBonusResetDate },
+        { id: t2p2Id, name: p4.name, eloBefore: p4.doublesForeverElo, change: eloResult.individualChanges.team2Player2, seasonEloBefore: p4.doublesSeasonElo, streak: p4Streak, todayStreakBonus: p4.todayStreakBonus, lastBonusResetDate: p4.lastBonusResetDate },
       ];
 
       match = await prisma.$transaction(async (tx) => {
@@ -531,37 +533,39 @@ export async function POST(request: NextRequest) {
 
         const allUpdates = [...team1Players, ...team2Players];
         for (const update of allUpdates) {
-          const streakBonus = calculateStreakBonus(update.streak.newStreak);
+          const streakResult = calculateStreakBonus(update.streak.newStreak, update.todayStreakBonus, update.lastBonusResetDate);
           
           await tx.user.update({
             where: { id: update.id },
             data: {
-              doublesForeverElo: update.eloBefore + update.change + streakBonus,
+              doublesForeverElo: update.eloBefore + update.change + streakResult.bonus,
               doublesMatchesPlayed: { increment: 1 },
               currentStreak: update.streak.newStreak,
               longestStreak: update.streak.newLongestStreak,
               lastMatchDate: new Date(),
+              todayStreakBonus: streakResult.resetDaily ? 0 : streakResult.newDailyTotal,
+              lastBonusResetDate: new Date(),
             },
           });
 
           if (currentSeason) {
             await tx.user.update({
               where: { id: update.id },
-              data: { doublesSeasonElo: update.seasonEloBefore + update.change + streakBonus },
+              data: { doublesSeasonElo: update.seasonEloBefore + update.change + streakResult.bonus },
             });
           }
         }
 
         // Create ELO history entries for all 4 players
         for (const player of allUpdates) {
-          const streakBonus = calculateStreakBonus(player.streak.newStreak);
+          const streakResult = calculateStreakBonus(player.streak.newStreak, player.todayStreakBonus, player.lastBonusResetDate);
           await tx.eloHistory.create({
             data: {
               userId: player.id,
               matchId: newMatch.id,
               changeType: 'MATCH',
               eloBefore: player.eloBefore,
-              eloAfter: player.eloBefore + player.change + streakBonus,
+              eloAfter: player.eloBefore + player.change + streakResult.bonus,
               change: player.change,
               description: isTournamentMatch ? `Doubles match (Tournament)` : 'Doubles match',
               metadata: {
@@ -573,7 +577,7 @@ export async function POST(request: NextRequest) {
                 winnerId,
                 isTournamentMatch,
                 tournamentId,
-                streakBonus: streakBonus,
+                streakBonus: streakResult.bonus,
                 streakBefore: player.streak.newStreak - 1,
                 streakAfter: player.streak.newStreak,
               },
@@ -601,8 +605,8 @@ export async function POST(request: NextRequest) {
       }
 
       const [player1, player2] = await Promise.all([
-        prisma.user.findUnique({ where: { id: player1Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true } }),
-        prisma.user.findUnique({ where: { id: player2Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true } }),
+        prisma.user.findUnique({ where: { id: player1Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true, todayStreakBonus: true, lastBonusResetDate: true } }),
+        prisma.user.findUnique({ where: { id: player2Id }, select: { id: true, name: true, isBanned: true, banReason: true, foreverElo: true, seasonElo: true, matchesPlayed: true, currentStreak: true, longestStreak: true, lastMatchDate: true, todayStreakBonus: true, lastBonusResetDate: true } }),
       ]);
 
       if (!player1 || !player2) {
@@ -829,6 +833,15 @@ export async function POST(request: NextRequest) {
         });
         
         // Singles response with streak info
+        // Auto-complete any active challenges between these players
+        await autoCompleteChallenges(
+          player1Id!,
+          player2Id!,
+          winnerId,
+          singlesResult.match.id,
+          'SINGLES'
+        );
+        
         return NextResponse.json({ 
           match: singlesResult.match, 
           eloChange: eloChangeResult, 
@@ -838,9 +851,27 @@ export async function POST(request: NextRequest) {
           milestone: singlesResult.milestone,
           tier: singlesResult.tier,
         }, { status: 201 });
+      // Note: Singles returns inside the transaction above, so this only runs for doubles
     }
 
-    // Doubles response (no streak bonus for doubles)
+    // Doubles response - auto-complete challenges and update team streaks
+    // We need to determine the winner based on which team won
+    const doublesWinnerId = player1Score > player2Score ? team1Player1Id : team2Player1Id;
+    if (doublesWinnerId && team1Id && team2Id) {
+      await autoCompleteChallenges(
+        player1Id!,
+        player2Id!,
+        doublesWinnerId,
+        match.id,
+        'DOUBLES',
+        team1Player1Id!,
+        team1Player2Id!,
+        team2Player1Id!,
+        team2Player2Id!
+      );
+      await updateTeamStreaks(team1Id, team2Id);
+    }
+    
     return NextResponse.json({ match, eloChange: eloChangeResult, matchType: matchType || "DOUBLES" }, { status: 201 });
   } catch (error) {
     console.error("Error creating match:", error);

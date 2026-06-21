@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
 import { TOURNAMENT_PRIZE_DISTRIBUTION } from "@/lib/elo";
+import { autoCompleteChallenges, updateTeamStreaks } from "@/lib/match-helpers";
 
 export async function POST(
   request: NextRequest,
@@ -459,6 +460,9 @@ export async function POST(
       }
     }
 
+    // Auto-complete challenges
+    await handleTournamentMatchAutoComplete(isDoubles, winnerId, loser.id, player1Id, player2Id, match.id);
+
     return NextResponse.json({
       success: true,
       match,
@@ -474,5 +478,45 @@ export async function POST(
       { error: "Failed to log match" },
       { status: 500 }
     );
+  }
+}
+
+// Add auto-complete after try block (for non-error path)
+async function handleTournamentMatchAutoComplete(
+  isDoubles: boolean,
+  winnerId: string,
+  loserId: string,
+  player1Id: string,
+  player2Id: string,
+  matchId: string
+) {
+  try {
+    if (isDoubles) {
+      // For doubles, get player IDs from teams
+      const winnerTeam = await prisma.team.findUnique({ 
+        where: { id: winnerId },
+        select: { player1Id: true, player2Id: true }
+      });
+      const loserTeam = await prisma.team.findUnique({ 
+        where: { id: loserId },
+        select: { player1Id: true, player2Id: true }
+      });
+      
+      if (winnerTeam && loserTeam) {
+        // Check challenges between team members
+        for (const wp of [winnerTeam.player1Id, winnerTeam.player2Id].filter(Boolean)) {
+          for (const lp of [loserTeam.player1Id, loserTeam.player2Id].filter(Boolean)) {
+            if (wp && lp) {
+              await autoCompleteChallenges(wp, lp, wp, matchId, 'SINGLES');
+            }
+          }
+        }
+        await updateTeamStreaks(winnerId, loserId);
+      }
+    } else {
+      await autoCompleteChallenges(player1Id, player2Id, winnerId, matchId, 'SINGLES');
+    }
+  } catch (error) {
+    console.error("Error in auto-complete:", error);
   }
 }

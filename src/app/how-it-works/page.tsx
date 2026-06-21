@@ -245,7 +245,7 @@ export default function HowItWorksPage() {
 
               <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg">
                 <p className="text-sm text-text-secondary">
-                  <strong>Note:</strong> Missing one day resets your streak to 0! You can miss up to 2 days and still maintain your streak with the grace period feature.
+                  <strong>Note:</strong> Missing up to 2 days won't break your streak thanks to the grace period! Play again within 3 days and your streak continues.
                 </p>
               </div>
             </Card>
@@ -329,7 +329,7 @@ export default function HowItWorksPage() {
 
               <Card className="p-4">
                 <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Badge variant="info" size="sm">Special</Badge>
+                  <Badge variant="primary" size="sm">Special</Badge>
                 </h4>
                 <ul className="text-sm text-text-secondary space-y-1">
                   <li>💪 Comeback Kid - Win after being down 5+ points</li>
