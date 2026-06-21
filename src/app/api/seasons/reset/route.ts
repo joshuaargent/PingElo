@@ -76,7 +76,10 @@ export async function POST(request: NextRequest) {
           const bonus = Math.round(winner.seasonElo * 0.1); // 10% bonus
           await tx.user.update({
             where: { id: winner.id },
-            data: { foreverElo: { increment: bonus } },
+            data: { 
+              foreverElo: { increment: bonus },
+              totalSinglesSeasonWins: { increment: 1 },
+            },
           });
         }
         
@@ -90,8 +93,42 @@ export async function POST(request: NextRequest) {
           const bonus = Math.round(doublesWinner.doublesSeasonElo * 0.1); // 10% bonus
           await tx.user.update({
             where: { id: doublesWinner.id },
-            data: { doublesForeverElo: { increment: bonus } },
+            data: { 
+              doublesForeverElo: { increment: bonus },
+              totalDoublesSeasonWins: { increment: 1 },
+            },
           });
+        }
+        
+        // Award bonus to team season winner
+        const teamSeasonStats = await tx.teamSeasonStats.findMany({
+          where: { seasonId: currentSeason.id },
+          include: { team: true },
+          orderBy: { seasonElo: "desc" },
+          take: 1,
+        });
+
+        if (teamSeasonStats.length > 0) {
+          const winningTeam = teamSeasonStats[0].team;
+          const teamBonus = Math.round(teamSeasonStats[0].seasonElo * 0.1); // 10% bonus
+          
+          // Add bonus to team's forever ELO
+          await tx.team.update({
+            where: { id: winningTeam.id },
+            data: { foreverElo: { increment: teamBonus } },
+          });
+
+          // Increment badge for both team members
+          await tx.user.update({
+            where: { id: winningTeam.player1Id },
+            data: { totalTeamSeasonWins: { increment: 1 } },
+          });
+          if (winningTeam.player2Id) {
+            await tx.user.update({
+              where: { id: winningTeam.player2Id },
+              data: { totalTeamSeasonWins: { increment: 1 } },
+            });
+          }
         }
         
         // 1b. Mark all active teams as inactive (preserved for history)

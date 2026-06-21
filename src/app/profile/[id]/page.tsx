@@ -19,7 +19,10 @@ import {
   Flame,
   Clock,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Medal,
+  Users,
+  Crown
 } from 'lucide-react';
 
 interface UserProfile {
@@ -32,12 +35,16 @@ interface UserProfile {
   doublesForeverElo: number;
   doublesSeasonElo: number;
   matchesPlayed: number;
+  doublesMatchesPlayed: number;
   wins: number;
   losses: number;
   winRate: number;
   rank: number;
   currentStreak: number;
   longestStreak: number;
+  totalSinglesSeasonWins: number;
+  totalDoublesSeasonWins: number;
+  totalTeamSeasonWins: number;
   isRusty: boolean;
   isActive: boolean;
   createdAt: string;
@@ -157,6 +164,30 @@ export default function ProfilePage() {
                       <Badge variant="warning" size="sm">Rusty</Badge>
                     )}
                   </div>
+                  
+                  {/* Season Win Badges */}
+                  {(profile.totalSinglesSeasonWins > 0 || profile.totalDoublesSeasonWins > 0 || profile.totalTeamSeasonWins > 0) && (
+                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                      {profile.totalSinglesSeasonWins > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-xs font-medium text-yellow-700 dark:text-yellow-400">
+                          <Crown className="h-3 w-3" />
+                          {profile.totalSinglesSeasonWins} Singles Season {profile.totalSinglesSeasonWins === 1 ? 'Win' : 'Wins'}
+                        </div>
+                      )}
+                      {profile.totalDoublesSeasonWins > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-400">
+                          <Medal className="h-3 w-3" />
+                          {profile.totalDoublesSeasonWins} Doubles Season {profile.totalDoublesSeasonWins === 1 ? 'Win' : 'Wins'}
+                        </div>
+                      )}
+                      {profile.totalTeamSeasonWins > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full text-xs font-medium text-blue-700 dark:text-blue-400">
+                          <Users className="h-3 w-3" />
+                          {profile.totalTeamSeasonWins} Team Season {profile.totalTeamSeasonWins === 1 ? 'Win' : 'Wins'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
                     <span className="flex items-center gap-1">

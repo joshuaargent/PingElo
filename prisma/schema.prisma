@@ -69,6 +69,11 @@ model User {
   longestStreak        Int       @default(0)   // All-time best streak
   lastMatchDate        DateTime?
 
+  // Season achievements (badges)
+  totalSinglesSeasonWins   Int       @default(0)  // Times won singles season
+  totalDoublesSeasonWins  Int       @default(0)  // Times won doubles season
+  totalTeamSeasonWins     Int       @default(0)  // Times won as part of a team season
+
   // Season tracking
   seasonId       String?
   season         Season?   @relation(fields: [seasonId], references: [id])

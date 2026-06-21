@@ -273,7 +273,9 @@ export default function HowItWorksPage() {
               <li>Used for the season leaderboard</li>
               <li>Resets monthly (every 1st of the month)</li>
               <li>100% of gains count toward season (plus streak bonus)</li>
-              <li>Season winner gets bonus added to their Forever ELO</li>
+              <li><strong>Singles season winner:</strong> Receives 10% bonus added to Forever ELO + Season Champion badge</li>
+              <li><strong>Doubles season winner:</strong> 10% bonus added to Doubles Forever ELO + Season Champion badge</li>
+              <li><strong>Team season winner:</strong> 10% bonus added to team Forever ELO + both players get Team Season Champion badge</li>
             </ul>
           </Card>
         </div>
