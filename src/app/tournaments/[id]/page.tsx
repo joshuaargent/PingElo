@@ -990,102 +990,97 @@ export default function TournamentDetailPage() {
 
       {/* Edit Tournament Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="w-full max-w-md bg-bg-primary rounded-xl shadow-2xl border border-border my-8 overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 z-50 p-2 overflow-y-auto flex items-start justify-center">
+          <div className="w-full max-w-sm mx-auto bg-bg-primary rounded-xl shadow-2xl border border-border my-4 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-lg font-bold text-text-primary">Edit Tournament</h2>
+            <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
+              <h2 className="text-base font-bold text-text-primary">Edit Tournament</h2>
               <button 
                 onClick={() => setShowEditModal(false)}
-                className="p-1 rounded-lg hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
+                className="p-1 rounded hover:bg-bg-secondary transition-colors text-text-muted hover:text-text-primary"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
             
             {/* Content */}
-            <div className="p-6 space-y-5">
+            <div className="p-3 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Tournament Name</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Name</label>
                 <Input
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full"
+                  className="w-full h-9 text-sm"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">Description</label>
+                <label className="block text-xs font-medium text-text-secondary mb-1.5">Description</label>
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  placeholder="Optional description..."
+                  placeholder="Optional..."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-bg-primary text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-bg-primary text-text-primary text-sm placeholder:text-text-muted focus:border-accent focus:outline-none resize-none"
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-2">Entry Fee</label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editForm.entryFee || 0}
-                      onChange={(e) => setEditForm({ ...editForm, entryFee: parseInt(e.target.value) || 0 })}
-                      className="w-full pr-12"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">ELO</span>
-                  </div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Entry Fee</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editForm.entryFee || 0}
+                    onChange={(e) => setEditForm({ ...editForm, entryFee: parseInt(e.target.value) || 0 })}
+                    className="w-full h-9 text-sm"
+                  />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-2">Max Players</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Max Players</label>
                   <Input
                     type="number"
                     min={2}
                     value={editForm.maxParticipants}
                     onChange={(e) => setEditForm({ ...editForm, maxParticipants: parseInt(e.target.value) || 4 })}
-                    className="w-full"
+                    className="w-full h-9 text-sm"
                   />
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-2">Play To</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Play To</label>
                   <select
                     value={editForm.maxScore || 21}
                     onChange={(e) => setEditForm({ ...editForm, maxScore: parseInt(e.target.value) })}
-                    className="w-full h-10 px-3 rounded-lg border border-border bg-bg-primary text-text-primary focus:border-accent focus:outline-none"
+                    className="w-full h-9 px-2 rounded-lg border border-border bg-bg-primary text-text-primary text-sm focus:border-accent focus:outline-none"
                   >
-                    <option value={7}>7 points</option>
-                    <option value={11}>11 points</option>
-                    <option value={15}>15 points</option>
-                    <option value={21}>21 points</option>
+                    <option value={7}>7 pts</option>
+                    <option value={11}>11 pts</option>
+                    <option value={15}>15 pts</option>
+                    <option value={21}>21 pts</option>
                   </select>
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-2">Start Time</label>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">Start Time</label>
                   <Input
                     type="datetime-local"
                     value={editForm.startsAt}
                     onChange={(e) => setEditForm({ ...editForm, startsAt: e.target.value })}
-                    className="w-full"
+                    className="w-full h-9 text-sm"
                   />
                 </div>
               </div>
             </div>
             
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-border flex gap-3">
-              <Button variant="outline" onClick={() => setShowEditModal(false)} className="flex-1">
+            <div className="px-3 py-2.5 border-t border-border flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowEditModal(false)} className="flex-1 h-9 text-sm">
                 Cancel
               </Button>
-              <Button onClick={handleEditTournament} isLoading={isEditing} className="flex-1">
-                Save Changes
+              <Button size="sm" onClick={handleEditTournament} isLoading={isEditing} className="flex-1 h-9 text-sm">
+                Save
               </Button>
             </div>
           </div>
