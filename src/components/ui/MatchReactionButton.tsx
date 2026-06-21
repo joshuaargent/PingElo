@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 interface Reaction {
@@ -33,14 +34,36 @@ interface MatchReactionButtonProps {
 export function MatchReactionButton({
   matchId,
   initialReactions = {},
-  currentUserId,
-  userReactions = [],
+  currentUserId: propUserId,
+  userReactions: propUserReactions = [],
   onReact,
   compact = false,
 }: MatchReactionButtonProps) {
+  const { data: session } = useSession();
+  const currentUserId = propUserId || session?.user?.id;
+  
   const [reactions, setReactions] = useState<ReactionCounts>(initialReactions);
+  const [userReactions, setUserReactions] = useState<string[]>(propUserReactions);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+
+  // Fetch reactions on mount
+  useEffect(() => {
+    async function fetchReactions() {
+      try {
+        const res = await fetch(`/api/matches/reactions?matchId=${matchId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setReactions(data.counts || {});
+          setUserReactions(data.userReactions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reactions:', error);
+      }
+    }
+    
+    fetchReactions();
+  }, [matchId]);
 
   const handleReact = async (emoji: string) => {
     if (!currentUserId || isSubmitting) return;
@@ -54,6 +77,9 @@ export function MatchReactionButton({
       ...prev,
       [emoji]: Math.max(0, (prev[emoji] || 0) + (hasReacted ? -1 : 1)),
     }));
+    setUserReactions(prev => 
+      hasReacted ? prev.filter(e => e !== emoji) : [...prev, emoji]
+    );
     
     try {
       const res = await fetch('/api/matches/reactions', {
@@ -68,7 +94,12 @@ export function MatchReactionButton({
           ...prev,
           [emoji]: (prev[emoji] || 0) + (hasReacted ? 1 : -1),
         }));
+        setUserReactions(prev => 
+          hasReacted ? [...prev, emoji] : prev.filter(e => e !== emoji)
+        );
       } else {
+        const data = await res.json();
+        setReactions(data.counts || reactions);
         onReact?.(emoji);
       }
     } catch {
@@ -77,6 +108,9 @@ export function MatchReactionButton({
         ...prev,
         [emoji]: (prev[emoji] || 0) + (hasReacted ? 1 : -1),
       }));
+      setUserReactions(prev => 
+        hasReacted ? [...prev, emoji] : prev.filter(e => e !== emoji)
+      );
     } finally {
       setIsSubmitting(false);
     }

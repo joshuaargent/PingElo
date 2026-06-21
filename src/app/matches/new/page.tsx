@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import confetti from 'canvas-confetti';
+import toast from 'react-hot-toast';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -217,6 +218,17 @@ export default function LogMatchPage() {
         
         // Set match result for celebration
         setMatchResult({ won, eloGained, streakBonus, newStreak, milestone, tier });
+        
+        // Show tier announcement toast if player crossed a tier
+        if (tier) {
+          toast.success(
+            `${tier.emoji} ${tier.name}!`,
+            { 
+              duration: 4000,
+              icon: tier.emoji,
+            }
+          );
+        }
         
         // Trigger confetti and sounds based on result
         if (won) {
