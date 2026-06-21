@@ -780,7 +780,7 @@ export const STREAK_CONFIG = {
   /** Extra ELO per match when on streak */
   STREAK_BONUS: 2,
   /** Maximum streak bonus per day */
-  MAX_DAILY_BONUS: 4,
+  MAX_DAILY_BONUS: 10, // 5 matches @ 2 ELO each
   /** Days without play to reset streak */
   STREAK_GRACE_PERIOD: 2, // Can miss 2 days before losing streak
 } as const;

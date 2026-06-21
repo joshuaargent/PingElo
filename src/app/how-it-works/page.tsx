@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { TrendingUp, Award, Trophy, Calendar, Users, Zap } from 'lucide-react';
+import { TrendingUp, Award, Trophy, Calendar, Users, Zap, Flame } from 'lucide-react';
 
 // ============================================
 // How It Works Page
@@ -166,6 +166,68 @@ export default function HowItWorksPage() {
             </p>
           </Card>
         </div>
+      </section>
+
+      {/* Daily Streak Section */}
+      <section className="mb-16">
+        <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Daily Streak Bonus</h2>
+        
+        <Card className="p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Flame className="h-6 w-6 text-orange-500" />
+            <h3 className="text-lg font-semibold">Earn Bonus ELO by Staying Active</h3>
+          </div>
+          <p className="text-text-secondary text-sm mb-4">
+            Play at least one match every day to build your streak! Once you hit a <strong>3-day streak</strong>, 
+            you earn bonus ELO on every match you play.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-4">
+            <Card className="p-4 text-center bg-orange-500/10 border-orange-500/30">
+              <div className="text-3xl font-bold text-orange-500 mb-1">3+ days</div>
+              <p className="text-sm text-text-secondary">Streak threshold</p>
+            </Card>
+            <Card className="p-4 text-center bg-green-500/10 border-green-500/30">
+              <div className="text-3xl font-bold text-green-500 mb-1">+2 ELO</div>
+              <p className="text-sm text-text-secondary">Per match bonus</p>
+            </Card>
+            <Card className="p-4 text-center bg-blue-500/10 border-blue-500/30">
+              <div className="text-3xl font-bold text-blue-500 mb-1">5 matches</div>
+              <p className="text-sm text-text-secondary">Max bonus per day</p>
+            </Card>
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-border">
+            <table className="w-full">
+              <thead className="bg-bg-secondary">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-text-secondary">Streak Status</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold text-text-secondary">Bonus ELO</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr>
+                  <td className="px-4 py-2 text-sm">1-2 days (building streak)</td>
+                  <td className="px-4 py-2 text-sm text-text-secondary">No bonus</td>
+                </tr>
+                <tr className="bg-green-500/5">
+                  <td className="px-4 py-2 text-sm font-medium">3+ days (active streak)</td>
+                  <td className="px-4 py-2 text-sm text-green-500 font-medium">+2 ELO per match (up to 5 matches/day = +10 max)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
+          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <span className="text-yellow-500">⏰</span> Grace Period
+          </h4>
+          <p className="text-sm text-text-secondary">
+            Life happens! You can miss up to <strong>2 days</strong> without losing your streak. 
+            After 3 days without playing, your streak resets to 1.
+          </p>
+        </Card>
       </section>
 
       {/* Forever vs Season ELO */}

@@ -231,7 +231,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between text-xs text-text-secondary">
                   <span>Best: {stats.bestStreak} days</span>
                   {stats.currentStreak >= 3 && (
-                    <span className="text-orange-500 font-medium">+2 ELO bonus!</span>
+                    <span className="text-green-500 font-medium">+2 ELO/match (up to +10/day!)</span>
                   )}
                 </div>
               </div>
