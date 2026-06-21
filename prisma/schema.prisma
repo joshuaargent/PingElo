@@ -114,6 +114,8 @@ model User {
   weeklyActivity WeeklyActivity[]
   // Achievements
   achievements   Achievement[]
+  // Top Climber wins
+  topClimberWins TopClimber[]
 }
 
 model Account {
@@ -469,6 +471,29 @@ model WeeklyActivity {
   @@index([userId])
   @@index([weekStart])
   @@index([isQualified])
+}
+
+// ============================================
+// Top Climber - Weekly competition winners
+// ============================================
+
+model TopClimber {
+  id        String   @id @default(cuid())
+  weekStart DateTime // Monday of the week
+  type      String   // "elo" for ELO gain, "wins" for most wins
+  
+  // Winner info
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Their stats
+  eloGained Int
+  wins      Int
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([weekStart, type])
+  @@index([weekStart])
 }
 
 // ============================================

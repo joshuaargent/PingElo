@@ -710,6 +710,57 @@ export async function POST(request: NextRequest) {
           const p1EloAfter = p1EloBefore + eloResult.player1Change + p1StreakBonus;
           const p2EloAfter = p2EloBefore + eloResult.player2Change + p2StreakBonus;
           
+          // Get week start for weekly activity tracking
+          const now = new Date();
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          const weekStart = new Date(now.setDate(diff));
+          weekStart.setHours(0, 0, 0, 0);
+          
+          // Update weekly activity for both players
+          const p1Won = winnerId === player1Id;
+          const p2Won = winnerId === player2Id;
+          
+          await tx.weeklyActivity.upsert({
+            where: {
+              userId_weekStart: { userId: player1Id, weekStart },
+            },
+            update: {
+              matchesPlayed: { increment: 1 },
+              wins: p1Won ? { increment: 1 } : undefined,
+              eloChange: { increment: eloResult.player1Change + p1StreakBonus },
+              isQualified: true,
+            },
+            create: {
+              userId: player1Id,
+              weekStart,
+              matchesPlayed: 1,
+              wins: p1Won ? 1 : 0,
+              eloChange: eloResult.player1Change + p1StreakBonus,
+              isQualified: true,
+            },
+          });
+          
+          await tx.weeklyActivity.upsert({
+            where: {
+              userId_weekStart: { userId: player2Id, weekStart },
+            },
+            update: {
+              matchesPlayed: { increment: 1 },
+              wins: p2Won ? { increment: 1 } : undefined,
+              eloChange: { increment: eloResult.player2Change + p2StreakBonus },
+              isQualified: true,
+            },
+            create: {
+              userId: player2Id,
+              weekStart,
+              matchesPlayed: 1,
+              wins: p2Won ? 1 : 0,
+              eloChange: eloResult.player2Change + p2StreakBonus,
+              isQualified: true,
+            },
+          });
+          
           await tx.eloHistory.create({
             data: {
               userId: player1Id,
