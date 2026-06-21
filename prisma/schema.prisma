@@ -116,6 +116,11 @@ model User {
   achievements   Achievement[]
   // Top Climber wins
   topClimberWins TopClimber[]
+  // Activity feed entries
+  activities     Activity[]
+  // Challenges sent and received
+  challengesSent    Challenge[] @relation("Challenger")
+  challengesReceived Challenge[] @relation("Challenged")
 }
 
 model Account {
@@ -300,6 +305,10 @@ model Match {
   
   // Reactions
   reactions     MatchReaction[]
+  // Activity feed entries
+  activities    Activity[]
+  // Challenge
+  challenge     Challenge?
 
   @@index([player1Id])
   @@index([player2Id])
@@ -310,6 +319,74 @@ model Match {
   @@index([winnerId])
   @@index([seasonId])
   @@index([matchType])
+}
+
+// ============================================
+// Activity Feed
+// ============================================
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String   // "match", "achievement", "streak", "season", "milestone"
+  message   String   // Human-readable activity message
+  metadata  Json?    // Additional data (player names, ELO changes, etc.)
+  
+  // For match activities - links to the match
+  matchId   String?
+  match     Match?   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  // For user-specific activities
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Visibility
+  isPublic  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([userId])
+  @@index([matchId])
+}
+
+// ============================================
+// Player Challenges
+// ============================================
+
+enum ChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+model Challenge {
+  id          String         @id @default(cuid())
+  challengerId String
+  challengedId String
+  challenger   User          @relation("Challenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  challenged   User          @relation("Challenged", fields: [challengedId], references: [id], onDelete: Cascade)
+  
+  // Stakes
+  stakeAmount Int            @default(0)     // ELO stake
+  
+  // Match result
+  matchId     String?       @unique
+  match       Match?        @relation(fields: [matchId], references: [id])
+  
+  // Status
+  status      ChallengeStatus @default(PENDING)
+  expiresAt   DateTime       @default(now()) // Auto-expire after 7 days
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  @@index([challengerId])
+  @@index([challengedId])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model Tournament {
