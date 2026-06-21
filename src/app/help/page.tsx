@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { HelpCircle, MessageCircle, Mail, Book, Users, Trophy } from 'lucide-react';
+import { HelpCircle, MessageCircle, Mail, Book, Users, Trophy, BarChart3, Sparkles } from 'lucide-react';
 
 // ============================================
 // Help Page
@@ -277,6 +277,118 @@ export default function HelpPage() {
               You may be banned or have a suspended account. Contact an admin if you believe this is
               an error.
             </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* ELO History & Stats */}
+      <section id="stats" className="mb-12 scroll-mt-20">
+        <h2 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+          <BarChart3 className="h-6 w-6 text-accent" />
+          ELO History & Statistics
+        </h2>
+
+        <div className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">How do I view my ELO history?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              Visit your profile page to see your ELO history chart. You can filter by timeframe:
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li><strong>Week</strong> - Last 10 matches</li>
+              <li><strong>Month</strong> - Last 30 matches</li>
+              <li><strong>Season</strong> - Last 50 matches</li>
+              <li><strong>All</strong> - Your entire ELO history</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">What does the ELO history chart show?</h3>
+            <p className="text-text-secondary text-sm">
+              The chart shows your ELO rating over time. Hover over any point to see the exact rating
+              and date. You&apos;ll also see your highest and lowest ELO during that period.
+            </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">How do I view head-to-head stats?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              On your profile page, click the sword icon next to any recent match opponent.
+              This shows your complete match history against that player.
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li>Total wins and losses against each opponent</li>
+              <li>Complete match history with scores and dates</li>
+              <li>Largest upset you&apos;ve had against them</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">What achievements have I unlocked?</h3>
+            <p className="text-text-secondary text-sm">
+              Your profile page shows all unlocked achievements with their tier (Bronze, Silver, Gold, Platinum).
+              Achievements are automatically checked and awarded after each match.
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* Sound Effects & Sharing */}
+      <section id="features" className="mb-12 scroll-mt-20">
+        <h2 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+          <Sparkles className="h-6 w-6 text-accent" />
+          Features & Feedback
+        </h2>
+
+        <div className="space-y-4">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">What sounds play during matches?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              PingElo includes sound effects to celebrate your victories:
+            </p>
+            <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
+              <li><strong>Victory sound</strong> - When you win a match</li>
+              <li><strong>Defeat sound</strong> - Softer sound for losses</li>
+              <li><strong>Bonus sound</strong> - For big wins (100+ ELO gain)</li>
+              <li><strong>Tier-up sound</strong> - When you cross into a new tier</li>
+              <li><strong>Milestone sound</strong> - For reaching streak milestones</li>
+            </ul>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">Can I share my match results?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              Yes! After logging a match, you&apos;ll see a &quot;Share Result&quot; button that copies a message to your clipboard.
+              Share your wins on social media or with friends!
+            </p>
+            <p className="text-sm text-text-secondary">
+              Example: &quot;🎉 Just won +25 ELO in ping pong! 🏓 Now ranked Gold!&quot;
+            </p>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="font-semibold mb-2">What is tier progression?</h3>
+            <p className="text-text-secondary text-sm mb-3">
+              Players are organized into tiers based on their ELO:
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-orange-500 font-bold">Bronze</div>
+                <div className="text-xs text-text-muted">&lt; 1100</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-gray-400 font-bold">Silver</div>
+                <div className="text-xs text-text-muted">1100-1299</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-yellow-500 font-bold">Gold</div>
+                <div className="text-xs text-text-muted">1300-1499</div>
+              </div>
+              <div className="p-2 bg-bg-secondary rounded text-center">
+                <div className="text-purple-500 font-bold">Platinum</div>
+                <div className="text-xs text-text-muted">1500+</div>
+              </div>
+            </div>
           </Card>
         </div>
       </section>

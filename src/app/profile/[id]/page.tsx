@@ -79,6 +79,7 @@ export default function ProfilePage() {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [eloHistory, setEloHistory] = useState<any[]>([]);
   const [eloStats, setEloStats] = useState<any>(null);
+  const [eloTimeframe, setEloTimeframe] = useState<'week' | 'month' | 'season' | 'all'>('month');
   const [headToHeadOpen, setHeadToHeadOpen] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
   const [headToHeadData, setHeadToHeadData] = useState<any>(null);
@@ -128,7 +129,8 @@ export default function ProfilePage() {
 
     async function fetchEloHistory() {
       try {
-        const res = await fetch(`/api/users/${params.id}/elo-history?limit=20`);
+        const limit = eloTimeframe === 'week' ? 10 : eloTimeframe === 'month' ? 30 : eloTimeframe === 'season' ? 50 : 100;
+        const res = await fetch(`/api/users/${params.id}/elo-history?limit=${limit}`);
         if (res.ok) {
           const data = await res.json();
           setEloHistory(data.history || []);
@@ -143,7 +145,7 @@ export default function ProfilePage() {
     fetchMatches();
     fetchAchievements();
     fetchEloHistory();
-  }, [params.id]);
+  }, [params.id, eloTimeframe]);
 
   // Fetch head-to-head when modal opens
   useEffect(() => {
@@ -314,13 +316,32 @@ export default function ProfilePage() {
                   <BarChart3 className="h-5 w-5 text-accent" />
                   ELO History
                 </h2>
-                {eloStats && (
-                  <div className="flex items-center gap-4 text-xs sm:text-sm">
-                    <span className="text-green-500">↑ {eloStats.highestElo}</span>
-                    <span className="text-red-500">↓ {eloStats.lowestElo}</span>
+                <div className="flex items-center gap-2">
+                  {/* Timeframe filters */}
+                  <div className="inline-flex h-8 items-center rounded-lg bg-bg-secondary p-1">
+                    {(['week', 'month', 'season', 'all'] as const).map((tf) => (
+                      <button
+                        key={tf}
+                        onClick={() => setEloTimeframe(tf)}
+                        className={`px-2 sm:px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                          eloTimeframe === tf
+                            ? 'bg-bg-primary text-text-primary shadow-sm'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        {tf.charAt(0).toUpperCase() + tf.slice(1)}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
+              {eloStats && (
+                <div className="flex items-center gap-4 text-xs sm:text-sm mb-4">
+                  <span className="text-green-500">↑ {eloStats.highestElo} High</span>
+                  <span className="text-red-500">↓ {eloStats.lowestElo} Low</span>
+                  <span className="text-text-secondary">{eloHistory.length} matches</span>
+                </div>
+              )}
               <div className="h-48 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={eloHistory} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>

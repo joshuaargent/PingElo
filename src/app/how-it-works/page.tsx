@@ -4,7 +4,7 @@ import { PageHero } from '@/components/layout/PageHero';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import Link from 'next/link';
-import { TrendingUp, Award, Trophy, Calendar, Users, Zap, Flame, Star, Swords, Activity, Target } from 'lucide-react';
+import { TrendingUp, Award, Trophy, Calendar, Users, Zap, Flame, Star, Swords, Activity, Target, Sparkles } from 'lucide-react';
 
 // ============================================
 // How It Works Page
@@ -34,6 +34,9 @@ export default function HowItWorksPage() {
               </a>
               <a href="#achievements" className="px-4 py-2 bg-bg-secondary rounded-lg text-sm hover:bg-bg-secondary/80 transition-colors">
                 Achievements
+              </a>
+              <a href="#sound-effects" className="px-4 py-2 bg-bg-secondary rounded-lg text-sm hover:bg-bg-secondary/80 transition-colors">
+                Sound & Share
               </a>
               <a href="#top-climber" className="px-4 py-2 bg-bg-secondary rounded-lg text-sm hover:bg-bg-secondary/80 transition-colors">
                 Top Climber
@@ -83,6 +86,39 @@ export default function HowItWorksPage() {
                 </div>
               </Card>
             </div>
+
+            {/* ELO History Feature */}
+            <Card className="p-6 mb-8 bg-accent/5 border-accent/20">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Activity className="h-6 w-6 text-accent" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Track Your Progress</h3>
+                  <p className="text-text-secondary text-sm mb-3">
+                    Your profile page shows an interactive ELO history chart. Filter by timeframe to see:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                    <div className="p-2 bg-bg-secondary rounded text-center">
+                      <div className="font-semibold">Week</div>
+                      <div className="text-xs text-text-muted">Last 10 matches</div>
+                    </div>
+                    <div className="p-2 bg-bg-secondary rounded text-center">
+                      <div className="font-semibold">Month</div>
+                      <div className="text-xs text-text-muted">Last 30 matches</div>
+                    </div>
+                    <div className="p-2 bg-bg-secondary rounded text-center">
+                      <div className="font-semibold">Season</div>
+                      <div className="text-xs text-text-muted">Last 50 matches</div>
+                    </div>
+                    <div className="p-2 bg-bg-secondary rounded text-center">
+                      <div className="font-semibold">All Time</div>
+                      <div className="text-xs text-text-muted">Full history</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
             <h3 className="text-lg font-semibold mb-4">Dynamic K-Factor</h3>
             <p className="text-text-secondary mb-6">
@@ -342,6 +378,46 @@ export default function HowItWorksPage() {
             <p className="text-sm text-text-secondary">
               View your achievements on your <Link href="/dashboard" className="text-accent hover:underline">dashboard</Link> or <Link href="/profile" className="text-accent hover:underline">profile page</Link>!
             </p>
+          </section>
+
+          {/* Sound Effects & Sharing Section */}
+          <section id="sound-effects" className="mb-16 scroll-mt-20">
+            <h2 className="text-xl sm:text-2xl font-bold text-text-primary mb-6">Sound Effects & Sharing</h2>
+            
+            <Card className="p-6 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-6 w-6 text-accent" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Celebrate Your Wins</h3>
+                  <p className="text-text-secondary text-sm mb-4">
+                    PingElo includes sound effects and sharing to make victories more rewarding:
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-bg-secondary rounded-lg">
+                      <div className="font-semibold mb-2">🔊 Sound Effects</div>
+                      <ul className="text-sm text-text-secondary space-y-1">
+                        <li><strong>Victory</strong> - Triumphant sound on wins</li>
+                        <li><strong>Defeat</strong> - Softer tone on losses</li>
+                        <li><strong>Bonus</strong> - Big wins (100+ ELO)</li>
+                        <li><strong>Tier Up</strong> - New tier reached</li>
+                        <li><strong>Milestone</strong> - Streak milestones</li>
+                      </ul>
+                    </div>
+                    <div className="p-4 bg-bg-secondary rounded-lg">
+                      <div className="font-semibold mb-2">📤 Share Results</div>
+                      <ul className="text-sm text-text-secondary space-y-1">
+                        <li>Copy match results to clipboard</li>
+                        <li>Share wins on social media</li>
+                        <li>Shows ELO gained and new tier</li>
+                        <li>One-click sharing after matches</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </section>
 
           {/* Top Climber Section */}
