@@ -139,40 +139,67 @@ export async function autoCompleteChallenges(
         const totalPayout = challenge.stakeAmount * 2;
         console.log('[autoCompleteChallenges] Total payout:', totalPayout);
 
-        // Get current ELO before update
-        const winner = await prisma.user.findUnique({
-          where: { id: winnerId },
-          select: { foreverElo: true },
-        });
-        console.log('[autoCompleteChallenges] Winner current ELO:', winner?.foreverElo);
+        let winnerBeforeElo = 0;
+        
+        try {
+          // Get current ELO before update
+          const winner = await prisma.user.findUnique({
+            where: { id: winnerId },
+            select: { foreverElo: true },
+          });
+          winnerBeforeElo = winner?.foreverElo || 0;
+          console.log('[autoCompleteChallenges] Winner current ELO:', winnerBeforeElo);
 
-        // Pay out to winner
-        await prisma.user.update({
-          where: { id: winnerId },
-          data: { foreverElo: { increment: totalPayout } },
-        });
-        console.log('[autoCompleteChallenges] Updated winner ELO');
+          // Pay out to winner
+          await prisma.user.update({
+            where: { id: winnerId },
+            data: { foreverElo: { increment: totalPayout } },
+          });
+          console.log('[autoCompleteChallenges] Updated winner ELO');
+        } catch (err) {
+          console.error('[autoCompleteChallenges] Error updating ELO:', err);
+          continue; // Skip this challenge if ELO update fails
+        }
 
-        // Record in ELO history
-        await prisma.eloHistory.create({
-          data: {
-            userId: winnerId,
-            changeType: 'CHALLENGE_WIN',
-            eloBefore: winner?.foreverElo || 0,
-            eloAfter: (winner?.foreverElo || 0) + totalPayout,
-            change: totalPayout,
-            description: `Challenge win vs ${winnerId === challenge.challengerId ? challenge.challenged.name : challenge.challenger.name}`,
-            metadata: { challengeId: challenge.id, stakeAmount: challenge.stakeAmount },
-          },
-        });
-        console.log('[autoCompleteChallenges] Created ELO history');
+        try {
+          // Record in ELO history
+          await prisma.eloHistory.create({
+            data: {
+              userId: winnerId,
+              changeType: 'CHALLENGE_WIN',
+              eloBefore: winnerBeforeElo,
+              eloAfter: winnerBeforeElo + totalPayout,
+              change: totalPayout,
+              description: `Challenge win vs ${winnerId === challenge.challengerId ? challenge.challenged.name : challenge.challenger.name}`,
+              metadata: { challengeId: challenge.id, stakeAmount: challenge.stakeAmount },
+            },
+          });
+          console.log('[autoCompleteChallenges] Created ELO history');
+        } catch (err) {
+          console.error('[autoCompleteChallenges] Error creating ELO history:', err);
+          // ELO was already paid out, but mark challenge complete anyway
+        }
 
-        // Mark challenge as completed
-        await prisma.challenge.update({
-          where: { id: challenge.id },
-          data: { status: 'COMPLETED', winnerId, matchId },
-        });
-        console.log('[autoCompleteChallenges] Marked challenge as COMPLETED');
+        try {
+          // Mark challenge as completed (matchId is unique, so only first challenge can use it)
+          await prisma.challenge.update({
+            where: { id: challenge.id },
+            data: { status: 'COMPLETED', winnerId, matchId },
+          });
+          console.log('[autoCompleteChallenges] Marked challenge as COMPLETED');
+        } catch (err: any) {
+          console.error('[autoCompleteChallenges] Error marking challenge complete:', err);
+          
+          // If unique constraint violation on matchId, still mark as completed but without matchId
+          if (err?.code === 'P2002' || err?.message?.includes('Unique constraint')) {
+            console.log('[autoCompleteChallenges] matchId already used, updating without matchId...');
+            await prisma.challenge.update({
+              where: { id: challenge.id },
+              data: { status: 'COMPLETED', winnerId },
+            });
+            console.log('[autoCompleteChallenges] Marked challenge as COMPLETED (no matchId)');
+          }
+        }
       }
     } else {
       // For ad hoc doubles (no official teams), skip team challenges entirely
