@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { TOURNAMENT_PRIZE_DISTRIBUTION } from "@/lib/elo";
+import { TOURNAMENT_PRIZE_DISTRIBUTION, calculateDoublesEloChange } from "@/lib/elo";
 import { autoCompleteChallenges, updateTeamStreaks } from "@/lib/match-helpers";
 
 export async function POST(
@@ -186,11 +186,81 @@ export async function POST(
       );
     }
 
-    // Simple ELO calculation
-    // K-factor
-    const k = 32;
-    const winnerChange = Math.round(k * 0.5); // Simplified: always +16
-    const loserChange = Math.round(k * -0.5); // Simplified: always -16
+    // Calculate ELO changes
+    let winnerChange: number;
+    let loserChange: number;
+    let individualChanges = { team1Player1: 0, team1Player2: 0, team2Player1: 0, team2Player2: 0 };
+
+    if (isDoubles) {
+      // Get individual player ELOs for proper calculation
+      const team1Data = await prisma.team.findUnique({
+        where: { id: player1Id },
+        include: { 
+          player1: { select: { id: true, doublesForeverElo: true } },
+          player2: { select: { id: true, doublesForeverElo: true } }
+        }
+      });
+      const team2Data = await prisma.team.findUnique({
+        where: { id: player2Id },
+        include: { 
+          player1: { select: { id: true, doublesForeverElo: true } },
+          player2: { select: { id: true, doublesForeverElo: true } }
+        }
+      });
+
+      if (team1Data && team2Data && team1Data.player2 && team2Data.player2) {
+        // Get games played for proper K factor calculation
+        const team1Player1Games = await prisma.user.findUnique({
+          where: { id: team1Data.player1Id },
+          select: { doublesMatchesPlayed: true }
+        });
+        const team1Player2Games = team1Data.player2Id 
+          ? await prisma.user.findUnique({
+              where: { id: team1Data.player2Id },
+              select: { doublesMatchesPlayed: true }
+            })
+          : null;
+        const team2Player1Games = await prisma.user.findUnique({
+          where: { id: team2Data.player1Id },
+          select: { doublesMatchesPlayed: true }
+        });
+        const team2Player2Games = team2Data.player2Id
+          ? await prisma.user.findUnique({
+              where: { id: team2Data.player2Id },
+              select: { doublesMatchesPlayed: true }
+            })
+          : null;
+
+        const eloResult = calculateDoublesEloChange(
+          team1Data.player1.doublesForeverElo,
+          team1Data.player2.doublesForeverElo,
+          team2Data.player1.doublesForeverElo,
+          team2Data.player2.doublesForeverElo,
+          team1Player1Games?.doublesMatchesPlayed || 0,
+          team1Player2Games?.doublesMatchesPlayed || 0,
+          team2Player1Games?.doublesMatchesPlayed || 0,
+          team2Player2Games?.doublesMatchesPlayed || 0,
+          winnerId === player1Id,
+          player1Score,
+          player2Score,
+          true // isTournament
+        );
+
+        winnerChange = eloResult.team1Change;
+        loserChange = eloResult.team2Change;
+        individualChanges = eloResult.individualChanges;
+      } else {
+        // Fallback to simple calculation
+        const k = 32;
+        winnerChange = Math.round(k * 0.5);
+        loserChange = Math.round(k * -0.5);
+      }
+    } else {
+      // Simple ELO calculation for singles
+      const k = 32;
+      winnerChange = Math.round(k * 0.5);
+      loserChange = Math.round(k * -0.5);
+    }
 
     // Create match record
     const matchData: any = {
@@ -232,34 +302,62 @@ export async function POST(
         where: { id: loser.id },
         data: { foreverElo: { increment: loserChange } },
       });
-      
-      // Update individual player weekly stats for doubles
+
+      // Get player IDs for individual updates
       const winnerTeam = await prisma.team.findUnique({
         where: { id: winnerId },
-        select: { player1Id: true, player2Id: true }
+        include: { player1: true, player2: true }
       });
       const loserTeam = await prisma.team.findUnique({
         where: { id: loser.id },
-        select: { player1Id: true, player2Id: true }
+        include: { player1: true, player2: true }
       });
-      
+
+      // Update individual doubles ELOs for tournament participants
       if (winnerTeam) {
-        for (const pid of [winnerTeam.player1Id, winnerTeam.player2Id].filter(Boolean)) {
+        if (winnerTeam.player1) {
           await prisma.user.update({
-            where: { id: pid! },
+            where: { id: winnerTeam.player1Id },
             data: {
+              doublesForeverElo: { increment: individualChanges.team1Player1 },
+              doublesSeasonElo: { increment: individualChanges.team1Player1 },
               weeklyDoublesMatches: { increment: 1 },
-              // Note: ELO changes are tracked on team, not individual players
+              weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team1Player1) },
+            },
+          });
+        }
+        if (winnerTeam.player2 && winnerTeam.player2Id) {
+          await prisma.user.update({
+            where: { id: winnerTeam.player2Id },
+            data: {
+              doublesForeverElo: { increment: individualChanges.team1Player2 },
+              doublesSeasonElo: { increment: individualChanges.team1Player2 },
+              weeklyDoublesMatches: { increment: 1 },
+              weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team1Player2) },
             },
           });
         }
       }
       if (loserTeam) {
-        for (const pid of [loserTeam.player1Id, loserTeam.player2Id].filter(Boolean)) {
+        if (loserTeam.player1) {
           await prisma.user.update({
-            where: { id: pid! },
+            where: { id: loserTeam.player1Id },
             data: {
+              doublesForeverElo: { increment: individualChanges.team2Player1 },
+              doublesSeasonElo: { increment: individualChanges.team2Player1 },
               weeklyDoublesMatches: { increment: 1 },
+              weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team2Player1) },
+            },
+          });
+        }
+        if (loserTeam.player2 && loserTeam.player2Id) {
+          await prisma.user.update({
+            where: { id: loserTeam.player2Id },
+            data: {
+              doublesForeverElo: { increment: individualChanges.team2Player2 },
+              doublesSeasonElo: { increment: individualChanges.team2Player2 },
+              weeklyDoublesMatches: { increment: 1 },
+              weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team2Player2) },
             },
           });
         }
@@ -407,39 +505,70 @@ export async function POST(
           });
           
           if (finalMatchRecord) {
-            const firstPlaceId = finalMatchRecord.winnerId;
-            const secondPlaceId = firstPlaceId === finalMatchRecord.player1Id 
+            const winnerId = finalMatchRecord.winnerId;
+            const loserId = winnerId === finalMatchRecord.player1Id 
               ? finalMatchRecord.player2Id 
               : finalMatchRecord.player1Id;
             
             // Distribute prizes for singles
             if (!isDoubles) {
               await prisma.user.update({
-                where: { id: firstPlaceId },
+                where: { id: winnerId },
                 data: { foreverElo: { increment: Math.floor(prizePool * first) } },
               });
-              if (secondPlaceId) {
+              if (loserId) {
                 await prisma.user.update({
-                  where: { id: secondPlaceId },
+                  where: { id: loserId },
                   data: { foreverElo: { increment: Math.floor(prizePool * second) } },
                 });
               }
             } else {
-              // For doubles: prizes go to team ELO only (not individual players)
+              // For doubles: prizes go to team ELO
               const firstPlacePrize = Math.floor(prizePool * first);
               const secondPlacePrize = Math.floor(prizePool * second);
 
+              // Look up team IDs for the winners
+              const firstPlaceParticipant = tournament.participants.find(p => p.id === winnerId);
+              const secondPlaceParticipant = loserId ? tournament.participants.find(p => p.id === loserId) : null;
+
               // Give first place team the prize
-              await prisma.team.update({
-                where: { id: firstPlaceId },
-                data: { foreverElo: { increment: firstPlacePrize } },
-              });
+              if (firstPlaceParticipant?.teamId) {
+                await prisma.team.update({
+                  where: { id: firstPlaceParticipant.teamId },
+                  data: { foreverElo: { increment: firstPlacePrize } },
+                });
+                
+                // Record team ELO history
+                await prisma.teamEloHistory.create({
+                  data: {
+                    teamId: firstPlaceParticipant.teamId,
+                    changeType: 'TOURNAMENT_PRIZE',
+                    eloBefore: firstPlaceParticipant.team?.foreverElo || 0,
+                    eloAfter: (firstPlaceParticipant.team?.foreverElo || 0) + firstPlacePrize,
+                    change: firstPlacePrize,
+                    description: `Tournament 1st place prize: ${tournament.name}`,
+                    metadata: { tournamentId, placement: 1 },
+                  },
+                });
+              }
 
               // Give second place team the prize
-              if (secondPlaceId) {
+              if (secondPlaceParticipant?.teamId) {
                 await prisma.team.update({
-                  where: { id: secondPlaceId },
+                  where: { id: secondPlaceParticipant.teamId },
                   data: { foreverElo: { increment: secondPlacePrize } },
+                });
+                
+                await prisma.teamEloHistory.create({
+                  data: {
+                    teamId: secondPlaceParticipant.teamId,
+                    changeType: 'TOURNAMENT_PRIZE',
+                    eloBefore: secondPlaceParticipant.team?.foreverElo || 0,
+                    eloAfter: (secondPlaceParticipant.team?.foreverElo || 0) + secondPlacePrize,
+                    change: secondPlacePrize,
+                    description: `Tournament 2nd place prize: ${tournament.name}`,
+                    metadata: { tournamentId, placement: 2 },
+                  },
                 });
               }
             }
@@ -455,18 +584,32 @@ export async function POST(
                 where: { id: semiBracket.matchId! },
               });
               if (semiMatch) {
-                const thirdPlaceId = semiMatch.winnerId;
-                if (!isDoubles) {
+                const thirdPlaceParticipantId = semiMatch.winnerId;
+                const thirdPlaceParticipant = tournament.participants.find(p => p.id === thirdPlaceParticipantId);
+                
+                if (!isDoubles && thirdPlaceParticipant?.userId) {
                   await prisma.user.update({
-                    where: { id: thirdPlaceId },
+                    where: { id: thirdPlaceParticipant.userId },
                     data: { foreverElo: { increment: Math.floor(prizePool * third) } },
                   });
-                } else {
-                  // Doubles 3rd place: prize goes to team ELO only
+                } else if (isDoubles && thirdPlaceParticipant?.teamId) {
+                  // Doubles 3rd place: prize goes to team ELO
                   const thirdPlacePrize = Math.floor(prizePool * third);
                   await prisma.team.update({
-                    where: { id: thirdPlaceId },
+                    where: { id: thirdPlaceParticipant.teamId },
                     data: { foreverElo: { increment: thirdPlacePrize } },
+                  });
+                  
+                  await prisma.teamEloHistory.create({
+                    data: {
+                      teamId: thirdPlaceParticipant.teamId,
+                      changeType: 'TOURNAMENT_PRIZE',
+                      eloBefore: thirdPlaceParticipant.team?.foreverElo || 0,
+                      eloAfter: (thirdPlaceParticipant.team?.foreverElo || 0) + thirdPlacePrize,
+                      change: thirdPlacePrize,
+                      description: `Tournament 3rd place prize: ${tournament.name}`,
+                      metadata: { tournamentId, placement: 3 },
+                    },
                   });
                 }
               }
