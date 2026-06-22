@@ -135,19 +135,23 @@ export async function autoCompleteChallenges(
 
       // Complete each challenge
       for (const challenge of challenges) {
+        console.log('[autoCompleteChallenges] Processing challenge:', challenge.id, 'winnerId:', winnerId);
         const totalPayout = challenge.stakeAmount * 2;
+        console.log('[autoCompleteChallenges] Total payout:', totalPayout);
 
         // Get current ELO before update
         const winner = await prisma.user.findUnique({
           where: { id: winnerId },
           select: { foreverElo: true },
         });
+        console.log('[autoCompleteChallenges] Winner current ELO:', winner?.foreverElo);
 
         // Pay out to winner
         await prisma.user.update({
           where: { id: winnerId },
           data: { foreverElo: { increment: totalPayout } },
         });
+        console.log('[autoCompleteChallenges] Updated winner ELO');
 
         // Record in ELO history
         await prisma.eloHistory.create({
@@ -161,12 +165,14 @@ export async function autoCompleteChallenges(
             metadata: { challengeId: challenge.id, stakeAmount: challenge.stakeAmount },
           },
         });
+        console.log('[autoCompleteChallenges] Created ELO history');
 
         // Mark challenge as completed
         await prisma.challenge.update({
           where: { id: challenge.id },
           data: { status: 'COMPLETED', winnerId, matchId },
         });
+        console.log('[autoCompleteChallenges] Marked challenge as COMPLETED');
       }
     } else {
       // For ad hoc doubles (no official teams), skip team challenges entirely
