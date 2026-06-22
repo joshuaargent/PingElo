@@ -1041,13 +1041,25 @@ export async function POST(request: NextRequest) {
         
         // Singles response with streak info
         // Auto-complete any active challenges between these players
-        await autoCompleteChallenges(
-          player1Id!,
-          player2Id!,
+        console.log('[match API] Calling autoCompleteChallenges for singles:', {
+          player1Id: player1Id,
+          player2Id: player2Id,
           winnerId,
-          singlesResult.match.id,
-          'SINGLES'
-        );
+          matchId: singlesResult.match.id
+        });
+        
+        // Run auto-complete challenges (outside transaction to avoid issues)
+        try {
+          await autoCompleteChallenges(
+            player1Id!,
+            player2Id!,
+            winnerId,
+            singlesResult.match.id,
+            'SINGLES'
+          );
+        } catch (err) {
+          console.error('[match API] Error auto-completing challenges:', err);
+        }
         
         // Log activity for match (non-blocking)
         prisma.activity.create({

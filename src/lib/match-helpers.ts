@@ -94,6 +94,8 @@ export async function autoCompleteChallenges(
   try {
     // For singles: check for non-team challenges between the two players
     if (matchType === 'SINGLES') {
+      console.log('[autoCompleteChallenges] Checking for singles challenges between', player1Id, 'and', player2Id, 'winner:', winnerId);
+      
       // Find pending NON-team challenges between these two players
       const challenges = await prisma.challenge.findMany({
         where: {
@@ -109,6 +111,27 @@ export async function autoCompleteChallenges(
           challenged: { select: { id: true, name: true } },
         },
       });
+      
+      console.log('[autoCompleteChallenges] Found', challenges.length, 'challenges');
+
+      if (challenges.length === 0) {
+        console.log('[autoCompleteChallenges] No challenges found. Checking database...');
+        // Debug: log what challenges exist in DB
+        const allChallenges = await prisma.challenge.findMany({
+          where: {
+            status: 'ACCEPTED',
+            isTeamChallenge: false,
+          },
+          select: {
+            id: true,
+            challengerId: true,
+            challengedId: true,
+            status: true,
+          },
+          take: 5,
+        });
+        console.log('[autoCompleteChallenges] Sample ACCEPTED challenges in DB:', allChallenges);
+      }
 
       // Complete each challenge
       for (const challenge of challenges) {
