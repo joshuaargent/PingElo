@@ -154,7 +154,7 @@ export default function LogMatchPage() {
     try {
       const body: any = {
         matchType,
-        player1Score: p1Score,
+        player1Score: maxScore, // Player 1 always wins
         player2Score: p2Score,
         maxScore,
       };
@@ -706,7 +706,7 @@ export default function LogMatchPage() {
                   </div>
                 </div>
                 <p className="text-center text-sm text-text-muted mt-4">
-                  Player 1 wins by default. Enter Player 2's score (must be {maxScore - 1} or less)
+                  Player 1 wins by default. Enter Player 2&apos;s score (must be {maxScore - 1} or less)
                 </p>
               </Card>
             </div>

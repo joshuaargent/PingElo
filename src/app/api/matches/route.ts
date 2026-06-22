@@ -249,11 +249,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate scores
-    if (player1Score < MIN_SCORE || player1Score > MAX_SCORE ||
-        player2Score < MIN_SCORE || player2Score > MAX_SCORE) {
+    // Validate scores for casual matches
+    // player1Score is the winner's score (maxScore), player2Score is the loser's score
+    // For casual play, the winner is assumed to have reached maxScore
+    if (player1Score < MIN_SCORE || player1Score > MAX_SCORE) {
       return NextResponse.json(
-        { error: `Scores must be between ${MIN_SCORE} and ${MAX_SCORE}` },
+        { error: `Winner score must be between ${MIN_SCORE} and ${MAX_SCORE}` },
+        { status: 400 }
+      );
+    }
+    
+    // Loser score should be 0 or higher, and definitely less than winner
+    if (player2Score < 0 || player2Score >= player1Score) {
+      return NextResponse.json(
+        { error: `Loser score must be 0 or higher and less than winner score` },
         { status: 400 }
       );
     }
