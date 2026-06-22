@@ -91,6 +91,9 @@ export interface EloChangeResult {
   player2Expected: number;
   marginMultiplier: number;
   explanation: EloExplanation;
+  // Season-specific changes (based on season games played)
+  player1SeasonChange: number;
+  player2SeasonChange: number;
 }
 
 export interface DoublesEloResult {
@@ -99,6 +102,13 @@ export interface DoublesEloResult {
   team1NewElo: number;
   team2NewElo: number;
   individualChanges: {
+    team1Player1: number;
+    team1Player2: number;
+    team2Player1: number;
+    team2Player2: number;
+  };
+  // Season-specific individual changes
+  individualSeasonChanges: {
     team1Player1: number;
     team1Player2: number;
     team2Player1: number;
@@ -315,10 +325,12 @@ export function getMarginLabel(margin: number): string {
  * 
  * @param player1Elo - Current ELO of player 1
  * @param player2Elo - Current ELO of player 2
- * @param player1GamesPlayed - Number of games player 1 has played
- * @param player2GamesPlayed - Number of games player 2 has played
+ * @param player1GamesPlayed - Number of forever games player 1 has played
+ * @param player2GamesPlayed - Number of forever games player 2 has played
  * @param matchResult - Score and winner information
  * @param isTournament - Whether this is a tournament match
+ * @param player1SeasonGames - Number of season games player 1 has played (optional, defaults to forever games)
+ * @param player2SeasonGames - Number of season games player 2 has played (optional, defaults to forever games)
  * @returns Detailed ELO change results
  */
 export function calculateEloChange(
@@ -327,9 +339,11 @@ export function calculateEloChange(
   player1GamesPlayed: number,
   player2GamesPlayed: number,
   matchResult: MatchResult,
-  isTournament: boolean = false
+  isTournament: boolean = false,
+  player1SeasonGames?: number,
+  player2SeasonGames?: number
 ): EloChangeResult {
-  // Get K-factors for each player
+  // Get K-factors for each player (based on forever games)
   const k1 = getKFactor(player1GamesPlayed);
   const k2 = getKFactor(player2GamesPlayed);
 
@@ -348,14 +362,13 @@ export function calculateEloChange(
     isTournament
   );
 
-  // Calculate raw ELO changes
+  // Calculate raw ELO changes (for forever ELO)
   const rawChange1 = k1 * (actual1 - expected1);
   const rawChange2 = k2 * (actual2 - expected2);
 
-  // Apply margin multiplier to the winner's gain
-  const multiplierEffect = marginMultiplier;
-  const player1Change = Math.round(rawChange1 * multiplierEffect);
-  const player2Change = Math.round(rawChange2 * multiplierEffect);
+  // Apply margin multiplier
+  const player1Change = Math.round(rawChange1 * marginMultiplier);
+  const player2Change = Math.round(rawChange2 * marginMultiplier);
 
   // Calculate new ELOs
   const player1NewElo = player1Elo + player1Change;
@@ -371,8 +384,18 @@ export function calculateEloChange(
     actual2,
     marginMultiplier,
     isTournament,
-    calculation: `${k1} × (${actual1} - ${expected1.toFixed(2)}) × ${multiplierEffect} = ${player1Change}`,
+    calculation: `${k1} × (${actual1} - ${expected1.toFixed(2)}) × ${marginMultiplier} = ${player1Change}`,
   };
+
+  // Calculate season changes with season-specific K factors
+  const seasonGames1 = player1SeasonGames ?? player1GamesPlayed;
+  const seasonGames2 = player2SeasonGames ?? player2GamesPlayed;
+  const seasonK1 = getKFactor(seasonGames1);
+  const seasonK2 = getKFactor(seasonGames2);
+  const rawSeasonChange1 = seasonK1 * (actual1 - expected1);
+  const rawSeasonChange2 = seasonK2 * (actual2 - expected2);
+  const player1SeasonChange = Math.round(rawSeasonChange1 * marginMultiplier);
+  const player2SeasonChange = Math.round(rawSeasonChange2 * marginMultiplier);
 
   return {
     player1Change,
@@ -383,6 +406,8 @@ export function calculateEloChange(
     player2Expected: expected2,
     marginMultiplier,
     explanation,
+    player1SeasonChange,
+    player2SeasonChange,
   };
 }
 
@@ -453,7 +478,11 @@ export function calculateDoublesEloChange(
   team1Won: boolean,
   winnerScore: number,
   loserScore: number,
-  isTournament: boolean = false
+  isTournament: boolean = false,
+  team1Player1SeasonGames?: number,
+  team1Player2SeasonGames?: number,
+  team2Player1SeasonGames?: number,
+  team2Player2SeasonGames?: number
 ): DoublesEloResult {
   // Calculate team ELOs (average of both players)
   const team1Elo = getTeamElo(team1Player1Elo, team1Player2Elo);
@@ -532,6 +561,42 @@ export function calculateDoublesEloChange(
     team2Player2Change = Math.round(team2Change * (1 + (team2Weight2 - 0.5) * 0.1));
   }
 
+  // Calculate season individual changes
+  const s1 = team1Player1SeasonGames ?? team1Player1Games;
+  const s2 = team1Player2SeasonGames ?? team1Player2Games;
+  const s3 = team2Player1SeasonGames ?? team2Player1Games;
+  const s4 = team2Player2SeasonGames ?? team2Player2Games;
+
+  const seasonTotal1 = s1 + s2;
+  const seasonTotal2 = s3 + s4;
+
+  let team1Player1SeasonChange: number;
+  let team1Player2SeasonChange: number;
+  let team2Player1SeasonChange: number;
+  let team2Player2SeasonChange: number;
+
+  if (team1Won) {
+    const t1w1 = seasonTotal1 > 0 ? (seasonTotal1 - s1) / seasonTotal1 : 0.5;
+    const t1w2 = seasonTotal1 > 0 ? (seasonTotal1 - s2) / seasonTotal1 : 0.5;
+    const t2w1 = seasonTotal2 > 0 ? (seasonTotal2 - s3) / seasonTotal2 : 0.5;
+    const t2w2 = seasonTotal2 > 0 ? (seasonTotal2 - s4) / seasonTotal2 : 0.5;
+
+    team1Player1SeasonChange = Math.round(team1Change * (1 + (t1w1 - 0.5) * 0.1));
+    team1Player2SeasonChange = Math.round(team1Change * (1 + (t1w2 - 0.5) * 0.1));
+    team2Player1SeasonChange = Math.round(team2Change * (1 + (t2w1 - 0.5) * 0.1));
+    team2Player2SeasonChange = Math.round(team2Change * (1 + (t2w2 - 0.5) * 0.1));
+  } else {
+    const t1w1 = seasonTotal1 > 0 ? s1 / seasonTotal1 : 0.5;
+    const t1w2 = seasonTotal1 > 0 ? s2 / seasonTotal1 : 0.5;
+    const t2w1 = seasonTotal2 > 0 ? s3 / seasonTotal2 : 0.5;
+    const t2w2 = seasonTotal2 > 0 ? s4 / seasonTotal2 : 0.5;
+
+    team1Player1SeasonChange = Math.round(team1Change * (1 + (t1w1 - 0.5) * 0.1));
+    team1Player2SeasonChange = Math.round(team1Change * (1 + (t1w2 - 0.5) * 0.1));
+    team2Player1SeasonChange = Math.round(team2Change * (1 + (t2w1 - 0.5) * 0.1));
+    team2Player2SeasonChange = Math.round(team2Change * (1 + (t2w2 - 0.5) * 0.1));
+  }
+
   return {
     team1Change,
     team2Change,
@@ -542,6 +607,12 @@ export function calculateDoublesEloChange(
       team1Player2: team1Player2Change,
       team2Player1: team2Player1Change,
       team2Player2: team2Player2Change,
+    },
+    individualSeasonChanges: {
+      team1Player1: team1Player1SeasonChange,
+      team1Player2: team1Player2SeasonChange,
+      team2Player1: team2Player1SeasonChange,
+      team2Player2: team2Player2SeasonChange,
     },
   };
 }

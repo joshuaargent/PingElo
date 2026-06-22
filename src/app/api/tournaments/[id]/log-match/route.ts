@@ -190,6 +190,9 @@ export async function POST(
     let winnerChange: number;
     let loserChange: number;
     let individualChanges = { team1Player1: 0, team1Player2: 0, team2Player1: 0, team2Player2: 0 };
+    let individualSeasonChanges = { team1Player1: 0, team1Player2: 0, team2Player1: 0, team2Player2: 0 };
+    let player1SeasonChange = 0;
+    let player2SeasonChange = 0;
 
     if (isDoubles) {
       // Get individual player ELOs for proper calculation
@@ -249,6 +252,7 @@ export async function POST(
         winnerChange = eloResult.team1Change;
         loserChange = eloResult.team2Change;
         individualChanges = eloResult.individualChanges;
+        individualSeasonChanges = eloResult.individualSeasonChanges;
       } else {
         // Fallback to simple calculation
         const k = 32;
@@ -261,7 +265,7 @@ export async function POST(
       const user2 = tournament.participants.find(p => p.userId === player2Id)?.user;
 
       if (user1 && user2) {
-        // Get games played for proper K factor
+        // Get games played for proper K factor (both forever and season)
         const player1Games = await prisma.user.findUnique({
           where: { id: player1Id },
           select: { matchesPlayed: true }
@@ -284,9 +288,13 @@ export async function POST(
         if (winnerId === player1Id) {
           winnerChange = eloResult.player1Change;
           loserChange = eloResult.player2Change;
+          player1SeasonChange = eloResult.player1SeasonChange;
+          player2SeasonChange = eloResult.player2SeasonChange;
         } else {
           winnerChange = eloResult.player2Change;
           loserChange = eloResult.player1Change;
+          player1SeasonChange = eloResult.player2SeasonChange;
+          player2SeasonChange = eloResult.player1SeasonChange;
         }
       } else {
         // Fallback
@@ -354,7 +362,8 @@ export async function POST(
             where: { id: winnerTeam.player1Id },
             data: {
               doublesForeverElo: { increment: individualChanges.team1Player1 },
-              doublesSeasonElo: { increment: individualChanges.team1Player1 },
+              doublesSeasonElo: { increment: individualSeasonChanges.team1Player1 },
+              doublesMatchesPlayed: { increment: 1 },
               weeklyDoublesMatches: { increment: 1 },
               weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team1Player1) },
             },
@@ -365,7 +374,8 @@ export async function POST(
             where: { id: winnerTeam.player2Id },
             data: {
               doublesForeverElo: { increment: individualChanges.team1Player2 },
-              doublesSeasonElo: { increment: individualChanges.team1Player2 },
+              doublesSeasonElo: { increment: individualSeasonChanges.team1Player2 },
+              doublesMatchesPlayed: { increment: 1 },
               weeklyDoublesMatches: { increment: 1 },
               weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team1Player2) },
             },
@@ -378,7 +388,8 @@ export async function POST(
             where: { id: loserTeam.player1Id },
             data: {
               doublesForeverElo: { increment: individualChanges.team2Player1 },
-              doublesSeasonElo: { increment: individualChanges.team2Player1 },
+              doublesSeasonElo: { increment: individualSeasonChanges.team2Player1 },
+              doublesMatchesPlayed: { increment: 1 },
               weeklyDoublesMatches: { increment: 1 },
               weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team2Player1) },
             },
@@ -389,7 +400,8 @@ export async function POST(
             where: { id: loserTeam.player2Id },
             data: {
               doublesForeverElo: { increment: individualChanges.team2Player2 },
-              doublesSeasonElo: { increment: individualChanges.team2Player2 },
+              doublesSeasonElo: { increment: individualSeasonChanges.team2Player2 },
+              doublesMatchesPlayed: { increment: 1 },
               weeklyDoublesMatches: { increment: 1 },
               weeklyDoublesEloGained: { increment: Math.max(0, individualChanges.team2Player2) },
             },
@@ -397,12 +409,12 @@ export async function POST(
         }
       }
     } else {
-      // Update user ELOs
+      // Update user ELOs with both forever and season changes
       await prisma.user.update({
         where: { id: winnerId },
         data: { 
           foreverElo: { increment: winnerChange },
-          seasonElo: { increment: winnerChange },
+          seasonElo: { increment: winnerId === player1Id ? player1SeasonChange : player2SeasonChange },
           matchesPlayed: { increment: 1 },
           weeklySinglesMatches: { increment: 1 },
           weeklySinglesEloGained: { increment: Math.max(0, winnerChange) },
@@ -412,7 +424,7 @@ export async function POST(
         where: { id: loser.id },
         data: { 
           foreverElo: { increment: loserChange },
-          seasonElo: { increment: loserChange },
+          seasonElo: { increment: loser.id === player1Id ? player1SeasonChange : player2SeasonChange },
           matchesPlayed: { increment: 1 },
           weeklySinglesMatches: { increment: 1 },
           weeklySinglesEloGained: { increment: Math.max(0, loserChange) },
