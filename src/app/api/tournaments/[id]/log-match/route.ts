@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSessionOrUnauthorized } from "@/lib/auth-actions";
-import { TOURNAMENT_PRIZE_DISTRIBUTION, calculateDoublesEloChange } from "@/lib/elo";
+import { TOURNAMENT_PRIZE_DISTRIBUTION, calculateEloChange, calculateDoublesEloChange } from "@/lib/elo";
 import { autoCompleteChallenges, updateTeamStreaks } from "@/lib/match-helpers";
 
 export async function POST(
@@ -256,10 +256,44 @@ export async function POST(
         loserChange = Math.round(k * -0.5);
       }
     } else {
-      // Simple ELO calculation for singles
-      const k = 32;
-      winnerChange = Math.round(k * 0.5);
-      loserChange = Math.round(k * -0.5);
+      // Proper ELO calculation for singles using the standard formula
+      const user1 = tournament.participants.find(p => p.userId === player1Id)?.user;
+      const user2 = tournament.participants.find(p => p.userId === player2Id)?.user;
+
+      if (user1 && user2) {
+        // Get games played for proper K factor
+        const player1Games = await prisma.user.findUnique({
+          where: { id: player1Id },
+          select: { matchesPlayed: true }
+        });
+        const player2Games = await prisma.user.findUnique({
+          where: { id: player2Id },
+          select: { matchesPlayed: true }
+        });
+
+        const eloResult = calculateEloChange(
+          user1.foreverElo,
+          user2.foreverElo,
+          player1Games?.matchesPlayed || 0,
+          player2Games?.matchesPlayed || 0,
+          { player1Score, player2Score, winnerId: winnerId === player1Id ? "player1" : "player2" },
+          true // isTournament
+        );
+
+        // Assign changes based on who actually won
+        if (winnerId === player1Id) {
+          winnerChange = eloResult.player1Change;
+          loserChange = eloResult.player2Change;
+        } else {
+          winnerChange = eloResult.player2Change;
+          loserChange = eloResult.player1Change;
+        }
+      } else {
+        // Fallback
+        const k = 32;
+        winnerChange = Math.round(k * 0.5);
+        loserChange = Math.round(k * -0.5);
+      }
     }
 
     // Create match record
