@@ -182,6 +182,7 @@ export async function autoCompleteChallenges(
 
         try {
           // Mark challenge as completed (matchId is unique, so only first challenge can use it)
+          console.log('[autoCompleteChallenges] Updating challenge:', challenge.id, 'with matchId:', matchId, 'winnerId:', winnerId);
           await prisma.challenge.update({
             where: { id: challenge.id },
             data: { status: 'COMPLETED', winnerId, matchId },
@@ -189,6 +190,8 @@ export async function autoCompleteChallenges(
           console.log('[autoCompleteChallenges] Marked challenge as COMPLETED');
         } catch (err: any) {
           console.error('[autoCompleteChallenges] Error marking challenge complete:', err);
+          console.error('[autoCompleteChallenges] Error code:', err?.code);
+          console.error('[autoCompleteChallenges] Error message:', err?.message);
           
           // If unique constraint violation on matchId, still mark as completed but without matchId
           if (err?.code === 'P2002' || err?.message?.includes('Unique constraint')) {
@@ -198,6 +201,18 @@ export async function autoCompleteChallenges(
               data: { status: 'COMPLETED', winnerId },
             });
             console.log('[autoCompleteChallenges] Marked challenge as COMPLETED (no matchId)');
+          } else {
+            // Try one more time without matchId
+            console.log('[autoCompleteChallenges] Trying to update without matchId...');
+            try {
+              await prisma.challenge.update({
+                where: { id: challenge.id },
+                data: { status: 'COMPLETED', winnerId },
+              });
+              console.log('[autoCompleteChallenges] Marked challenge as COMPLETED (no matchId)');
+            } catch (err2: any) {
+              console.error('[autoCompleteChallenges] Still failed:', err2);
+            }
           }
         }
       }
