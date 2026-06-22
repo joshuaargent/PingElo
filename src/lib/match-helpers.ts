@@ -182,42 +182,46 @@ export async function autoCompleteChallenges(
 
       for (const challenge of challenges) {
         const totalPayout = challenge.stakeAmount * 2;
+        const opponentName = winnerId === challenge.challengerId ? challenge.challenged.name : challenge.challenger.name;
 
-        // Find the winner among the team members
-        const winnerPlayerId = winnerTeam.find(id => 
-          challenge.challengerId === id || challenge.challengedId === id
-        ) || winnerId;
+        // Determine winning team
+        const isChallengerTeamWinning = winnerTeam.some(id => challenge.challengerId === id);
+        const winningTeamId = isChallengerTeamWinning ? challenge.team1Id : challenge.team2Id;
 
-        // Get current ELO before update
-        const winner = await prisma.user.findUnique({
-          where: { id: winnerPlayerId },
-          select: { foreverElo: true },
-        });
+        if (winningTeamId) {
+          // Pay out to winning team
+          const team = await prisma.team.findUnique({
+            where: { id: winningTeamId },
+            select: { foreverElo: true, name: true },
+          });
 
-        // Pay out to winner
-        await prisma.user.update({
-          where: { id: winnerPlayerId },
-          data: { foreverElo: { increment: totalPayout } },
-        });
+          if (team) {
+            // Update team ELO
+            await prisma.team.update({
+              where: { id: winningTeamId },
+              data: { foreverElo: { increment: totalPayout } },
+            });
 
-        // Record in ELO history
-        await prisma.eloHistory.create({
-          data: {
-            userId: winnerPlayerId,
-            changeType: 'CHALLENGE_WIN',
-            eloBefore: winner?.foreverElo || 0,
-            eloAfter: (winner?.foreverElo || 0) + totalPayout,
-            change: totalPayout,
-            description: `Team challenge win vs ${winnerPlayerId === challenge.challengerId ? challenge.challenged.name : challenge.challenger.name}`,
-            metadata: { challengeId: challenge.id, stakeAmount: challenge.stakeAmount, matchType: 'TEAM_DOUBLES' },
-          },
-        });
+            // Record team ELO history
+            await prisma.teamEloHistory.create({
+              data: {
+                teamId: winningTeamId,
+                changeType: 'CHALLENGE_WIN',
+                eloBefore: team.foreverElo,
+                eloAfter: team.foreverElo + totalPayout,
+                change: totalPayout,
+                description: `Team challenge win vs ${opponentName}`,
+                metadata: { challengeId: challenge.id, stakeAmount: challenge.stakeAmount, matchType: 'TEAM_DOUBLES' },
+              },
+            });
+          }
 
-        // Mark challenge as completed
-        await prisma.challenge.update({
-          where: { id: challenge.id },
-          data: { status: 'COMPLETED', winnerId: winnerPlayerId, matchId },
-        });
+          // Mark challenge as completed
+          await prisma.challenge.update({
+            where: { id: challenge.id },
+            data: { status: 'COMPLETED', winnerId, matchId },
+          });
+        }
       }
     }
   } catch (error) {

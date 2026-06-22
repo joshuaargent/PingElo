@@ -87,28 +87,76 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge has expired" }, { status: 400 });
         }
 
-        // Deduct stake ELO from challenged user (they must also put up matching stake)
-        await prisma.user.update({
-          where: { id: challenge.challengedId },
-          data: { foreverElo: { decrement: challenge.stakeAmount } },
-        });
+        // Handle team vs individual challenge
+        if (challenge.isTeamChallenge && challenge.team2Id) {
+          // Get challenged team
+          const challengedTeam = await prisma.team.findUnique({
+            where: { id: challenge.team2Id },
+            include: { player1: true, player2: true }
+          });
 
-        // Record in ELO history
-        const challengedBefore = await prisma.user.findUnique({
-          where: { id: challenge.challengedId },
-          select: { foreverElo: true },
-        });
-        
-        await prisma.eloHistory.create({
-          data: {
-            userId: challenge.challengedId,
-            changeType: 'ADMIN_ADJUSTMENT',
-            eloBefore: (challengedBefore?.foreverElo || 0) + challenge.stakeAmount,
-            eloAfter: challengedBefore?.foreverElo || 0,
-            change: -challenge.stakeAmount,
-            description: `Challenge accepted vs ${challenge.challengerId}`,
-          },
-        });
+          if (!challengedTeam) {
+            return NextResponse.json({ error: "Team not found" }, { status: 404 });
+          }
+
+          // Check if challenged user is on the team
+          if (challengedTeam.player1Id !== userId && challengedTeam.player2Id !== userId) {
+            return NextResponse.json({ error: "You must be on the team being challenged" }, { status: 403 });
+          }
+
+          // Check team ELO
+          if (challengedTeam.foreverElo < challenge.stakeAmount) {
+            return NextResponse.json({ error: `Your team has ${challengedTeam.foreverElo} ELO but needs ${challenge.stakeAmount} ELO for the stake` }, { status: 400 });
+          }
+
+          // Deduct stake from team
+          await prisma.team.update({
+            where: { id: challenge.team2Id },
+            data: { foreverElo: { decrement: challenge.stakeAmount } },
+          });
+
+          // Get challenger name for history
+          const challengerUser = await prisma.user.findUnique({
+            where: { id: challenge.challengerId },
+            select: { name: true },
+          });
+
+          // Record team ELO history
+          await prisma.teamEloHistory.create({
+            data: {
+              teamId: challenge.team2Id,
+              changeType: 'CHALLENGE_STAKE',
+              eloBefore: challengedTeam.foreverElo,
+              eloAfter: challengedTeam.foreverElo - challenge.stakeAmount,
+              change: -challenge.stakeAmount,
+              description: `Challenge accepted vs ${challengerUser?.name || 'opponent'}`,
+            },
+          });
+        } else {
+          // Individual challenge
+          // Deduct stake ELO from challenged user (they must also put up matching stake)
+          await prisma.user.update({
+            where: { id: challenge.challengedId },
+            data: { foreverElo: { decrement: challenge.stakeAmount } },
+          });
+
+          // Record in ELO history
+          const challengedBefore = await prisma.user.findUnique({
+            where: { id: challenge.challengedId },
+            select: { foreverElo: true },
+          });
+          
+          await prisma.eloHistory.create({
+            data: {
+              userId: challenge.challengedId,
+              changeType: 'ADMIN_ADJUSTMENT',
+              eloBefore: (challengedBefore?.foreverElo || 0) + challenge.stakeAmount,
+              eloAfter: challengedBefore?.foreverElo || 0,
+              change: -challenge.stakeAmount,
+              description: `Challenge accepted vs ${challenge.challengerId}`,
+            },
+          });
+        }
 
         const updated = await prisma.challenge.update({
           where: { id },
@@ -130,23 +178,53 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge is not pending" }, { status: 400 });
         }
 
-        // Refund stake ELO to challenger
-        const challengerBefore = await prisma.user.update({
-          where: { id: challenge.challengerId },
-          data: { foreverElo: { increment: challenge.stakeAmount } },
-        });
-        
-        // Record refund in ELO history for challenger
-        await prisma.eloHistory.create({
-          data: {
-            userId: challenge.challengerId,
-            changeType: 'ADMIN_ADJUSTMENT',
-            eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
-            eloAfter: challengerBefore.foreverElo,
-            change: challenge.stakeAmount,
-            description: `Challenge declined - stake refunded`,
-          },
-        });
+        // Handle team vs individual challenge for refund
+        if (challenge.isTeamChallenge && challenge.team1Id) {
+          // Refund to challenger team
+          const challengerTeam = await prisma.team.findUnique({
+            where: { id: challenge.team1Id },
+          });
+
+          if (challengerTeam) {
+            await prisma.team.update({
+              where: { id: challenge.team1Id },
+              data: { foreverElo: { increment: challenge.stakeAmount } },
+            });
+
+            const challengedUser = await prisma.user.findUnique({
+              where: { id: challenge.challengedId },
+              select: { name: true },
+            });
+
+            await prisma.teamEloHistory.create({
+              data: {
+                teamId: challenge.team1Id,
+                changeType: 'CHALLENGE_REFUND',
+                eloBefore: challengerTeam.foreverElo,
+                eloAfter: challengerTeam.foreverElo + challenge.stakeAmount,
+                change: challenge.stakeAmount,
+                description: `Challenge declined by ${challengedUser?.name || 'opponent'} - refund`,
+              },
+            });
+          }
+        } else {
+          // Individual refund
+          const challengerBefore = await prisma.user.update({
+            where: { id: challenge.challengerId },
+            data: { foreverElo: { increment: challenge.stakeAmount } },
+          });
+          
+          await prisma.eloHistory.create({
+            data: {
+              userId: challenge.challengerId,
+              changeType: 'ADMIN_ADJUSTMENT',
+              eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
+              eloAfter: challengerBefore.foreverElo,
+              change: challenge.stakeAmount,
+              description: `Challenge declined - stake refunded`,
+            },
+          });
+        }
 
         const updated = await prisma.challenge.update({
           where: { id },
@@ -168,41 +246,101 @@ export async function PATCH(
           return NextResponse.json({ error: "Challenge cannot be cancelled" }, { status: 400 });
         }
 
-        // Refund stake ELO to challenger
-        const challengerBefore = await prisma.user.update({
-          where: { id: challenge.challengerId },
-          data: { foreverElo: { increment: challenge.stakeAmount } },
-        });
-        
-        // Record refund in ELO history for challenger
-        await prisma.eloHistory.create({
-          data: {
-            userId: challenge.challengerId,
-            changeType: 'ADMIN_ADJUSTMENT',
-            eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
-            eloAfter: challengerBefore.foreverElo,
-            change: challenge.stakeAmount,
-            description: `Challenge cancelled - stake refunded`,
-          },
-        });
+        // Handle team vs individual challenge for refund
+        if (challenge.isTeamChallenge && challenge.team1Id) {
+          // Refund to challenger team
+          const challengerTeam = await prisma.team.findUnique({
+            where: { id: challenge.team1Id },
+          });
 
-        // If challenge was ACCEPTED, also refund the challenged player's stake
-        if (challenge.status === "ACCEPTED") {
-          const challengedBefore = await prisma.user.update({
-            where: { id: challenge.challengedId },
+          if (challengerTeam) {
+            await prisma.team.update({
+              where: { id: challenge.team1Id },
+              data: { foreverElo: { increment: challenge.stakeAmount } },
+            });
+
+            const challengedUser = await prisma.user.findUnique({
+              where: { id: challenge.challengedId },
+              select: { name: true },
+            });
+
+            await prisma.teamEloHistory.create({
+              data: {
+                teamId: challenge.team1Id,
+                changeType: 'CHALLENGE_REFUND',
+                eloBefore: challengerTeam.foreverElo,
+                eloAfter: challengerTeam.foreverElo + challenge.stakeAmount,
+                change: challenge.stakeAmount,
+                description: `Challenge cancelled - refund to challenger team`,
+              },
+            });
+          }
+
+          // If challenge was ACCEPTED, also refund the challenged team
+          if (challenge.status === "ACCEPTED" && challenge.team2Id) {
+            const challengedTeam = await prisma.team.findUnique({
+              where: { id: challenge.team2Id },
+            });
+
+            if (challengedTeam) {
+              await prisma.team.update({
+                where: { id: challenge.team2Id },
+                data: { foreverElo: { increment: challenge.stakeAmount } },
+              });
+
+              const challengerUser = await prisma.user.findUnique({
+                where: { id: challenge.challengerId },
+                select: { name: true },
+              });
+
+              await prisma.teamEloHistory.create({
+                data: {
+                  teamId: challenge.team2Id,
+                  changeType: 'CHALLENGE_REFUND',
+                  eloBefore: challengedTeam.foreverElo,
+                  eloAfter: challengedTeam.foreverElo + challenge.stakeAmount,
+                  change: challenge.stakeAmount,
+                  description: `Challenge cancelled - refund to challenged team by ${challengerUser?.name || 'opponent'}`,
+                },
+              });
+            }
+          }
+        } else {
+          // Individual refund
+          const challengerBefore = await prisma.user.update({
+            where: { id: challenge.challengerId },
             data: { foreverElo: { increment: challenge.stakeAmount } },
           });
           
           await prisma.eloHistory.create({
             data: {
-              userId: challenge.challengedId,
+              userId: challenge.challengerId,
               changeType: 'ADMIN_ADJUSTMENT',
-              eloBefore: challengedBefore.foreverElo - challenge.stakeAmount,
-              eloAfter: challengedBefore.foreverElo,
+              eloBefore: challengerBefore.foreverElo - challenge.stakeAmount,
+              eloAfter: challengerBefore.foreverElo,
               change: challenge.stakeAmount,
               description: `Challenge cancelled - stake refunded`,
             },
           });
+
+          // If challenge was ACCEPTED, also refund the challenged player's stake
+          if (challenge.status === "ACCEPTED") {
+            const challengedBefore = await prisma.user.update({
+              where: { id: challenge.challengedId },
+              data: { foreverElo: { increment: challenge.stakeAmount } },
+            });
+            
+            await prisma.eloHistory.create({
+              data: {
+                userId: challenge.challengedId,
+                changeType: 'ADMIN_ADJUSTMENT',
+                eloBefore: challengedBefore.foreverElo - challenge.stakeAmount,
+                eloAfter: challengedBefore.foreverElo,
+                change: challenge.stakeAmount,
+                description: `Challenge cancelled - stake refunded`,
+              },
+            });
+          }
         }
 
         const updated = await prisma.challenge.update({
