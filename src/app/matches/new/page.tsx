@@ -114,11 +114,12 @@ export default function LogMatchPage() {
   const handleSubmit = async () => {
     if (!session?.user) return;
     
-    const p1Score = parseInt(player1Score);
-    const p2Score = parseInt(player2Score);
+    const p1Score = parseInt(player1Score) || 0;
+    const p2Score = parseInt(player2Score) || 0;
     
-    if (isNaN(p1Score) || isNaN(p2Score) || p1Score < 0 || p2Score < 0) {
-      setError('Please enter valid scores');
+    // Validate: winner (maxScore) is valid, loser score is valid
+    if (isNaN(p2Score) || p2Score < 0 || p2Score >= maxScore) {
+      setError(`Loser score must be between 0 and ${maxScore - 1}`);
       return;
     }
 
