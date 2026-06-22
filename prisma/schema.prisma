@@ -391,6 +391,7 @@ model Challenge {
   // Match result
   matchId     String?       @unique
   match       Match?        @relation(fields: [matchId], references: [id])
+  winnerId    String?       // Winner of the challenge (after completion)
   
   // Status
   status      ChallengeStatus @default(PENDING)
